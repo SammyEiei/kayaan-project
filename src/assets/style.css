@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+@layer base {
+  :root {
+    --color-primary: #f8fafc;
+    --color-secondary: #d8dfe8;
+
+    --color-text-base: #1e293b;
+    --color-text-alt: #555d68;
+    --color-text-muted: #eaedf1; /* 64748b */
+
+    --color-text-gold: #eab308;
+    --color-text-silver: #94a3b8;
+    --color-text-bronze: #ea580c;
+
+    --color-card-primary: #ffffff;
+    --color-card-secondary: #eeeff0;
+
+    --color-button-primary: #667284;
+    --color-button-primary-hover: #334155;
+    --color-button-muted: #64748b;
+    --color-button-muted-hover: #475569;
+  }
+
+  .dark {
+    --color-primary: #0f172a;
+    --color-secondary: #1e293b;
+
+    --color-text-base: #f8fafc;
+    --color-text-alt: #e2e8f0;
+    --color-text-muted: #94a3b8;
+    --color-text-gold: #eab308;
+    --color-text-silver: #cbd5e1;
+    --color-text-bronze: #ea580c;
+
+    --color-card-primary: #1e293b;
+    --color-card-secondary: #334155;
+
+    --color-button-primary: #64748b;
+    --color-button-primary-hover: #94a3b8;
+    --color-button-muted: #475569;
+    --color-button-muted-hover: #64748b;
+  }
+}
