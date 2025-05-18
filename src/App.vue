@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import { RouterView } from 'vue-router'
+import Employee from './components/Employee.vue'
+
+
+
 </script>
+
+
 
 <template>
   <div class="flex min-h-screen w-full bg-gray-50">
@@ -92,5 +98,8 @@ import { RouterView } from 'vue-router'
         <RouterView />
       </main>
     </div>
+  </div>
+  <div id="app">
+    <Employee />
   </div>
 </template>
