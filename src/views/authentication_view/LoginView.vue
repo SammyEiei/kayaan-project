@@ -27,12 +27,15 @@ const login = () => {
         <!-- Logo and Title -->
         <div class="text-center">
           <div class="flex justify-center">
-            <div
-              class="flex items-center justify-center w-12 h-12 bg-blue-600 text-white rounded-xl text-2xl font-bold"
-            >
-              K
-            </div>
+            <router-link to="/" class="flex items-center">
+              <div
+                class="flex items-center justify-center w-12 h-12 bg-blue-600 text-white rounded-xl text-2xl font-bold"
+              >
+                K
+              </div>
+            </router-link>
           </div>
+
           <h2 class="mt-6 text-3xl font-extrabold text-gray-900">Welcome to Kayaan</h2>
           <p class="mt-2 text-sm text-gray-600">Your personal productivity companion</p>
         </div>
