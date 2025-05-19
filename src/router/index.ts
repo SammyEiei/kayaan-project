@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import HomeView from '../views/HomeView.vue'
+import HomeView from '../views/welcome_view/HomeView.vue'
 // import HomeView from '../views/HomeView.vue'
 
 const router = createRouter({
@@ -16,7 +16,7 @@ const router = createRouter({
       // route level code-splitting
       // this generates a separate chunk (About.[hash].js) for this route
       // which is lazy-loaded when the route is visited.
-      component: () => import('../views/AboutView.vue'),
+      component: () => import('../views/welcome_view/AboutView.vue'),
     },
     {
       path: '/contact',
@@ -26,47 +26,47 @@ const router = createRouter({
     {
       path: '/login',
       name: 'login',
-      component: () => import('../views/LoginView.vue'),
+      component: () => import('../views/authentication_view/LoginView.vue'),
     },
     {
       path: '/register',
       name: 'register',
-      component: () => import('../views/RegisterView.vue'),
+      component: () => import('../views/authentication_view/RegisterView.vue'),
     },
     {
       path: '/dashboard',
       name: 'dashboard',
-      component: () => import('../views/DashboardView.vue'),
+      component: () => import('../views/features_view/DashboardView.vue'),
     },
     {
       path: '/study-groups',
       name: 'study-groups',
-      component: () => import('../views/StudyGroupView.vue'),
+      component: () => import('../views/features_view/StudyGroupView.vue'),
     },
     {
       path: '/flashcards',
       name: 'flashcards',
-      component: () => import('../views/FlashcardView.vue'),
+      component: () => import('../views/features_view/FlashcardView.vue'),
     },
     {
       path: '/pomodoro',
       name: 'pomodoro',
-      component: () => import('../views/PomodoroView.vue'),
+      component: () => import('../views/features_view/PomodoroView.vue'),
     },
     {
       path: '/settings',
       name: 'settings',
-      component: () => import('../views/SettingsView.vue'),
+      component: () => import('../views/features_view/SettingsView.vue'),
     },
     {
       path: '/resources',
       name: 'resources',
-      component: () => import('../views/ResourceLibraryView.vue'),
+      component: () => import('../views/features_view/ResourceLibraryView.vue'),
     },
     {
       path: '/calendar',
       name: 'calendar',
-      component: () => import('../views/CalendarView.vue'),
+      component: () => import('../views/features_view/CalendarView.vue'),
     },
   ],
 })
