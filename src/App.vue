@@ -12,108 +12,81 @@ const isAuthPage = computed(() => {
 
 
 <template>
-  <div class="flex min-h-screen w-full bg-gray-50">
-    <!-- Sidebar (Currently commented out) -->
-    <!-- <aside class="bg-white shadow-md w-64 min-w-64 flex flex-col border-r border-gray-200">
-      <div class="flex items-center p-5 border-b border-gray-200">
-        <router-link to="/dashboard" class="flex items-center cursor-pointer">
-          <div
-            class="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-xl mr-3 text-lg font-bold shadow-sm"
-          >
-            K
-          </div>
-          <h1
-            class="text-xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent"
-          >
-            Kayaan
-          </h1>
-        </router-link>
-      </div>
-      <nav class="mt-6 px-4 flex-1"></nav>
-      <nav class="px-4 pb-4 border-t border-gray-200"></nav>
-    </aside> -->
+  <div class="flex flex-col min-h-screen bg-gray-50">
+    <!-- Header -->
+    <header
+      v-if="!isAuthPage"
+      class="bg-white shadow-sm py-3 px-6 flex justify-between items-center border-b border-gray-200"
+    >
+      <!-- Logo -->
+      <router-link to="/" class="flex items-center">
+        <div
+          class="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-md mr-2 text-sm font-bold shadow-sm"
+        >
+          K
+        </div>
+        <h1
+          class="text-lg font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent"
+        >
+          Kayaan
+        </h1>
+      </router-link>
 
-    <!-- Main Content Area -->
-    <div class="flex flex-col flex-1 h-screen overflow-y-auto">
-      <!-- Header -->
-      <header
-        v-if="!isAuthPage"
-        class="bg-white shadow-sm py-3 px-6 flex justify-between items-center border-b border-gray-200"
+      <!-- Navigation/Auth Buttons -->
+      <nav class="flex items-center space-x-4">
+        <router-link to="/login" class="text-gray-700 hover:text-blue-600">Sign in</router-link>
+        <router-link
+          to="/register"
+          class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200"
+          >Sign up</router-link
+        >
+        <!-- Theme Toggle Button Placeholder -->
+        <button class="p-2 rounded-md hover:bg-gray-100">
+          <svg
+            class="w-5 h-5 text-gray-700"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
+            ></path>
+          </svg>
+        </button>
+      </nav>
+    </header>
+
+    <!-- Main Content -->
+    <RouterView />
+
+    <!-- Footer -->
+    <footer v-if="!isAuthPage" class="py-8 px-6 bg-white text-gray-600 text-sm">
+      <div
+        class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0"
       >
-        <!-- Logo -->
         <div class="flex items-center">
           <div
-            class="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-md mr-2 text-sm font-bold shadow-sm"
+            class="flex items-center justify-center w-6 h-6 bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-md mr-2 text-xs font-bold"
           >
             K
           </div>
-          <h1
-            class="text-lg font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent"
+          <span
+            class="font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent"
+            >Kayaan</span
           >
-            Kayaan
-          </h1>
         </div>
-
-        <!-- Navigation/Auth Buttons -->
-        <nav class="flex items-center space-x-4">
-          <router-link to="/login" class="text-gray-700 hover:text-blue-600">Sign in</router-link>
-          <router-link
-            to="/register"
-            class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200"
-            >Sign up</router-link
-          >
-          <!-- Theme Toggle Button Placeholder -->
-          <button class="p-2 rounded-md hover:bg-gray-100">
-            <svg
-              class="w-5 h-5 text-gray-700"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
-              ></path>
-            </svg>
-          </button>
-        </nav>
-      </header>
-
-      <!-- Page Content -->
-      <main class="flex-grow p-6 bg-gray-50">
-        <div class="max-w-7xl mx-auto">
-          <RouterView />
+        <div class="flex space-x-4">
+          <a href="#" class="hover:text-blue-600">Terms of Service</a>
+          <a href="#" class="hover:text-blue-600">Privacy</a>
+          <a href="#" class="hover:text-blue-600">Contact</a>
         </div>
-      </main>
-
-      <!-- Footer -->
-      <footer v-if="!isAuthPage" class="py-8 px-6 bg-white text-gray-600 text-sm">
-        <div
-          class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0"
-        >
-          <div class="flex items-center">
-            <div
-              class="flex items-center justify-center w-6 h-6 bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-md mr-2 text-xs font-bold"
-            >
-              K
-            </div>
-            <span
-              class="font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent"
-              >Kayaan</span
-            >
-          </div>
-          <div class="flex space-x-4">
-            <a href="#" class="hover:text-blue-600">Terms of Service</a>
-            <a href="#" class="hover:text-blue-600">Privacy</a>
-            <a href="#" class="hover:text-blue-600">Contact</a>
-          </div>
-          <div>© 2023 Kayaan Learning. All rights reserved.</div>
-        </div>
-      </footer>
-    </div>
+        <div>© 2023 Kayaan Learning. All rights reserved.</div>
+      </div>
+    </footer>
   </div>
   <div id="app">
     <Employee />
