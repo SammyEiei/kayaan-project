@@ -1,27 +1,42 @@
 <script setup lang="ts">
-// Import necessary components or methods for registration
-import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useForm } from 'vee-validate'
+import * as yup from 'yup'
+import axios from 'axios'
 
-const email = ref('')
-const password = ref('')
-const confirmPassword = ref('')
-const username = ref('')
 const router = useRouter()
 
-const register = () => {
-  // Logic for registration
-  console.log('Registering...', {
-    email: email.value,
-    password: password.value,
-    username: username.value,
-  })
+// สร้าง schema สำหรับ validation
+const schema = yup.object({
+  name: yup.string().required('Name is required'),
+  email: yup.string().email('Please enter a valid email').required('Email is required'),
+  password: yup
+    .string()
+    .min(6, 'Password must be at least 6 characters')
+    .required('Password is required'),
+  confirmPassword: yup
+    .string()
+    .oneOf([yup.ref('password')], 'Passwords do not match')
+    .required('Please confirm your password'),
+})
 
-  // Simulating successful registration
-  setTimeout(() => {
+// ใช้ useForm จาก vee-validate
+const { handleSubmit, errors, values } = useForm({
+  validationSchema: schema,
+})
+
+// ฟังก์ชันสำหรับการลงทะเบียน
+const register = handleSubmit(async (values) => {
+  try {
+    const response = await axios.post('/api/auth/register', values)
+    console.log('Registration successful:', response.data)
+    alert('Registration successful')
     router.push('/login')
-  }, 1000)
-}
+  } catch (error) {
+    console.error('Registration failed:', error)
+    alert('Registration failed: ' + (error.response?.data?.message || 'An error occurred'))
+  }
+})
 </script>
 
 <template>
@@ -46,40 +61,37 @@ const register = () => {
         </div>
 
         <!-- Register Form -->
-        <form class="mt-8 space-y-6" @submit.prevent="register">
+        <form class="mt-8 space-y-6" @submit="register">
           <div class="rounded-md shadow-sm space-y-4">
-            <!-- Username -->
             <div>
-              <label for="username" class="sr-only">Username</label>
+              <label for="name" class="sr-only">Full name</label>
               <div class="relative">
                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <svg
                     class="h-5 w-5 text-gray-400"
                     xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
                   >
                     <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                      fill-rule="evenodd"
+                      d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                      clip-rule="evenodd"
                     />
                   </svg>
                 </div>
                 <input
-                  id="username"
-                  v-model="username"
+                  id="name"
+                  name="name"
                   type="text"
-                  required
+                  v-model="values.name"
                   class="appearance-none relative block w-full pl-10 px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                  placeholder="Username"
+                  placeholder="Full name"
                 />
               </div>
+              <p v-if="errors.name" class="mt-1 text-sm text-red-600">{{ errors.name }}</p>
             </div>
 
-            <!-- Email -->
             <div>
               <label for="email" class="sr-only">Email address</label>
               <div class="relative">
@@ -98,16 +110,16 @@ const register = () => {
                 </div>
                 <input
                   id="email"
-                  v-model="email"
+                  name="email"
                   type="email"
-                  required
+                  v-model="values.email"
                   class="appearance-none relative block w-full pl-10 px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
                   placeholder="Email address"
                 />
               </div>
+              <p v-if="errors.email" class="mt-1 text-sm text-red-600">{{ errors.email }}</p>
             </div>
 
-            <!-- Password -->
             <div>
               <label for="password" class="sr-only">Password</label>
               <div class="relative">
@@ -127,18 +139,18 @@ const register = () => {
                 </div>
                 <input
                   id="password"
-                  v-model="password"
+                  name="password"
                   type="password"
-                  required
+                  v-model="values.password"
                   class="appearance-none relative block w-full pl-10 px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
                   placeholder="Password"
                 />
               </div>
+              <p v-if="errors.password" class="mt-1 text-sm text-red-600">{{ errors.password }}</p>
             </div>
 
-            <!-- Confirm Password -->
             <div>
-              <label for="confirm-password" class="sr-only">Confirm Password</label>
+              <label for="confirmPassword" class="sr-only">Confirm Password</label>
               <div class="relative">
                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <svg
@@ -155,14 +167,17 @@ const register = () => {
                   </svg>
                 </div>
                 <input
-                  id="confirm-password"
-                  v-model="confirmPassword"
+                  id="confirmPassword"
+                  name="confirmPassword"
                   type="password"
-                  required
+                  v-model="values.confirmPassword"
                   class="appearance-none relative block w-full pl-10 px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
                   placeholder="Confirm Password"
                 />
               </div>
+              <p v-if="errors.confirmPassword" class="mt-1 text-sm text-red-600">
+                {{ errors.confirmPassword }}
+              </p>
             </div>
           </div>
 
@@ -180,12 +195,12 @@ const register = () => {
                 >
                   <path
                     fill-rule="evenodd"
-                    d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                    d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
                     clip-rule="evenodd"
                   />
                 </svg>
               </span>
-              Create Account
+              Sign up
             </button>
           </div>
         </form>
@@ -205,7 +220,7 @@ const register = () => {
     <div class="hidden lg:block lg:w-1/2 bg-gradient-to-br from-blue-600 to-blue-800">
       <div class="h-full flex flex-col justify-center px-12 py-12">
         <div class="max-w-lg mx-auto">
-          <h2 class="text-3xl font-bold text-white mb-8">Start Your Productivity Journey</h2>
+          <h2 class="text-3xl font-bold text-white mb-8">Start Your Journey</h2>
 
           <!-- Feature List -->
           <div class="space-y-6">
@@ -227,9 +242,9 @@ const register = () => {
                 </svg>
               </div>
               <div class="ml-3">
-                <h3 class="text-lg font-medium text-white">Personalized Learning</h3>
+                <h3 class="text-lg font-medium text-white">Smart Task Management</h3>
                 <p class="mt-1 text-blue-100">
-                  Get a customized learning experience tailored to your needs
+                  Organize your tasks efficiently with our intuitive interface
                 </p>
               </div>
             </div>
@@ -252,9 +267,9 @@ const register = () => {
                 </svg>
               </div>
               <div class="ml-3">
-                <h3 class="text-lg font-medium text-white">Track Your Progress</h3>
+                <h3 class="text-lg font-medium text-white">Pomodoro Timer</h3>
                 <p class="mt-1 text-blue-100">
-                  Monitor your learning journey with detailed analytics
+                  Stay focused with our built-in Pomodoro technique timer
                 </p>
               </div>
             </div>
@@ -277,8 +292,10 @@ const register = () => {
                 </svg>
               </div>
               <div class="ml-3">
-                <h3 class="text-lg font-medium text-white">Join Study Groups</h3>
-                <p class="mt-1 text-blue-100">Connect with other learners and study together</p>
+                <h3 class="text-lg font-medium text-white">Study Groups</h3>
+                <p class="mt-1 text-blue-100">
+                  Collaborate with others in study groups for better learning
+                </p>
               </div>
             </div>
           </div>

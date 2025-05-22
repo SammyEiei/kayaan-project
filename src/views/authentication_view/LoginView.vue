@@ -2,21 +2,38 @@
 // Import necessary components or methods for login
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useForm } from 'vee-validate'
+import * as yup from 'yup'
+import axios from 'axios'
 
-const email = ref('')
-const password = ref('')
 const router = useRouter()
 
-const login = () => {
-  // Logic for login
-  console.log('Logging in...', { email: email.value, password: password.value })
+// สร้าง schema สำหรับ validation
+const schema = yup.object({
+  email: yup.string().email('Please enter a valid email').required('Email is required'),
+  password: yup
+    .string()
+    .min(6, 'Password must be at least 6 characters')
+    .required('Password is required'),
+})
 
-  // Simulating successful login
-  // ในโปรเจคจริง ควรตรวจสอบข้อมูลล็อกอินกับ API แล้วนำทางไปที่ dashboard หลังจากล็อกอินสำเร็จ
-  setTimeout(() => {
+// ใช้ useForm จาก vee-validate
+const { handleSubmit, errors, values } = useForm({
+  validationSchema: schema,
+})
+
+// ฟังก์ชันสำหรับการ login
+const login = handleSubmit(async (values) => {
+  try {
+    const response = await axios.post('/api/auth/login', values)
+    console.log('Login successful:', response.data)
+    alert('Login successful')
     router.push('/dashboard')
-  }, 1000)
-}
+  } catch (error) {
+    console.error('Login failed:', error)
+    alert('Login failed: ' + (error.response?.data?.message || 'An error occurred'))
+  }
+})
 </script>
 
 <template>
@@ -41,7 +58,7 @@ const login = () => {
         </div>
 
         <!-- Login Form -->
-        <form class="mt-8 space-y-6" @submit.prevent="login">
+        <form class="mt-8 space-y-6" @submit="login">
           <div class="rounded-md shadow-sm space-y-4">
             <div>
               <label for="email" class="sr-only">Email address</label>
@@ -61,13 +78,14 @@ const login = () => {
                 </div>
                 <input
                   id="email"
-                  v-model="email"
+                  name="email"
                   type="email"
-                  required
+                  v-model="values.email"
                   class="appearance-none relative block w-full pl-10 px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
                   placeholder="Email address"
                 />
               </div>
+              <p v-if="errors.email" class="mt-1 text-sm text-red-600">{{ errors.email }}</p>
             </div>
             <div>
               <label for="password" class="sr-only">Password</label>
@@ -88,13 +106,14 @@ const login = () => {
                 </div>
                 <input
                   id="password"
-                  v-model="password"
+                  name="password"
                   type="password"
-                  required
+                  v-model="values.password"
                   class="appearance-none relative block w-full pl-10 px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
                   placeholder="Password"
                 />
               </div>
+              <p v-if="errors.password" class="mt-1 text-sm text-red-600">{{ errors.password }}</p>
             </div>
           </div>
 
