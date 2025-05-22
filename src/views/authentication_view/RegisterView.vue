@@ -3,8 +3,11 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useForm } from 'vee-validate'
 import * as yup from 'yup'
-import api from '@/services/api'
+import { useAuthStore } from '@/stores/auth';
+import { register as registerApi } from '@/service/authService';
 
+
+const authStore = useAuthStore();
 const router = useRouter()
 const isLoading = ref(false)
 const serverError = ref('')
@@ -29,26 +32,44 @@ const { handleSubmit, errors, values } = useForm({
 })
 
 // Register function
-const register = handleSubmit(async (values) => {
+// const register = handleSubmit(async (values) => {
+//   try {
+//     isLoading.value = true
+//     serverError.value = ''
+
+//     const response = await api.post('/v1/auth/register', values)
+//     const { token } = response.data
+
+//     // Store token in localStorage
+//     localStorage.setItem('token', token)
+
+//     alert('Registration successful')
+//     router.push('/home')
+//   } catch (error) {
+//     console.error('Registration failed:', error)
+//     serverError.value = error.response?.data?.message || 'An error occurred during registration'
+//   } finally {
+//     isLoading.value = false
+//   }
+// })
+async function onRegister(vals) {
   try {
-    isLoading.value = true
-    serverError.value = ''
-
-    const response = await api.post('/v1/auth/register', values)
-    const { token } = response.data
-
-    // Store token in localStorage
-    localStorage.setItem('token', token)
-
-    alert('Registration successful')
-    router.push('/home')
-  } catch (error) {
-    console.error('Registration failed:', error)
-    serverError.value = error.response?.data?.message || 'An error occurred during registration'
-  } finally {
-    isLoading.value = false
+    const res = await registerApi({
+      firstName: vals.firstName,
+      lastName: vals.lastName,
+      email: vals.email,
+      password: vals.password,
+    });
+    // HTTP 200/201: res.data.accessToken is present
+    authStore.token = res.data.accessToken;
+    localStorage.setItem('token', authStore.token);
+    router.push({ name: 'dashboard' });
+  } catch (err) {
+    // e.g. 409 Conflict => email already used
+    serverError.value = err.response?.data?.message
+      || 'Registration failed.';
   }
-})
+}
 </script>
 
 <template>

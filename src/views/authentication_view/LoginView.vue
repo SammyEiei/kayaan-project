@@ -4,8 +4,9 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useForm } from 'vee-validate'
 import * as yup from 'yup'
-import api from '@/services/api'
+import { useAuthStore } from '@/stores/auth';
 
+const authStore = useAuthStore();
 const router = useRouter()
 const isLoading = ref(false)
 const serverError = ref('')
@@ -25,26 +26,45 @@ const { handleSubmit, errors, values } = useForm({
 })
 
 // ฟังก์ชันสำหรับการ login
-const login = handleSubmit(async (values) => {
-  try {
-    isLoading.value = true
-    serverError.value = ''
+// const login = handleSubmit(async (values) => {
+//   try {
+//     isLoading.value = true
+//     serverError.value = ''
 
-    const response = await api.post('/v1/auth/authenticate', values)
-    const { token } = response.data
+//     const response = await api.post('/v1/auth/authenticate', values)
+//     const { token } = response.data
 
-    // Store token in localStorage
-    localStorage.setItem('token', token)
+//     // Store token in localStorage
+//     localStorage.setItem('token', token)
 
-    alert('Login successful')
-    router.push('/home')
-  } catch (error) {
-    console.error('Login failed:', error)
-    serverError.value = error.response?.data?.message || 'An error occurred during login'
-  } finally {
-    isLoading.value = false
+//     alert('Login successful')
+//     router.push('/home')
+//   } catch (error) {
+//     console.error('Login failed:', error)
+//     serverError.value = error.response?.data?.message || 'An error occurred during login'
+//   } finally {
+//     isLoading.value = false
+//   }
+// })
+const login = handleSubmit(async (vals) => {
+  isLoading.value = true;
+  serverError.value = '';
+  const success = await authStore.login({
+    username: vals.email,
+    password: vals.password
+  });
+  isLoading.value = false;
+
+  if (success) {
+    // — user registered/logged in successfully
+    // e.g. show a success toast, then…
+    router.push({ name: 'dashboard' });
+  } else {
+    // — login failed (bad credentials, server error)
+    serverError.value = 'Invalid email or password.';
   }
-})
+});
+
 </script>
 
 <template>
