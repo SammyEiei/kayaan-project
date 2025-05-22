@@ -1,12 +1,15 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useForm } from 'vee-validate'
 import * as yup from 'yup'
-import axios from 'axios'
+import api from '@/services/api'
 
 const router = useRouter()
+const isLoading = ref(false)
+const serverError = ref('')
 
-// สร้าง schema สำหรับ validation
+// Create validation schema
 const schema = yup.object({
   name: yup.string().required('Name is required'),
   email: yup.string().email('Please enter a valid email').required('Email is required'),
@@ -20,21 +23,30 @@ const schema = yup.object({
     .required('Please confirm your password'),
 })
 
-// ใช้ useForm จาก vee-validate
+// Use vee-validate form
 const { handleSubmit, errors, values } = useForm({
   validationSchema: schema,
 })
 
-// ฟังก์ชันสำหรับการลงทะเบียน
+// Register function
 const register = handleSubmit(async (values) => {
   try {
-    const response = await axios.post('/api/auth/register', values)
-    console.log('Registration successful:', response.data)
+    isLoading.value = true
+    serverError.value = ''
+
+    const response = await api.post('/v1/auth/register', values)
+    const { token } = response.data
+
+    // Store token in localStorage
+    localStorage.setItem('token', token)
+
     alert('Registration successful')
-    router.push('/login')
+    router.push('/home')
   } catch (error) {
     console.error('Registration failed:', error)
-    alert('Registration failed: ' + (error.response?.data?.message || 'An error occurred'))
+    serverError.value = error.response?.data?.message || 'An error occurred during registration'
+  } finally {
+    isLoading.value = false
   }
 })
 </script>
@@ -58,6 +70,24 @@ const register = handleSubmit(async (values) => {
 
           <h2 class="mt-6 text-3xl font-extrabold text-gray-900">Create your account</h2>
           <p class="mt-2 text-sm text-gray-600">Join Kayaan and boost your productivity</p>
+        </div>
+
+        <!-- Server Error Message -->
+        <div v-if="serverError" class="rounded-md bg-red-50 p-4">
+          <div class="flex">
+            <div class="flex-shrink-0">
+              <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                <path
+                  fill-rule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+            </div>
+            <div class="ml-3">
+              <p class="text-sm text-red-700">{{ serverError }}</p>
+            </div>
+          </div>
         </div>
 
         <!-- Register Form -->
@@ -85,6 +115,7 @@ const register = handleSubmit(async (values) => {
                   name="name"
                   type="text"
                   v-model="values.name"
+                  :disabled="isLoading"
                   class="appearance-none relative block w-full pl-10 px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
                   placeholder="Full name"
                 />
@@ -113,6 +144,7 @@ const register = handleSubmit(async (values) => {
                   name="email"
                   type="email"
                   v-model="values.email"
+                  :disabled="isLoading"
                   class="appearance-none relative block w-full pl-10 px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
                   placeholder="Email address"
                 />
@@ -142,6 +174,7 @@ const register = handleSubmit(async (values) => {
                   name="password"
                   type="password"
                   v-model="values.password"
+                  :disabled="isLoading"
                   class="appearance-none relative block w-full pl-10 px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
                   placeholder="Password"
                 />
@@ -171,6 +204,7 @@ const register = handleSubmit(async (values) => {
                   name="confirmPassword"
                   type="password"
                   v-model="values.confirmPassword"
+                  :disabled="isLoading"
                   class="appearance-none relative block w-full pl-10 px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
                   placeholder="Confirm Password"
                 />
@@ -184,9 +218,32 @@ const register = handleSubmit(async (values) => {
           <div>
             <button
               type="submit"
-              class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+              :disabled="isLoading"
+              class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <span class="absolute left-0 inset-y-0 flex items-center pl-3">
+              <span v-if="isLoading" class="absolute left-0 inset-y-0 flex items-center pl-3">
+                <svg
+                  class="animate-spin h-5 w-5 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    class="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    stroke-width="4"
+                  ></circle>
+                  <path
+                    class="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+              </span>
+              <span v-else class="absolute left-0 inset-y-0 flex items-center pl-3">
                 <svg
                   class="h-5 w-5 text-blue-500 group-hover:text-blue-400"
                   xmlns="http://www.w3.org/2000/svg"
@@ -200,7 +257,7 @@ const register = handleSubmit(async (values) => {
                   />
                 </svg>
               </span>
-              Sign up
+              {{ isLoading ? 'Creating account...' : 'Sign up' }}
             </button>
           </div>
         </form>
