@@ -11,12 +11,10 @@ export interface AuthPayload {
   password: string;
 }
 
-export function register(payload: RegisterPayload) {
-  return api.post('/auth/register', payload);
-}
+export const register = (payload: RegisterPayload) =>
+  api.post('/auth/register', payload);
 
 // authService.ts
-export function login(payload: AuthPayload) {
-  return api.post<{ accessToken: string }>('/auth/authenticate', payload);
-}
+export const login = (payload: AuthPayload) =>
+  api.post('/auth/authenticate', payload);
 

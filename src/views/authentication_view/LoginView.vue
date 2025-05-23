@@ -1,15 +1,15 @@
 <script setup lang="ts">
 // Import necessary components or methods for login
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { useForm } from 'vee-validate'
-import * as yup from 'yup'
+import { ref } from 'vue';
+import { useRouter } from 'vue-router';
+import { useForm } from 'vee-validate';
+import * as yup from 'yup';
 import { useAuthStore } from '@/stores/auth';
 
 const authStore = useAuthStore();
-const router = useRouter()
-const isLoading = ref(false)
-const serverError = ref('')
+const router = useRouter();
+const isLoading = ref(false);
+const serverError = ref('');
 
 // สร้าง schema สำหรับ validation
 const schema = yup.object({
@@ -107,7 +107,7 @@ const login = handleSubmit(async (vals) => {
         </div>
 
         <!-- Login Form -->
-        <form class="mt-8 space-y-6" @submit="login">
+        <form class="mt-8 space-y-6" @submit.prevent="login" novalidate>
           <div class="rounded-md shadow-sm space-y-4">
             <div>
               <label for="email" class="sr-only">Email address</label>

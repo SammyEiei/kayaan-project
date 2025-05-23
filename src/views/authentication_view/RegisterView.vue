@@ -14,8 +14,10 @@ const serverError = ref('')
 
 // Create validation schema
 const schema = yup.object({
-  name: yup.string().required('Name is required'),
+  firstName: yup.string().required('First name is required'),
+  lastName:  yup.string().required('Last name is required'),
   email: yup.string().email('Please enter a valid email').required('Email is required'),
+  userName: yup.string().required('User name is required'),
   password: yup
     .string()
     .min(6, 'Password must be at least 6 characters')
@@ -24,6 +26,7 @@ const schema = yup.object({
     .string()
     .oneOf([yup.ref('password')], 'Passwords do not match')
     .required('Please confirm your password'),
+  user_created: yup.date()
 })
 
 // Use vee-validate form
@@ -52,24 +55,26 @@ const { handleSubmit, errors, values } = useForm({
 //     isLoading.value = false
 //   }
 // })
-async function onRegister(vals) {
+const register = handleSubmit(async (vals) => {
+  isLoading.value = true;
+  serverError.value = '';
+
   try {
-    const res = await registerApi({
+    const { data } = await registerApi({
       firstName: vals.firstName,
-      lastName: vals.lastName,
-      email: vals.email,
-      password: vals.password,
+      lastName:  vals.lastName,
+      email:     vals.email,
+      password:  vals.password,
     });
-    // HTTP 200/201: res.data.accessToken is present
-    authStore.token = res.data.accessToken;
-    localStorage.setItem('token', authStore.token);
+    authStore.token = data.accessToken;
+    localStorage.setItem('token', data.accessToken);
     router.push({ name: 'dashboard' });
-  } catch (err) {
-    // e.g. 409 Conflict => email already used
-    serverError.value = err.response?.data?.message
-      || 'Registration failed.';
+  } catch (err: any) {
+    serverError.value = err.response?.data?.message || 'Registration failed';
+  } finally {
+    isLoading.value = false;
   }
-}
+  });
 </script>
 
 <template>
@@ -112,10 +117,10 @@ async function onRegister(vals) {
         </div>
 
         <!-- Register Form -->
-        <form class="mt-8 space-y-6" @submit="register">
+        <form class="mt-8 space-y-6" @submit.prevent="register" novalidate>
           <div class="rounded-md shadow-sm space-y-4">
             <div>
-              <label for="name" class="sr-only">Full name</label>
+              <label for="name" class="sr-only">First Name</label>
               <div class="relative">
                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <svg
@@ -135,10 +140,40 @@ async function onRegister(vals) {
                   id="name"
                   name="name"
                   type="text"
-                  v-model="values.name"
+                  v-model="values.firstName"
                   :disabled="isLoading"
                   class="appearance-none relative block w-full pl-10 px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                  placeholder="Full name"
+                  placeholder="First Name"
+                />
+              </div>
+              <p v-if="errors.name" class="mt-1 text-sm text-red-600">{{ errors.name }}</p>
+            </div>
+
+            <div>
+              <label for="name" class="sr-only">Last name</label>
+              <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg
+                    class="h-5 w-5 text-gray-400"
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fill-rule="evenodd"
+                      d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                      clip-rule="evenodd"
+                    />
+                  </svg>
+                </div>
+                <input
+                  id="name"
+                  name="name"
+                  type="text"
+                  v-model="values.lastName"
+                  :disabled="isLoading"
+                  class="appearance-none relative block w-full pl-10 px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                  placeholder="Last Name"
                 />
               </div>
               <p v-if="errors.name" class="mt-1 text-sm text-red-600">{{ errors.name }}</p>
@@ -241,7 +276,8 @@ async function onRegister(vals) {
               type="submit"
               :disabled="isLoading"
               class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
+              
+              >
               <span v-if="isLoading" class="absolute left-0 inset-y-0 flex items-center pl-3">
                 <svg
                   class="animate-spin h-5 w-5 text-white"
