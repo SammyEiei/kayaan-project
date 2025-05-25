@@ -3,6 +3,7 @@ import HomeView from '../views/welcome_view/HomeView.vue'
 import LoginView from '@/views/authentication_view/LoginView.vue';
 import RegisterView from '@/views/authentication_view/RegisterView.vue';
 import { useAuthStore } from '@/stores/auth';
+import nProgress from 'nprogress';
 // import HomeView from '../views/HomeView.vue'
 
 
@@ -75,12 +76,23 @@ const router = createRouter({
     },
   ],
 })
+
 router.beforeEach((to, from, next) => {
   const auth = useAuthStore();
-  if (to.meta.requiresAuth && !auth.token) {
-    return next({ name: 'login' });
+  nProgress.start();
+  if (to.meta.requiresAuth) {
+    if( !auth.token){
+      return next({ name: 'login' });
+    }
+    if(to.meta.requiresRole && !auth.user?.roles.includes(to.meta.requiresRole)){
+      return next({ name: 'home'})
+    }
   }
   next();
 });
+
+router.afterEach(() => {
+  nProgress.done();
+})
 
 export default router

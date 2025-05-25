@@ -32,49 +32,56 @@ const schema = yup.object({
 // Use vee-validate form
 const { handleSubmit, errors, values } = useForm({
   validationSchema: schema,
+  initialValues:{
+    email:'',
+    firstName: '',
+    lastName:'',
+    userName:'',
+    password:''
+  }
 })
 
 // Register function
-// const register = handleSubmit(async (values) => {
-//   try {
-//     isLoading.value = true
-//     serverError.value = ''
-
-//     const response = await api.post('/v1/auth/register', values)
-//     const { token } = response.data
-
-//     // Store token in localStorage
-//     localStorage.setItem('token', token)
-
-//     alert('Registration successful')
-//     router.push('/home')
-//   } catch (error) {
-//     console.error('Registration failed:', error)
-//     serverError.value = error.response?.data?.message || 'An error occurred during registration'
-//   } finally {
-//     isLoading.value = false
-//   }
-// })
-const register = handleSubmit(async (vals) => {
-  isLoading.value = true;
-  serverError.value = '';
-
+const register = handleSubmit(async (values) => {
   try {
-    const { data } = await registerApi({
-      firstName: vals.firstName,
-      lastName:  vals.lastName,
-      email:     vals.email,
-      password:  vals.password,
-    });
-    authStore.token = data.accessToken;
-    localStorage.setItem('token', data.accessToken);
-    router.push({ name: 'dashboard' });
-  } catch (err: any) {
-    serverError.value = err.response?.data?.message || 'Registration failed';
+    isLoading.value = true
+    serverError.value = ''
+
+    const response = await api.post('/v1/auth/register', values)
+    const { token } = response.data
+
+    // Store token in localStorage
+    localStorage.setItem('token', token)
+
+    alert('Registration successful')
+    router.push('/home')
+  } catch (error) {
+    console.error('Registration failed:', error)
+    serverError.value = error.response?.data?.message || 'An error occurred during registration'
   } finally {
-    isLoading.value = false;
+    isLoading.value = false
   }
-  });
+})
+// const register = handleSubmit(async (vals) => {
+//   isLoading.value = true;
+//   serverError.value = '';
+
+//   try {
+//     const { data } = await registerApi({
+//       firstName: vals.firstName,
+//       lastName:  vals.lastName,
+//       email:     vals.email,
+//       password:  vals.password,
+//     });
+//     authStore.token = data.accessToken;
+//     localStorage.setItem('token', data.accessToken);
+//     router.push({ name: 'dashboard' });
+//   } catch (err: any) {
+//     serverError.value = err.response?.data?.message || 'Registration failed';
+//   } finally {
+//     isLoading.value = false;
+//   }
+//   });
 </script>
 
 <template>
@@ -146,7 +153,7 @@ const register = handleSubmit(async (vals) => {
                   placeholder="First Name"
                 />
               </div>
-              <p v-if="errors.name" class="mt-1 text-sm text-red-600">{{ errors.name }}</p>
+              <p v-if="errors.firstName" class="mt-1 text-sm text-red-600">{{ errors.name }}</p>
             </div>
 
             <div>
@@ -176,7 +183,7 @@ const register = handleSubmit(async (vals) => {
                   placeholder="Last Name"
                 />
               </div>
-              <p v-if="errors.name" class="mt-1 text-sm text-red-600">{{ errors.name }}</p>
+              <p v-if="errors.lastName" class="mt-1 text-sm text-red-600">{{ errors.name }}</p>
             </div>
 
             <div>
@@ -276,7 +283,7 @@ const register = handleSubmit(async (vals) => {
               type="submit"
               :disabled="isLoading"
               class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              
+
               >
               <span v-if="isLoading" class="absolute left-0 inset-y-0 flex items-center pl-3">
                 <svg
