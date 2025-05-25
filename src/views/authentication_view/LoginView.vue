@@ -1,15 +1,15 @@
 <script setup lang="ts">
 // Import necessary components or methods for login
-import { ref } from 'vue';
-import { useRouter } from 'vue-router';
-import { useForm } from 'vee-validate';
-import * as yup from 'yup';
-import { useAuthStore } from '@/stores/auth';
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useForm, useField } from 'vee-validate'
+import * as yup from 'yup'
+import { useAuthStore } from '@/stores/auth'
 
-const authStore = useAuthStore();
-const router = useRouter();
-const isLoading = ref(false);
-const serverError = ref('');
+const authStore = useAuthStore()
+const router = useRouter()
+const isLoading = ref(false)
+const serverError = ref('')
 
 // สร้าง schema สำหรับ validation
 const schema = yup.object({
@@ -21,9 +21,12 @@ const schema = yup.object({
 })
 
 // ใช้ useForm จาก vee-validate
-const { handleSubmit, errors, values } = useForm({
+const { handleSubmit, errors } = useForm({
   validationSchema: schema,
 })
+
+const { value: email } = useField('email')
+const { value: password } = useField('password')
 
 // ฟังก์ชันสำหรับการ login
 // const login = handleSubmit(async (values) => {
@@ -47,24 +50,23 @@ const { handleSubmit, errors, values } = useForm({
 //   }
 // })
 const login = handleSubmit(async (vals) => {
-  isLoading.value = true;
-  serverError.value = '';
+  isLoading.value = true
+  serverError.value = ''
   const success = await authStore.login({
     username: vals.email,
-    password: vals.password
-  });
-  isLoading.value = false;
+    password: vals.password,
+  })
+  isLoading.value = false
 
   if (success) {
     // — user registered/logged in successfully
     // e.g. show a success toast, then…
-    router.push({ name: 'dashboard' });
+    router.push({ name: 'dashboard' })
   } else {
     // — login failed (bad credentials, server error)
-    serverError.value = 'Invalid email or password.';
+    serverError.value = 'Invalid email or password.'
   }
-});
-
+})
 </script>
 
 <template>
@@ -129,7 +131,7 @@ const login = handleSubmit(async (vals) => {
                   id="email"
                   name="email"
                   type="email"
-                  v-model="values.email"
+                  v-model="email"
                   :disabled="isLoading"
                   class="appearance-none relative block w-full pl-10 px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
                   placeholder="Email address"
@@ -158,7 +160,7 @@ const login = handleSubmit(async (vals) => {
                   id="password"
                   name="password"
                   type="password"
-                  v-model="values.password"
+                  v-model="password"
                   :disabled="isLoading"
                   class="appearance-none relative block w-full pl-10 px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
                   placeholder="Password"

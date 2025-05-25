@@ -6,10 +6,7 @@ const route = useRoute()
 const isAuthPage = computed(() => {
   return route.path === '/login' || route.path === '/register'
 })
-
 </script>
-
-
 
 <template>
   <div class="flex flex-col min-h-screen bg-gray-50">
@@ -88,9 +85,9 @@ const isAuthPage = computed(() => {
       </div>
     </footer>
   </div>
-  <div id="app">
+  <!-- <div id="app">
     <Employee />
-  </div>
+  </div> -->
 </template>
 
 <style>
