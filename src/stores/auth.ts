@@ -1,31 +1,28 @@
-import { defineStore } from "pinia";
-import axios from "axios";
-import type { AxiosInstance } from "axios";
+import { defineStore } from 'pinia';
+import { login as loginApi, AuthPayload } from '@/service/authService';
 
-const apiClient: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_BACKEND_URL,
-  withCredentials: false,
-  headers: {
-    Accept: 'application/json',
-    'Content-Type': 'application/json'
-  }
-})
-
-export const useAuthStore = defineStore('auth',{
-  state: ()=>({
-    token: null as string | null
+export const useAuthStore = defineStore('auth', {
+  state: () => ({
+    token: localStorage.getItem('token')
   }),
   actions: {
-    login(email: string, password: string){
-      return apiClient
-      .post('/api/v1/auth/authenticate',{
-        username: email,
-        password: password
-      })
-      .then((response) =>{
-        this.token = response.data.access_token
-        return response
-      })
-    }
-  }
-})
+    async login(creds) {
+      try{
+        const { data } = await login(creds);
+        this.token = data.accessToken;
+        localStorage.setItem('token', this.token);
+        return true;
+      } catch{
+        return false;
+      }
+    },
+    logout() {
+      this.token = null;
+      localStorage.removeItem('token');
+    },
+  },
+
+});
+
+
+

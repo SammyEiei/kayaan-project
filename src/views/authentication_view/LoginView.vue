@@ -2,10 +2,11 @@
 // Import necessary components or methods for login
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useForm } from 'vee-validate'
+import { useForm, useField } from 'vee-validate'
 import * as yup from 'yup'
-import api from '@/services/api'
+import { useAuthStore } from '@/stores/auth'
 
+const authStore = useAuthStore()
 const router = useRouter()
 const isLoading = ref(false)
 const serverError = ref('')
@@ -20,29 +21,50 @@ const schema = yup.object({
 })
 
 // ใช้ useForm จาก vee-validate
-const { handleSubmit, errors, values } = useForm({
+const { handleSubmit, errors } = useForm({
   validationSchema: schema,
 })
 
+const { value: email } = useField('email')
+const { value: password } = useField('password')
+
 // ฟังก์ชันสำหรับการ login
-const login = handleSubmit(async (values) => {
-  try {
-    isLoading.value = true
-    serverError.value = ''
+// const login = handleSubmit(async (values) => {
+//   try {
+//     isLoading.value = true
+//     serverError.value = ''
 
-    const response = await api.post('/v1/auth/authenticate', values)
-    const { token } = response.data
+//     const response = await api.post('/v1/auth/authenticate', values)
+//     const { token } = response.data
 
-    // Store token in localStorage
-    localStorage.setItem('token', token)
+//     // Store token in localStorage
+//     localStorage.setItem('token', token)
 
-    alert('Login successful')
-    router.push('/home')
-  } catch (error) {
-    console.error('Login failed:', error)
-    serverError.value = error.response?.data?.message || 'An error occurred during login'
-  } finally {
-    isLoading.value = false
+//     alert('Login successful')
+//     router.push('/home')
+//   } catch (error) {
+//     console.error('Login failed:', error)
+//     serverError.value = error.response?.data?.message || 'An error occurred during login'
+//   } finally {
+//     isLoading.value = false
+//   }
+// })
+const login = handleSubmit(async (vals) => {
+  isLoading.value = true
+  serverError.value = ''
+  const success = await authStore.login({
+    username: vals.email,
+    password: vals.password,
+  })
+  isLoading.value = false
+
+  if (success) {
+    // — user registered/logged in successfully
+    // e.g. show a success toast, then…
+    router.push({ name: 'dashboard' })
+  } else {
+    // — login failed (bad credentials, server error)
+    serverError.value = 'Invalid email or password.'
   }
 })
 </script>
@@ -87,7 +109,7 @@ const login = handleSubmit(async (values) => {
         </div>
 
         <!-- Login Form -->
-        <form class="mt-8 space-y-6" @submit="login">
+        <form class="mt-8 space-y-6" @submit.prevent="login" novalidate>
           <div class="rounded-md shadow-sm space-y-4">
             <div>
               <label for="email" class="sr-only">Email address</label>
@@ -109,7 +131,7 @@ const login = handleSubmit(async (values) => {
                   id="email"
                   name="email"
                   type="email"
-                  v-model="values.email"
+                  v-model="email"
                   :disabled="isLoading"
                   class="appearance-none relative block w-full pl-10 px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
                   placeholder="Email address"
@@ -138,7 +160,7 @@ const login = handleSubmit(async (values) => {
                   id="password"
                   name="password"
                   type="password"
-                  v-model="values.password"
+                  v-model="password"
                   :disabled="isLoading"
                   class="appearance-none relative block w-full pl-10 px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
                   placeholder="Password"
