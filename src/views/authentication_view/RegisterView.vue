@@ -16,7 +16,7 @@ const schema = yup.object({
   firstName: yup.string().required('First name is required'),
   lastName: yup.string().required('Last name is required'),
   email: yup.string().email('Please enter a valid email').required('Email is required'),
-  userName: yup.string().required('User name is required'),
+  username: yup.string().required('User name is required'),// rename userName to be lower case username to match the data at backend
   password: yup
     .string()
     .min(6, 'Password must be at least 6 characters')
@@ -36,7 +36,7 @@ const { handleSubmit, errors } = useForm({
 const { value: firstName } = useField('firstName')
 const { value: lastName } = useField('lastName')
 const { value: email } = useField('email')
-const { value: userName } = useField('userName')
+const { value: username } = useField('username')// rename userName to be lower case username to match the data at backend
 const { value: password } = useField('password')
 const { value: confirmPassword } = useField('confirmPassword')
 
@@ -71,6 +71,7 @@ const register = handleSubmit(async (vals) => {
       lastName: vals.lastName,
       email: vals.email,
       password: vals.password,
+      username: vals.username//make register add username to DB
     })
     authStore.token = data.accessToken
     localStorage.setItem('token', data.accessToken)
@@ -217,7 +218,7 @@ const register = handleSubmit(async (vals) => {
             </div>
 
             <div>
-              <label for="userName" class="sr-only">User name</label>
+              <label for="username" class="sr-only">User name</label> <!-- rename userName to be lower case username to match the data at backend -->
               <div class="relative">
                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <svg
@@ -234,16 +235,16 @@ const register = handleSubmit(async (vals) => {
                   </svg>
                 </div>
                 <input
-                  id="userName"
-                  name="userName"
+                  id="username"
+                  name="username"
                   type="text"
-                  v-model="userName"
+                  v-model="username"
                   :disabled="isLoading"
                   class="appearance-none relative block w-full pl-10 px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
                   placeholder="User name"
-                />
+                /> <!-- rename userName to be lower case username to match the data at backend -->
               </div>
-              <p v-if="errors.userName" class="mt-1 text-sm text-red-600">{{ errors.userName }}</p>
+              <p v-if="errors.username" class="mt-1 text-sm text-red-600">{{ errors.username }}</p>
             </div>
 
             <div>

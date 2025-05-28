@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router'
 import { useForm, useField } from 'vee-validate'
 import * as yup from 'yup'
 import { useAuthStore } from '@/stores/auth'
+import { login as loginApi } from '@/service/authService'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -25,8 +26,8 @@ const { handleSubmit, errors } = useForm({
   validationSchema: schema,
 })
 
-const { value: email } = useField('email')
-const { value: password } = useField('password')
+const { value: email } = useField<string>('email') //add string field to email
+const { value: password } = useField<string>('password') //add string field to passord
 
 // ฟังก์ชันสำหรับการ login
 // const login = handleSubmit(async (values) => {
@@ -53,7 +54,7 @@ const login = handleSubmit(async (vals) => {
   isLoading.value = true
   serverError.value = ''
   const success = await authStore.login({
-    username: vals.email,
+    email : vals.email, //rename username -> email
     password: vals.password,
   })
   isLoading.value = false

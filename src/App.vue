@@ -85,9 +85,6 @@ const isAuthPage = computed(() => {
       </div>
     </footer>
   </div>
-  <!-- <div id="app">
-    <Employee />
-  </div> -->
 </template>
 
 <style>

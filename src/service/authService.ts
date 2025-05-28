@@ -7,7 +7,7 @@ export interface RegisterPayload {
   password: string
 }
 export interface AuthPayload {
-  username: string
+  email: string // rename from username -> email
   password: string
 }
 
