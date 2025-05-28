@@ -54,10 +54,10 @@ export const useAuthStore = defineStore('auth', {
     //     return false;
     //   }
     // },
-    async login(email: string, password: string) {
+    login(email: string, password: string) {
       return apiClient
         .post('/api/v1/auth/authenticate', {
-          email : email,
+          username : email, // in backend it expect username not email
           password: password,
         })
         .then((response) => {

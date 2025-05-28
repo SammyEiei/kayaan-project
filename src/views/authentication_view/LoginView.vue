@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router'
 import { useForm, useField } from 'vee-validate'
 import * as yup from 'yup'
 import { useAuthStore } from '@/stores/auth'
+import api from '@/service/api'
 import { login as loginApi } from '@/service/authService'
 
 const authStore = useAuthStore()
@@ -22,51 +23,37 @@ const schema = yup.object({
 })
 
 // ใช้ useForm จาก vee-validate
-const { handleSubmit, errors } = useForm({
+const { handleSubmit} = useForm({
   validationSchema: schema,
 })
 
-const { value: email } = useField<string>('email') //add string field to email
-const { value: password } = useField<string>('password') //add string field to passord
+const { value: email, errorMessage: emailError } = useField('email') //add string field to email
+const { value: password, errorMessage: passordError } = useField<string>('password') //add string field to passord
+
 
 // ฟังก์ชันสำหรับการ login
-// const login = handleSubmit(async (values) => {
-//   try {
-//     isLoading.value = true
-//     serverError.value = ''
-
-//     const response = await api.post('/v1/auth/authenticate', values)
-//     const { token } = response.data
-
-//     // Store token in localStorage
-//     localStorage.setItem('token', token)
-
-//     alert('Login successful')
-//     router.push('/home')
-//   } catch (error) {
-//     console.error('Login failed:', error)
-//     serverError.value = error.response?.data?.message || 'An error occurred during login'
-//   } finally {
-//     isLoading.value = false
-//   }
-// })
-const login = handleSubmit(async (vals) => {
+const login = handleSubmit(async (values) => {
+  if(emailError.value || passordError.value){
+    serverError.value = emailError.value || passordError.value
+    return
+  }
+  try{
   isLoading.value = true
   serverError.value = ''
-  const success = await authStore.login({
-    email : vals.email, //rename username -> email
-    password: vals.password,
-  })
-  isLoading.value = false
+  const payload = { username: email.value, password: password.value }
+  const response = await api.post('/v1/auth/authenticate', payload)
+  const { token } = response.data
 
-  if (success) {
-    // — user registered/logged in successfully
-    // e.g. show a success toast, then…
-    router.push({ name: 'dashboard' })
-  } else {
-    // — login failed (bad credentials, server error)
-    serverError.value = 'Invalid email or password.'
+  localStorage.setItem('token', token)
+  alert('Login successful')
+  router.push('/dashboard')
+  } catch(error: any){
+    console.error('Login failed:', error)
+    serverError.value = error.response?.data?.message || 'An error occurred during login'
+  } finally{
+    isLoading.value = false
   }
+
 })
 </script>
 
@@ -138,7 +125,7 @@ const login = handleSubmit(async (vals) => {
                   placeholder="Email address"
                 />
               </div>
-              <p v-if="errors.email" class="mt-1 text-sm text-red-600">{{ errors.email }}</p>
+              <p v-if="emailError" class="mt-1 text-sm text-red-600">{{ emailError }}</p>
             </div>
             <div>
               <label for="password" class="sr-only">Password</label>
@@ -167,7 +154,7 @@ const login = handleSubmit(async (vals) => {
                   placeholder="Password"
                 />
               </div>
-              <p v-if="errors.password" class="mt-1 text-sm text-red-600">{{ errors.password }}</p>
+              <p v-if="passordError" class="mt-1 text-sm text-red-600">{{ passordError }}</p>
             </div>
           </div>
 
