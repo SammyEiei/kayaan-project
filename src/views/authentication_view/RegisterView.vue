@@ -25,13 +25,10 @@ const schema = yup.object({
     .string()
     .oneOf([yup.ref('password')], 'Passwords do not match')
     .required('Please confirm your password'),
-  user_created: yup.date(),
 })
 
 // Use vee-validate form
-const { handleSubmit, errors } = useForm({
-  validationSchema: schema,
-})
+const { handleSubmit, errors } = useForm({ validationSchema: schema })
 
 const { value: firstName } = useField('firstName')
 const { value: lastName } = useField('lastName')
@@ -64,16 +61,14 @@ const { value: confirmPassword } = useField('confirmPassword')
 const register = handleSubmit(async (vals) => {
   isLoading.value = true
   serverError.value = ''
-
   try {
-    const { data } = await registerApi({
-      firstName: vals.firstName,
-      lastName: vals.lastName,
-      email: vals.email,
-      password: vals.password,
-    })
-    authStore.token = data.accessToken
-    localStorage.setItem('token', data.accessToken)
+    await authStore.register(
+      vals.email,
+      vals.password,
+      vals.userName,
+      vals.firstName,
+      vals.lastName,
+    )
     router.push({ name: 'dashboard' })
   } catch (err: any) {
     serverError.value = err.response?.data?.message || 'Registration failed'

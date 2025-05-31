@@ -10,14 +10,12 @@ const authStore = useAuthStore()
 const router = useRouter()
 const isLoading = ref(false)
 const serverError = ref('')
+const loginError = ref('')
 
 // สร้าง schema สำหรับ validation
 const schema = yup.object({
-  email: yup.string().email('Please enter a valid email').required('Email is required'),
-  password: yup
-    .string()
-    .min(6, 'Password must be at least 6 characters')
-    .required('Password is required'),
+  username: yup.string().required('The username is required'),
+  password: yup.string().required('Password is required'),
 })
 
 // ใช้ useForm จาก vee-validate
@@ -25,46 +23,18 @@ const { handleSubmit, errors } = useForm({
   validationSchema: schema,
 })
 
-const { value: email } = useField('email')
+const { value: username } = useField('username')
 const { value: password } = useField('password')
 
 // ฟังก์ชันสำหรับการ login
-// const login = handleSubmit(async (values) => {
-//   try {
-//     isLoading.value = true
-//     serverError.value = ''
-
-//     const response = await api.post('/v1/auth/authenticate', values)
-//     const { token } = response.data
-
-//     // Store token in localStorage
-//     localStorage.setItem('token', token)
-
-//     alert('Login successful')
-//     router.push('/home')
-//   } catch (error) {
-//     console.error('Login failed:', error)
-//     serverError.value = error.response?.data?.message || 'An error occurred during login'
-//   } finally {
-//     isLoading.value = false
-//   }
-// })
-const login = handleSubmit(async (vals) => {
-  isLoading.value = true
-  serverError.value = ''
-  const success = await authStore.login({
-    username: vals.email,
-    password: vals.password,
-  })
-  isLoading.value = false
-
-  if (success) {
-    // — user registered/logged in successfully
-    // e.g. show a success toast, then…
-    router.push({ name: 'dashboard' })
-  } else {
-    // — login failed (bad credentials, server error)
-    serverError.value = 'Invalid email or password.'
+const onSubmit = handleSubmit(async (values) => {
+  loginError.value = ''
+  try {
+    await authStore.login(values.username, values.password)
+    router.push({ name: 'medalHome' })
+  } catch (error: any) {
+    loginError.value =
+      error.response?.data?.message || 'Incorrect username or password. Please try again.'
   }
 })
 </script>
@@ -109,10 +79,10 @@ const login = handleSubmit(async (vals) => {
         </div>
 
         <!-- Login Form -->
-        <form class="mt-8 space-y-6" @submit.prevent="login" novalidate>
+        <form class="mt-8 space-y-6" @submit.prevent="onSubmit" novalidate>
           <div class="rounded-md shadow-sm space-y-4">
             <div>
-              <label for="email" class="sr-only">Email address</label>
+              <label for="username" class="sr-only">Username</label>
               <div class="relative">
                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <svg
@@ -128,16 +98,16 @@ const login = handleSubmit(async (vals) => {
                   </svg>
                 </div>
                 <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  v-model="email"
+                  id="username"
+                  name="username"
+                  type="username"
+                  v-model="username"
                   :disabled="isLoading"
                   class="appearance-none relative block w-full pl-10 px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                  placeholder="Email address"
+                  placeholder="Username"
                 />
               </div>
-              <p v-if="errors.email" class="mt-1 text-sm text-red-600">{{ errors.email }}</p>
+              <p v-if="errors.username" class="mt-1 text-sm text-red-600">{{ errors.username }}</p>
             </div>
             <div>
               <label for="password" class="sr-only">Password</label>
