@@ -1,18 +1,22 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useForm } from 'vee-validate'
+import { useForm, useField } from 'vee-validate'
 import * as yup from 'yup'
-import api from '@/services/api'
+import { useAuthStore } from '@/stores/auth'
+import { register as registerApi } from '@/service/authService'
 
+const authStore = useAuthStore()
 const router = useRouter()
 const isLoading = ref(false)
 const serverError = ref('')
 
 // Create validation schema
 const schema = yup.object({
-  name: yup.string().required('Name is required'),
+  firstName: yup.string().required('First name is required'),
+  lastName: yup.string().required('Last name is required'),
   email: yup.string().email('Please enter a valid email').required('Email is required'),
+  userName: yup.string().required('User name is required'),
   password: yup
     .string()
     .min(6, 'Password must be at least 6 characters')
@@ -24,27 +28,50 @@ const schema = yup.object({
 })
 
 // Use vee-validate form
-const { handleSubmit, errors, values } = useForm({
-  validationSchema: schema,
-})
+const { handleSubmit, errors } = useForm({ validationSchema: schema })
+
+const { value: firstName } = useField('firstName')
+const { value: lastName } = useField('lastName')
+const { value: email } = useField('email')
+const { value: userName } = useField('userName')
+const { value: password } = useField('password')
+const { value: confirmPassword } = useField('confirmPassword')
 
 // Register function
-const register = handleSubmit(async (values) => {
+// const register = handleSubmit(async (values) => {
+//   try {
+//     isLoading.value = true
+//     serverError.value = ''
+
+//     const response = await api.post('/v1/auth/register', values)
+//     const { token } = response.data
+
+//     // Store token in localStorage
+//     localStorage.setItem('token', token)
+
+//     alert('Registration successful')
+//     router.push('/home')
+//   } catch (error) {
+//     console.error('Registration failed:', error)
+//     serverError.value = error.response?.data?.message || 'An error occurred during registration'
+//   } finally {
+//     isLoading.value = false
+//   }
+// })
+const register = handleSubmit(async (vals) => {
+  isLoading.value = true
+  serverError.value = ''
   try {
-    isLoading.value = true
-    serverError.value = ''
-
-    const response = await api.post('/v1/auth/register', values)
-    const { token } = response.data
-
-    // Store token in localStorage
-    localStorage.setItem('token', token)
-
-    alert('Registration successful')
-    router.push('/home')
-  } catch (error) {
-    console.error('Registration failed:', error)
-    serverError.value = error.response?.data?.message || 'An error occurred during registration'
+    await authStore.register(
+      vals.email,
+      vals.password,
+      vals.userName,
+      vals.firstName,
+      vals.lastName,
+    )
+    router.push({ name: 'dashboard' })
+  } catch (err: any) {
+    serverError.value = err.response?.data?.message || 'Registration failed'
   } finally {
     isLoading.value = false
   }
@@ -91,10 +118,10 @@ const register = handleSubmit(async (values) => {
         </div>
 
         <!-- Register Form -->
-        <form class="mt-8 space-y-6" @submit="register">
+        <form class="mt-8 space-y-6" @submit.prevent="register" novalidate>
           <div class="rounded-md shadow-sm space-y-4">
             <div>
-              <label for="name" class="sr-only">Full name</label>
+              <label for="firstName" class="sr-only">First Name</label>
               <div class="relative">
                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <svg
@@ -111,16 +138,48 @@ const register = handleSubmit(async (values) => {
                   </svg>
                 </div>
                 <input
-                  id="name"
-                  name="name"
+                  id="firstName"
+                  name="firstName"
                   type="text"
-                  v-model="values.name"
+                  v-model="firstName"
                   :disabled="isLoading"
                   class="appearance-none relative block w-full pl-10 px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                  placeholder="Full name"
+                  placeholder="First Name"
                 />
               </div>
-              <p v-if="errors.name" class="mt-1 text-sm text-red-600">{{ errors.name }}</p>
+              <p v-if="errors.firstName" class="mt-1 text-sm text-red-600">
+                {{ errors.firstName }}
+              </p>
+            </div>
+
+            <div>
+              <label for="lastName" class="sr-only">Last name</label>
+              <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg
+                    class="h-5 w-5 text-gray-400"
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fill-rule="evenodd"
+                      d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                      clip-rule="evenodd"
+                    />
+                  </svg>
+                </div>
+                <input
+                  id="lastName"
+                  name="lastName"
+                  type="text"
+                  v-model="lastName"
+                  :disabled="isLoading"
+                  class="appearance-none relative block w-full pl-10 px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                  placeholder="Last Name"
+                />
+              </div>
+              <p v-if="errors.lastName" class="mt-1 text-sm text-red-600">{{ errors.lastName }}</p>
             </div>
 
             <div>
@@ -143,13 +202,43 @@ const register = handleSubmit(async (values) => {
                   id="email"
                   name="email"
                   type="email"
-                  v-model="values.email"
+                  v-model="email"
                   :disabled="isLoading"
                   class="appearance-none relative block w-full pl-10 px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
                   placeholder="Email address"
                 />
               </div>
               <p v-if="errors.email" class="mt-1 text-sm text-red-600">{{ errors.email }}</p>
+            </div>
+
+            <div>
+              <label for="userName" class="sr-only">User name</label>
+              <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg
+                    class="h-5 w-5 text-gray-400"
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fill-rule="evenodd"
+                      d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                      clip-rule="evenodd"
+                    />
+                  </svg>
+                </div>
+                <input
+                  id="userName"
+                  name="userName"
+                  type="text"
+                  v-model="userName"
+                  :disabled="isLoading"
+                  class="appearance-none relative block w-full pl-10 px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                  placeholder="User name"
+                />
+              </div>
+              <p v-if="errors.userName" class="mt-1 text-sm text-red-600">{{ errors.userName }}</p>
             </div>
 
             <div>
@@ -173,7 +262,7 @@ const register = handleSubmit(async (values) => {
                   id="password"
                   name="password"
                   type="password"
-                  v-model="values.password"
+                  v-model="password"
                   :disabled="isLoading"
                   class="appearance-none relative block w-full pl-10 px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
                   placeholder="Password"
@@ -203,7 +292,7 @@ const register = handleSubmit(async (values) => {
                   id="confirmPassword"
                   name="confirmPassword"
                   type="password"
-                  v-model="values.confirmPassword"
+                  v-model="confirmPassword"
                   :disabled="isLoading"
                   class="appearance-none relative block w-full pl-10 px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
                   placeholder="Confirm Password"
