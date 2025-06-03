@@ -31,10 +31,17 @@ const onSubmit = handleSubmit(async (values) => {
   loginError.value = ''
   try {
     await authStore.login(values.username, values.password)
-    router.push({ name: 'medalHome' })
+    router.push({ name: 'dashboard' })
   } catch (error: any) {
-    loginError.value =
-      error.response?.data?.message || 'Incorrect username or password. Please try again.'
+    if (
+      error.response?.status === 401 ||
+      error.response?.data?.message?.toLowerCase().includes('not found')
+    ) {
+      loginError.value = 'No user found in the database. Please try again.'
+    } else {
+      loginError.value =
+        error.response?.data?.message || 'Incorrect username or password. Please try again.'
+    }
   }
 })
 </script>

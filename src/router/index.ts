@@ -1,12 +1,9 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/welcome_view/HomeView.vue'
-import LoginView from '@/views/authentication_view/LoginView.vue';
-import RegisterView from '@/views/authentication_view/RegisterView.vue';
-import { useAuthStore } from '@/stores/auth';
-import nProgress from 'nprogress';
+
+import { useAuthStore } from '@/stores/auth'
+import nProgress from 'nprogress'
 // import HomeView from '../views/HomeView.vue'
-
-
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -62,7 +59,7 @@ const router = createRouter({
     {
       path: '/settings',
       name: 'settings',
-      component: () => import('../views/features_view/SettingsView.vue'),
+      component: () => import('../views/SettingsView.vue'),
     },
     {
       path: '/resources',
@@ -78,21 +75,21 @@ const router = createRouter({
 })
 
 router.beforeEach((to, from, next) => {
-  const auth = useAuthStore();
-  nProgress.start();
+  const auth = useAuthStore()
+  nProgress.start()
   if (to.meta.requiresAuth) {
-    if( !auth.token){
-      return next({ name: 'login' });
+    if (!auth.token) {
+      return next({ name: 'login' })
     }
-    if(to.meta.requiresRole && !auth.user?.roles.includes(to.meta.requiresRole)){
-      return next({ name: 'home'})
+    if (to.meta.requiresRole && !auth.user?.roles.includes(to.meta.requiresRole)) {
+      return next({ name: 'home' })
     }
   }
-  next();
-});
+  next()
+})
 
 router.afterEach(() => {
-  nProgress.done();
+  nProgress.done()
 })
 
 export default router
