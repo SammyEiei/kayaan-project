@@ -3,6 +3,14 @@ import HomeView from '../views/welcome_view/HomeView.vue'
 
 import { useAuthStore } from '@/stores/auth'
 import nProgress from 'nprogress'
+import LoginView from '@/views/authentication_view/LoginView.vue';
+import RegisterView from '@/views/authentication_view/RegisterView.vue';
+import ManualGenerateMainView from '@/views/ManualGenerate_view/ManualGenerateMainView.vue';
+import QuizView from '@/views/ManualGenerate_view/QuizView.vue';
+import NoteView from '@/views/ManualGenerate_view/NoteView.vue';
+import FlashcardView from '@/views/ManualGenerate_view/FlashcardView.vue';
+import { useAuthStore } from '@/stores/auth';
+import nProgress from 'nprogress';
 // import HomeView from '../views/HomeView.vue'
 
 const router = createRouter({
@@ -47,11 +55,6 @@ const router = createRouter({
       component: () => import('../views/features_view/StudyGroupView.vue'),
     },
     {
-      path: '/flashcards',
-      name: 'flashcards',
-      component: () => import('../views/features_view/FlashcardView.vue'),
-    },
-    {
       path: '/pomodoro',
       name: 'pomodoro',
       component: () => import('../views/features_view/PomodoroView.vue'),
@@ -70,6 +73,26 @@ const router = createRouter({
       path: '/calendar',
       name: 'calendar',
       component: () => import('../views/features_view/CalendarView.vue'),
+    },
+    {
+      path: '/ManualGenerateMainView',
+      name: 'ManualGenerateMainView',
+      component: () => import('../views/ManualGenerate_view/ManualGenerateMainView.vue'),
+    },
+    {
+      path: '/QuizView',
+      name: 'QuizView',
+      component: () => import('../views/ManualGenerate_view/QuizView.vue'),
+    },
+    {
+      path: '/NoteView',
+      name: 'NoteView',
+      component: () => import('../views/ManualGenerate_view/NoteView.vue'),
+    },
+    {
+      path: '/FlashcardView',
+      name: 'FlashcardView',
+      component: () => import('../views/ManualGenerate_view/FlashcardView.vue'),
     },
   ],
 })
