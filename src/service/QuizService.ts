@@ -1,6 +1,6 @@
 import axios from './AxiosClient';
 
-export interface QuestionDto {
+export interface QuizQuestionDto {
   questionText: string;
   type: 'MULTIPLE_CHOICE' | 'TRUE_FALSE' | 'OPEN_ENDED';
   choices?: string[];
@@ -12,7 +12,7 @@ export interface QuestionDto {
 
 export interface QuizDto {
   title: string;
-  questions: QuestionDto[];
+  questions: QuizQuestionDto[];
 }
 
 export interface QuizResponse {
