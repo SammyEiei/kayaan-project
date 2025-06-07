@@ -1,6 +1,6 @@
 import axios from './AxiosClient';
 
-export interface QuizQuestionDto {
+export interface QuizQuestionDTO {
   questionText: string;
   type: 'MULTIPLE_CHOICE' | 'TRUE_FALSE' | 'OPEN_ENDED';
   choices?: string[];
@@ -10,9 +10,9 @@ export interface QuizQuestionDto {
   tags?: string[];
 }
 
-export interface QuizDto {
+export interface QuizDTO {
   title: string;
-  questions: QuizQuestionDto[];
+  questions: QuizQuestionDTO[];
 }
 
 export interface QuizResponse {
@@ -31,7 +31,7 @@ export interface QuizResponse {
   }[];
 }
 
-export function createQuiz(payload: QuizDto) {
+export function createQuiz(payload: QuizDTO) {
   return axios.post<QuizResponse>('/manual/quiz', payload).then(res => res.data);
 }
 
