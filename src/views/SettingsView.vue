@@ -1,6 +1,6 @@
 <template>
   <div class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-    <div class="max-w-4xl mx-auto p-8 space-y-8">
+    <div class="max-w-7xl mx-auto p-4 lg:p-8 space-y-8">
       <!-- Simple Header -->
       <div class="text-center space-y-4">
         <div
@@ -25,7 +25,7 @@
 
       <!-- Current Settings Card -->
       <div
-        class="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200 p-6 shadow-lg hover:shadow-xl transition-shadow duration-300"
+        class="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200 p-6 shadow-lg hover:shadow-xl transition-shadow duration-300 max-w-4xl mx-auto"
       >
         <div class="flex flex-col md:flex-row items-center gap-6">
           <div class="flex items-center gap-4">
@@ -123,17 +123,19 @@
           </div>
         </div>
 
-        <!-- Tab Content -->
+        <!-- Tab Content - Full Width for Avatar -->
         <div class="relative">
           <transition name="fade" mode="out-in">
-            <div v-if="tab === 'avatar'" key="avatar">
+            <div v-if="tab === 'avatar'" key="avatar" class="w-full">
+              <!-- Avatar Editor gets full width -->
               <AvatarEditor
                 :current-avatar="currentAvatar"
                 :display-name="displayName"
                 @avatar-change="handleAvatarChange"
               />
             </div>
-            <div v-else key="theme">
+            <div v-else key="theme" class="max-w-4xl mx-auto">
+              <!-- Theme selector stays constrained -->
               <ThemeSelector :current-theme="currentTheme" @theme-change="handleThemeChange" />
             </div>
           </transition>

@@ -1,112 +1,211 @@
 <template>
-  <div class="backdrop-blur-lg bg-white/60 rounded-2xl border border-white/50 p-8 shadow-xl">
-    <div class="space-y-8">
-      <!-- Header -->
-      <div class="text-center space-y-4">
-        <h2 class="text-2xl font-bold text-gray-800">Avatar Customization</h2>
-        <p class="text-gray-600">Choose or upload your perfect avatar</p>
-      </div>
+  <div
+    class="max-w-7xl mx-auto p-6 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl shadow-xl"
+  >
+    <!-- Header -->
+    <div class="text-center mb-8">
+      <h1 class="text-3xl font-bold text-gray-800 mb-2">Avatar Settings</h1>
+      <p class="text-gray-600">Choose your profile picture</p>
+    </div>
 
-      <!-- Current Avatar Preview -->
-      <div class="flex justify-center">
-        <div class="relative group">
-          <div
-            class="absolute -inset-3 bg-gradient-to-r from-purple-600 via-pink-600 to-indigo-600 rounded-full blur opacity-75 group-hover:opacity-100 transition duration-500"
-          ></div>
-          <div
-            class="relative w-32 h-32 rounded-full bg-gradient-to-r from-purple-500 to-indigo-500 flex items-center justify-center text-white text-3xl font-bold shadow-2xl overflow-hidden"
-          >
-            <img
-              v-if="selectedAvatar"
-              :src="selectedAvatar"
-              :style="{ transform: `rotate(${rotation}deg)` }"
-              class="w-32 h-32 rounded-full object-cover transition-transform duration-300"
-              alt="Avatar preview"
-            />
-            <span v-else class="text-3xl">{{
-              displayName
-                .split(' ')
-                .map((n) => n[0])
-                .join('')
-            }}</span>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 min-h-[600px]">
+      <!-- Left Side: Preview & Save -->
+      <div class="flex flex-col justify-between">
+        <!-- Avatar Preview -->
+        <div class="text-center">
+          <h2 class="text-xl font-semibold text-gray-800 mb-6">Current Avatar</h2>
+
+          <div class="flex justify-center mb-8">
+            <div class="relative group">
+              <div
+                class="w-36 h-36 rounded-full bg-gradient-to-br from-blue-50 to-indigo-100 border-4 border-white shadow-xl flex items-center justify-center text-gray-700 text-3xl font-semibold overflow-hidden ring-2 ring-blue-100"
+              >
+                <img
+                  v-if="selectedAvatar"
+                  :src="selectedAvatar"
+                  :style="{ transform: `rotate(${rotation}deg)` }"
+                  class="w-36 h-36 rounded-full object-cover transition-transform duration-300"
+                  alt="Your avatar"
+                />
+                <span v-else class="text-3xl">{{ displayNameInitials }}</span>
+              </div>
+
+              <!-- Loading overlay -->
+              <div
+                v-if="isGenerating || isSaving"
+                class="absolute inset-0 bg-white bg-opacity-90 rounded-full flex items-center justify-center"
+              >
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+              </div>
+
+              <!-- Edit overlay for uploaded images -->
+              <div
+                v-if="uploadedImage && !isSaving"
+                class="absolute inset-0 bg-blue-600/15 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 cursor-pointer backdrop-blur-sm"
+                @click="toggleEditing"
+              >
+                <svg
+                  class="w-7 h-7 text-blue-700"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                  <path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                </svg>
+              </div>
+            </div>
           </div>
 
-          <!-- Edit overlay -->
+          <!-- Quick Actions -->
+          <div v-if="selectedAvatar" class="mb-6">
+            <button
+              @click="resetSelection"
+              class="px-3 py-1 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-all duration-200"
+            >
+              Remove Avatar
+            </button>
+          </div>
+
+          <!-- Image Editor -->
           <div
-            v-if="selectedAvatar && isEditing"
-            class="absolute inset-0 bg-black/20 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+            v-if="isEditing && uploadedImage"
+            class="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200"
+          >
+            <h4 class="font-medium text-gray-800 mb-3 flex items-center justify-center gap-2">
+              <svg
+                class="w-4 h-4 text-blue-600"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+              >
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                <circle cx="8.5" cy="8.5" r="1.5" />
+                <polyline points="21,15 16,10 5,21" />
+              </svg>
+              Adjust Your Photo
+            </h4>
+            <div class="flex justify-center gap-2">
+              <button
+                @click="rotateImage('left')"
+                class="px-3 py-2 bg-white border border-blue-200 rounded-lg text-sm hover:bg-blue-50 transition-colors flex items-center gap-1"
+              >
+                <svg
+                  class="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M1 4v6h6" />
+                  <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+                </svg>
+                Left
+              </button>
+              <button
+                @click="rotateImage('right')"
+                class="px-3 py-2 bg-white border border-blue-200 rounded-lg text-sm hover:bg-blue-50 transition-colors flex items-center gap-1"
+              >
+                <svg
+                  class="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M23 4v6h-6" />
+                  <path d="M20.49 15a9 9 0 1 1-2.13-9.36L23 10" />
+                </svg>
+                Right
+              </button>
+              <button
+                @click="resetRotation"
+                class="px-3 py-2 bg-white border border-blue-200 rounded-lg text-sm hover:bg-blue-50 transition-colors flex items-center gap-1"
+              >
+                <svg
+                  class="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                  <path d="M3 3v5h5" />
+                </svg>
+                Reset
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Save Button -->
+        <div class="text-center pt-6 border-t border-gray-200">
+          <button
+            @click="saveAvatar"
+            :disabled="!selectedAvatar || isSaving"
+            class="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-3"
           >
             <svg
-              class="w-8 h-8 text-white"
+              class="w-4 h-4"
               fill="none"
               stroke="currentColor"
               stroke-width="2"
               viewBox="0 0 24 24"
             >
-              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-              <path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+              <path d="M5 13l4 4L19 7" />
             </svg>
+            <span v-if="!isSaving">Save Avatar</span>
+            <span v-else>Saving...</span>
+          </button>
+
+          <!-- Messages -->
+          <div v-if="message" class="mt-4">
+            <div
+              :class="[
+                'inline-block px-4 py-2 rounded-full text-sm font-medium',
+                messageType === 'success'
+                  ? 'bg-green-100 text-green-800 border border-green-200'
+                  : 'bg-red-100 text-red-800 border border-red-200',
+              ]"
+            >
+              {{ message }}
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Upload Section -->
-      <div class="bg-white/50 rounded-xl p-6 border border-white/30">
-        <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
-          <svg
-            class="w-5 h-5 text-purple-600"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            viewBox="0 0 24 24"
-          >
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-            <polyline points="7,10 12,15 17,10" />
-            <line x1="12" y1="15" x2="12" y2="3" />
-          </svg>
-          Upload Custom Image
-        </h3>
+      <!-- Right Side: Options -->
+      <div class="space-y-6">
+        <h2 class="text-xl font-semibold text-gray-800 mb-6 text-center">Select Avatar</h2>
 
-        <div class="space-y-4">
-          <div class="flex flex-col sm:flex-row gap-4 items-start">
-            <label class="flex-1">
-              <div class="relative group cursor-pointer">
-                <div
-                  class="flex items-center justify-center w-full h-32 border-2 border-dashed border-purple-300 rounded-xl hover:border-purple-500 transition-colors duration-300 bg-purple-50/50 hover:bg-purple-100/50"
-                >
-                  <div class="text-center">
-                    <svg
-                      class="w-8 h-8 text-purple-400 mx-auto mb-2"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      viewBox="0 0 24 24"
-                    >
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                      <polyline points="7,10 12,15 17,10" />
-                      <line x1="12" y1="15" x2="12" y2="3" />
-                    </svg>
-                    <p class="text-sm text-purple-600 font-medium">Click to upload</p>
-                    <p class="text-xs text-gray-500 mt-1">PNG, JPG up to 5MB</p>
-                  </div>
-                </div>
-                <input
-                  type="file"
-                  accept="image/*"
-                  @change="handleFileUpload"
-                  class="absolute inset-0 opacity-0 cursor-pointer"
-                />
-              </div>
-            </label>
+        <!-- Option A: Upload Custom Image -->
+        <div class="bg-white/70 backdrop-blur-sm rounded-xl border border-white/60 overflow-hidden">
+          <div class="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-4">
+            <h3 class="font-semibold flex items-center gap-2">
+              <svg
+                class="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+              >
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7,10 12,15 17,10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              Upload Your Photo
+            </h3>
+          </div>
 
-            <div class="flex flex-col gap-2 sm:w-auto w-full">
-              <button
-                v-if="uploadedImage"
-                @click="triggerFileUpload"
-                class="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg hover:shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center gap-2"
+          <div class="p-4">
+            <label class="block cursor-pointer">
+              <div
+                class="border-2 border-dashed border-blue-300 rounded-lg p-6 text-center hover:border-blue-500 hover:bg-blue-50/50 transition-all duration-300"
               >
                 <svg
-                  class="w-4 h-4"
+                  class="w-8 h-8 text-blue-400 mx-auto mb-2"
                   fill="none"
                   stroke="currentColor"
                   stroke-width="2"
@@ -116,203 +215,238 @@
                   <polyline points="7,10 12,15 17,10" />
                   <line x1="12" y1="15" x2="12" y2="3" />
                 </svg>
-                Replace Image
-              </button>
+                <p class="font-medium text-blue-600">
+                  {{ uploadedImage ? 'Change Photo' : 'Click to Upload' }}
+                </p>
+                <p class="text-xs text-gray-500 mt-1">PNG, JPG up to 5MB</p>
+              </div>
+              <input
+                ref="fileInput"
+                type="file"
+                accept="image/*"
+                @change="handleFileUpload"
+                class="sr-only"
+              />
+            </label>
+          </div>
+        </div>
+
+        <!-- Option B: Generate Avatar -->
+        <div class="bg-white/70 backdrop-blur-sm rounded-xl border border-white/60 overflow-hidden">
+          <div class="bg-gradient-to-r from-purple-500 to-indigo-600 text-white p-4">
+            <h3 class="font-semibold flex items-center gap-2">
+              <svg
+                class="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+              >
+                <rect x="3" y="3" width="7" height="7" />
+                <rect x="14" y="3" width="7" height="7" />
+                <rect x="14" y="14" width="7" height="7" />
+                <rect x="3" y="14" width="7" height="7" />
+              </svg>
+              Generate Avatar
+            </h3>
+          </div>
+
+          <div class="p-4 space-y-4">
+            <!-- Style Selector -->
+            <div>
+              <div class="flex flex-wrap gap-1 mb-3">
+                <button
+                  v-for="style in avatarStyles.slice(0, 6)"
+                  :key="style"
+                  @click="switchStyle(style)"
+                  :disabled="isGenerating"
+                  :class="[
+                    'px-2 py-1 rounded text-xs font-medium transition-all duration-200 disabled:opacity-50',
+                    currentStyle === style
+                      ? 'bg-purple-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200',
+                  ]"
+                >
+                  {{ formatStyleName(style).split(' ')[0] }}
+                </button>
+              </div>
+
+              <div class="flex flex-wrap gap-1">
+                <button
+                  v-for="style in avatarStyles.slice(6)"
+                  :key="style"
+                  @click="switchStyle(style)"
+                  :disabled="isGenerating"
+                  :class="[
+                    'px-2 py-1 rounded text-xs font-medium transition-all duration-200 disabled:opacity-50',
+                    currentStyle === style
+                      ? 'bg-purple-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200',
+                  ]"
+                >
+                  {{ formatStyleName(style).split(' ')[0] }}
+                </button>
+              </div>
+            </div>
+
+            <!-- Generate Button -->
+            <div class="text-center">
               <button
-                v-if="selectedAvatar"
-                @click="removeAvatar"
-                class="px-4 py-2 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-lg hover:shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center gap-2"
+                @click="regenerateAvatars"
+                :disabled="isGenerating"
+                class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg font-semibold shadow-lg transition-all duration-300 transform hover:scale-105 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
               >
                 <svg
+                  v-if="!isGenerating"
                   class="w-4 h-4"
                   fill="none"
                   stroke="currentColor"
-                  stroke-width="2"
                   viewBox="0 0 24 24"
                 >
-                  <path d="M3 6h18" />
-                  <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-                  <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  />
                 </svg>
-                Remove
+                <div v-else class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                <span v-if="!isGenerating">Generate</span>
+                <span v-else>Generating...</span>
               </button>
             </div>
-          </div>
-        </div>
-      </div>
 
-      <!-- Image Editor (shown when editing uploaded image) -->
-      <div
-        v-if="isEditing && uploadedImage"
-        class="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl p-6 border border-purple-200"
-      >
-        <h4 class="font-semibold mb-4 flex items-center gap-2">
-          <svg
-            class="w-5 h-5 text-purple-600"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            viewBox="0 0 24 24"
-          >
-            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-            <circle cx="8.5" cy="8.5" r="1.5" />
-            <polyline points="21,15 16,10 5,21" />
-          </svg>
-          Edit Avatar
-        </h4>
-        <div class="flex flex-wrap gap-3">
-          <button
-            @click="rotateImage('left')"
-            class="px-4 py-2 bg-white/80 hover:bg-white border border-purple-200 rounded-lg flex items-center gap-2 transition-all duration-200 hover:shadow-md"
-          >
-            <svg
-              class="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              viewBox="0 0 24 24"
-            >
-              <path d="M1 4v6h6" />
-              <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
-            </svg>
-            Rotate Left
-          </button>
-          <button
-            @click="rotateImage('right')"
-            class="px-4 py-2 bg-white/80 hover:bg-white border border-purple-200 rounded-lg flex items-center gap-2 transition-all duration-200 hover:shadow-md"
-          >
-            <svg
-              class="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              viewBox="0 0 24 24"
-            >
-              <path d="M23 4v6h-6" />
-              <path d="M20.49 15a9 9 0 1 1-2.13-9.36L23 10" />
-            </svg>
-            Rotate Right
-          </button>
-          <button
-            @click="resetRotation"
-            class="px-4 py-2 bg-white/80 hover:bg-white border border-purple-200 rounded-lg flex items-center gap-2 transition-all duration-200 hover:shadow-md"
-          >
-            <svg
-              class="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              viewBox="0 0 24 24"
-            >
-              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-              <path d="M3 3v5h5" />
-            </svg>
-            Reset
-          </button>
-        </div>
-      </div>
+            <!-- Generated Avatars Grid -->
+            <div v-if="generatedAvatars.length > 0" class="max-h-64 overflow-y-auto">
+              <div class="grid grid-cols-4 gap-2">
+                <div
+                  v-for="(avatar, index) in generatedAvatars"
+                  :key="`generated-${index}`"
+                  class="relative group cursor-pointer"
+                  @click="selectGeneratedAvatar(avatar)"
+                >
+                  <img
+                    :src="avatar"
+                    class="w-full aspect-square rounded-lg object-cover border-2 transition-all duration-300 group-hover:scale-105"
+                    :class="
+                      selectedAvatar === avatar && !uploadedImage
+                        ? 'border-purple-500 ring-2 ring-purple-300'
+                        : 'border-gray-200 hover:border-purple-300'
+                    "
+                    :alt="`Avatar ${index + 1}`"
+                  />
 
-      <!-- Preset Avatars Gallery -->
-      <div class="bg-white/50 rounded-xl p-6 border border-white/30">
-        <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
-          <svg
-            class="w-5 h-5 text-purple-600"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            viewBox="0 0 24 24"
-          >
-            <rect x="3" y="3" width="7" height="7" />
-            <rect x="14" y="3" width="7" height="7" />
-            <rect x="14" y="14" width="7" height="7" />
-            <rect x="3" y="14" width="7" height="7" />
-          </svg>
-          Choose from Gallery
-        </h3>
+                  <!-- Selection indicator -->
+                  <div
+                    v-if="selectedAvatar === avatar && !uploadedImage"
+                    class="absolute -top-1 -right-1 w-5 h-5 bg-purple-500 rounded-full flex items-center justify-center shadow-lg"
+                  >
+                    <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path
+                        fill-rule="evenodd"
+                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                        clip-rule="evenodd"
+                      />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            </div>
 
-        <div class="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4">
-          <div
-            v-for="(avatar, index) in presetAvatars"
-            :key="`preset-${index}`"
-            @click="selectPresetAvatar(avatar)"
-            :class="{
-              'ring-4 ring-purple-400 ring-offset-2': selectedAvatar === avatar && !uploadedImage,
-              'hover:ring-2 hover:ring-purple-200': selectedAvatar !== avatar || uploadedImage,
-            }"
-            class="cursor-pointer transition-all duration-300 hover:scale-110 rounded-full"
-          >
-            <div
-              class="w-16 h-16 rounded-full bg-gradient-to-r from-purple-400 to-indigo-400 flex items-center justify-center text-white font-bold shadow-lg hover:shadow-xl"
-            >
-              <img
-                v-if="avatar"
-                :src="avatar"
-                class="w-16 h-16 rounded-full object-cover"
-                :alt="`Avatar ${index + 1}`"
-              />
-              <span v-else class="text-sm">A{{ index + 1 }}</span>
+            <!-- Empty state -->
+            <div v-if="generatedAvatars.length === 0 && !isGenerating" class="text-center py-6">
+              <div class="text-gray-400 text-2xl mb-2">🎨</div>
+              <p class="text-gray-500 text-sm">Click Generate to see options</p>
             </div>
           </div>
         </div>
-      </div>
-
-      <!-- Save Button -->
-      <div class="flex justify-center pt-4">
-        <button
-          @click="saveAvatar"
-          :disabled="!selectedAvatar"
-          class="px-8 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-full font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center gap-3"
-        >
-          <svg
-            class="w-5 h-5"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            viewBox="0 0 24 24"
-          >
-            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
-            <polyline points="17,21 17,13 7,13 7,21" />
-            <polyline points="7,3 7,8 15,8" />
-          </svg>
-          Save Avatar
-        </button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, computed } from 'vue'
+import axios from 'axios'
 
-interface Props {
-  currentAvatar?: string
-  displayName: string
-}
+const avatarStyles = [
+  'avataaars',
+  'bottts',
+  'pixel-art',
+  'fun-emoji',
+  'micah',
+  'miniavs',
+  'open-peeps',
+  'personas',
+  'identicon',
+]
 
-const props = withDefaults(defineProps<Props>(), {
-  currentAvatar: '',
-})
-
-const emit = defineEmits<{
-  avatarChange: [avatar: string]
-}>()
-
-const selectedAvatar = ref(props.currentAvatar)
+const currentStyle = ref('avataaars')
+const generatedAvatars = ref<string[]>([])
+const selectedAvatar = ref('')
 const uploadedImage = ref<string | null>(null)
 const rotation = ref(0)
 const isEditing = ref(false)
+const isGenerating = ref(false)
+const isSaving = ref(false)
+const message = ref('')
+const messageType = ref<'success' | 'error'>('success')
+const displayName = 'Kay Anderson'
+const userId = 102
+const fileInput = ref<HTMLInputElement>()
 
-// Demo preset avatars (in real app, these would be actual avatar URLs)
-const presetAvatars = ref([
-  'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face',
-  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
-  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop&crop=face',
-  'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&h=150&fit=crop&crop=face',
-  'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&h=150&fit=crop&crop=face',
-  'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=150&h=150&fit=crop&crop=face',
-  'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=150&h=150&fit=crop&crop=face',
-  'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&h=150&fit=crop&crop=face',
-])
+const displayNameInitials = computed(() =>
+  displayName
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase(),
+)
+
+function formatStyleName(style: string): string {
+  return style
+    .split('-')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
+}
+
+function generateSeed(): string {
+  return Math.random().toString(36).substring(7)
+}
+
+function generateAvatarUrl(style: string, seed: string): string {
+  return `https://api.dicebear.com/7.x/${style}/svg?seed=${seed}&size=80`
+}
+
+async function generateAvatars(style: string): Promise<void> {
+  isGenerating.value = true
+  clearMessage()
+
+  try {
+    const avatars = []
+    for (let i = 0; i < 8; i++) {
+      avatars.push(generateAvatarUrl(style, generateSeed()))
+    }
+
+    // Simulate loading delay for better UX
+    await new Promise((resolve) => setTimeout(resolve, 500))
+
+    generatedAvatars.value = avatars
+  } catch (error) {
+    showMessage('Error generating avatars', 'error')
+  } finally {
+    isGenerating.value = false
+  }
+}
+
+async function switchStyle(style: string): Promise<void> {
+  currentStyle.value = style
+  await generateAvatars(style)
+}
+
+function regenerateAvatars(): void {
+  generateAvatars(currentStyle.value)
+}
 
 function handleFileUpload(event: Event) {
   const target = event.target as HTMLInputElement
@@ -321,13 +455,13 @@ function handleFileUpload(event: Event) {
 
   // Validate file type
   if (!['image/jpeg', 'image/jpg', 'image/png'].includes(file.type)) {
-    alert('Only JPG and PNG files are allowed')
+    showMessage('Only JPG and PNG files are allowed', 'error')
     return
   }
 
   // Validate file size (5MB)
   if (file.size > 5 * 1024 * 1024) {
-    alert('File size must be less than 5MB')
+    showMessage('File size must be less than 5MB', 'error')
     return
   }
 
@@ -338,79 +472,83 @@ function handleFileUpload(event: Event) {
     selectedAvatar.value = result
     isEditing.value = true
     rotation.value = 0
+    clearMessage()
   }
   reader.readAsDataURL(file)
 }
 
-function triggerFileUpload() {
-  const input = document.createElement('input')
-  input.type = 'file'
-  input.accept = 'image/*'
-  input.onchange = handleFileUpload
-  input.click()
-}
-
-function selectPresetAvatar(avatar: string) {
+function selectGeneratedAvatar(avatar: string): void {
   selectedAvatar.value = avatar
   uploadedImage.value = null
   isEditing.value = false
   rotation.value = 0
+  clearMessage()
 }
 
-function removeAvatar() {
+function resetSelection(): void {
   selectedAvatar.value = ''
   uploadedImage.value = null
   isEditing.value = false
   rotation.value = 0
+  clearMessage()
 }
 
-function rotateImage(direction: 'left' | 'right') {
+function toggleEditing(): void {
+  if (uploadedImage.value) {
+    isEditing.value = !isEditing.value
+  }
+}
+
+function rotateImage(direction: 'left' | 'right'): void {
   const step = direction === 'left' ? -90 : 90
   rotation.value = (rotation.value + step) % 360
 }
 
-function resetRotation() {
+function resetRotation(): void {
   rotation.value = 0
 }
 
-function saveAvatar() {
-  if (selectedAvatar.value) {
-    emit('avatarChange', selectedAvatar.value)
+async function saveAvatar(): Promise<void> {
+  if (!selectedAvatar.value) return
+
+  isSaving.value = true
+  clearMessage()
+
+  try {
+    await axios.put(`/api/users/${userId}/avatar-url`, {
+      avatarUrl: selectedAvatar.value,
+      rotation: rotation.value,
+    })
+    showMessage('Avatar saved successfully! 🎉', 'success')
     isEditing.value = false
-    // Show success message
-    showSuccessMessage()
+  } catch (error: any) {
+    showMessage(`Error saving avatar: ${error.message}`, 'error')
+  } finally {
+    isSaving.value = false
   }
 }
 
-function showSuccessMessage() {
-  // Create a simple toast notification
-  const toast = document.createElement('div')
-  toast.className =
-    'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-fade-in'
-  toast.textContent = 'Avatar updated successfully!'
+function showMessage(msg: string, type: 'success' | 'error'): void {
+  message.value = msg
+  messageType.value = type
 
-  document.body.appendChild(toast)
-
-  setTimeout(() => {
-    toast.remove()
-  }, 3000)
+  // Auto-clear success messages
+  if (type === 'success') {
+    setTimeout(() => {
+      clearMessage()
+    }, 3000)
+  }
 }
 
-// Watch for prop changes
-watch(
-  () => props.currentAvatar,
-  (newAvatar) => {
-    selectedAvatar.value = newAvatar
-  },
-)
+function clearMessage(): void {
+  message.value = ''
+}
+
+// Initialize
+generateAvatars(currentStyle.value)
 </script>
 
 <style scoped>
-/* Enhanced hover and transition effects */
-.group:hover .group-hover\:opacity-100 {
-  opacity: 1;
-}
-
 /* Smooth transitions for all interactive elements */
 * {
   transition-property: all;
@@ -418,22 +556,40 @@ watch(
   transition-duration: 200ms;
 }
 
-/* Custom scrollbar for gallery */
-.gallery-container::-webkit-scrollbar {
-  height: 6px;
+/* Enhanced hover effects */
+.group:hover .group-hover\:opacity-100 {
+  opacity: 1;
 }
 
-.gallery-container::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 3px;
+/* Screen reader only */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
-.gallery-container::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 3px;
+/* Custom scrollbar */
+.overflow-y-auto::-webkit-scrollbar {
+  width: 4px;
 }
 
-.gallery-container::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
+.overflow-y-auto::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 2px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 2px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 </style>
