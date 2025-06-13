@@ -1,13 +1,14 @@
+/* Custom border width */ .border-3 { border-width: 3px; }
 <template>
   <div class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-    <div class="max-w-7xl mx-auto p-4 lg:p-8 space-y-8">
+    <div class="max-w-7xl mx-auto p-4 lg:p-8 space-y-12">
       <!-- Simple Header -->
-      <div class="text-center space-y-4">
+      <div class="text-center space-y-6">
         <div
-          class="w-16 h-16 mx-auto bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-lg flex items-center justify-center"
+          class="w-20 h-20 mx-auto bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl shadow-xl flex items-center justify-center"
         >
           <svg
-            class="h-8 w-8 text-white"
+            class="h-10 w-10 text-white"
             fill="none"
             stroke="currentColor"
             stroke-width="2"
@@ -18,31 +19,31 @@
           </svg>
         </div>
         <div>
-          <h1 class="text-3xl font-bold text-gray-900">Personalization</h1>
-          <p class="text-gray-600 mt-2">Customize your profile and preferences</p>
+          <h1 class="text-4xl font-bold text-gray-900 mb-3">Personalization</h1>
+          <p class="text-lg text-gray-600">Customize your profile and preferences</p>
         </div>
       </div>
 
       <!-- Current Settings Card -->
       <div
-        class="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200 p-6 shadow-lg hover:shadow-xl transition-shadow duration-300 max-w-4xl mx-auto"
+        class="bg-white/90 backdrop-blur-sm rounded-3xl border border-gray-200 p-8 shadow-xl hover:shadow-2xl transition-shadow duration-300 max-w-5xl mx-auto"
       >
-        <div class="flex flex-col md:flex-row items-center gap-6">
-          <div class="flex items-center gap-4">
+        <div class="flex flex-col lg:flex-row items-center gap-8">
+          <div class="flex items-center gap-6">
             <div class="relative">
               <div
-                class="w-20 h-20 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-500 p-0.5 shadow-lg"
+                class="w-24 h-24 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-500 p-0.5 shadow-lg"
               >
                 <div
-                  class="w-full h-full rounded-xl bg-white/10 backdrop-blur-sm flex items-center justify-center overflow-hidden"
+                  class="w-full h-full rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center overflow-hidden"
                 >
                   <img
                     v-if="currentAvatar"
                     :src="currentAvatar"
-                    class="w-full h-full rounded-xl object-cover"
+                    class="w-full h-full rounded-2xl object-cover"
                     alt="Profile photo"
                   />
-                  <span v-else class="text-xl font-semibold text-white">{{
+                  <span v-else class="text-2xl font-semibold text-white">{{
                     displayName
                       .split(' ')
                       .map((n) => n[0])
@@ -51,43 +52,43 @@
                 </div>
               </div>
               <div
-                class="absolute -bottom-1 -right-1 w-5 h-5 bg-green-400 rounded-full border-2 border-white"
+                class="absolute -bottom-1 -right-1 w-6 h-6 bg-green-400 rounded-full border-3 border-white shadow-md"
               ></div>
             </div>
             <div>
-              <h3 class="text-xl font-semibold text-gray-900">{{ displayName }}</h3>
-              <p class="text-gray-600">
+              <h3 class="text-2xl font-semibold text-gray-900 mb-1">{{ displayName }}</h3>
+              <p class="text-gray-600 text-lg">
                 {{ currentAvatar ? 'Custom avatar' : 'Default avatar' }}
               </p>
             </div>
           </div>
 
-          <div class="hidden md:block h-12 w-px bg-gray-200"></div>
+          <div class="hidden lg:block h-16 w-px bg-gray-200"></div>
 
-          <div class="text-center md:text-left">
-            <h4 class="text-lg font-semibold text-gray-900">Current Theme</h4>
-            <p class="text-gray-600">{{ currentTheme?.name || 'Default Light' }}</p>
+          <div class="text-center lg:text-left">
+            <h4 class="text-xl font-semibold text-gray-900 mb-1">Current Theme</h4>
+            <p class="text-gray-600 text-lg">{{ currentTheme?.name || 'Default Light' }}</p>
           </div>
         </div>
       </div>
 
       <!-- Simple Tabs -->
-      <div class="space-y-6">
+      <div class="space-y-8">
         <div class="flex justify-center">
           <div
-            class="inline-flex bg-white/60 backdrop-blur-sm rounded-xl p-1 shadow-lg border border-gray-200"
+            class="inline-flex bg-white/70 backdrop-blur-sm rounded-2xl p-1.5 shadow-xl border border-gray-200"
           >
             <button
               @click="tab = 'avatar'"
               :class="
                 tab === 'avatar'
-                  ? 'bg-blue-600 text-white shadow-md'
-                  : 'text-gray-600 hover:text-blue-600'
+                  ? 'bg-blue-600 text-white shadow-lg'
+                  : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
               "
-              class="px-6 py-3 rounded-lg font-medium transition-all duration-200 flex items-center gap-2"
+              class="px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-200 flex items-center gap-3"
             >
               <svg
-                class="w-4 h-4"
+                class="w-5 h-5"
                 fill="none"
                 stroke="currentColor"
                 stroke-width="2"
@@ -102,13 +103,13 @@
               @click="tab = 'theme'"
               :class="
                 tab === 'theme'
-                  ? 'bg-blue-600 text-white shadow-md'
-                  : 'text-gray-600 hover:text-blue-600'
+                  ? 'bg-blue-600 text-white shadow-lg'
+                  : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
               "
-              class="px-6 py-3 rounded-lg font-medium transition-all duration-200 flex items-center gap-2"
+              class="px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-200 flex items-center gap-3"
             >
               <svg
-                class="w-4 h-4"
+                class="w-5 h-5"
                 fill="none"
                 stroke="currentColor"
                 stroke-width="2"
@@ -134,7 +135,7 @@
                 @avatar-change="handleAvatarChange"
               />
             </div>
-            <div v-else key="theme" class="max-w-4xl mx-auto">
+            <div v-else key="theme" class="max-w-5xl mx-auto">
               <!-- Theme selector stays constrained -->
               <ThemeSelector :current-theme="currentTheme" @theme-change="handleThemeChange" />
             </div>

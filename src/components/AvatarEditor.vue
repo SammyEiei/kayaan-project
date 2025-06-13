@@ -367,8 +367,11 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import axios from 'axios'
-
+import { watchEffect } from 'vue'
+import { useAvatarStore } from '@/service/AvatarService'
+import { useAuthStore } from '@/stores/auth'
+const avatarStore = useAvatarStore()
+const authStore = useAuthStore()
 const avatarStyles = [
   'avataaars',
   'bottts',
@@ -392,8 +395,14 @@ const isSaving = ref(false)
 const message = ref('')
 const messageType = ref<'success' | 'error'>('success')
 const displayName = 'Kay Anderson'
-const userId = 102
+const userId = computed(() => authStore.userId)
 const fileInput = ref<HTMLInputElement>()
+
+watchEffect(() => {
+  if (authStore.user?.id) {
+    userId.value = authStore.user.id
+  }
+})
 
 const displayNameInitials = computed(() =>
   displayName
@@ -515,7 +524,12 @@ async function saveAvatar(): Promise<void> {
   clearMessage()
 
   try {
-    await axios.put(`/api/users/${userId}/avatar-url`, {
+    if (!userId.value) {
+      showMessage('User ID is not available. Please try logging in again.', 'error')
+      return
+    }
+
+    await avatarStore.updateAvatarUrl(userId.value, {
       avatarUrl: selectedAvatar.value,
       rotation: rotation.value,
     })

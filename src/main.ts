@@ -3,6 +3,7 @@ import '@/service/AxiosInterceptorSetup.ts'
 
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
+import '@/service/AxiosInterceptorSetup' // ⭐ ดึง interceptor เข้า context
 
 import App from './App.vue'
 import router from './router'

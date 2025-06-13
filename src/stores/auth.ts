@@ -2,6 +2,23 @@ import { defineStore } from 'pinia'
 import axios from 'axios'
 import type { AxiosInstance } from 'axios'
 import type { User } from '@/types'
+import { jwtDecode } from 'jwt-decode'
+
+type JwtPayload = {
+  sub: string // user id stored as subject
+  roles?: string[]
+  exp: number
+}
+
+function isTokenExpired(token: string): boolean {
+  try {
+    const decoded = jwtDecode(token)
+    const exp = decoded.exp
+    return exp * 1000 < Date.now()
+  } catch {
+    return true
+  }
+}
 
 const apiClient: AxiosInstance = axios.create({
   baseURL: 'http://localhost:8080',
@@ -15,14 +32,19 @@ const apiClient: AxiosInstance = axios.create({
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     token: null as string | null,
-    user: null as User | null,
+    user: null as User | null, // keep for now (e.g. username display)
+    userId: null as number | null,
+    roles: [] as string[],
   }),
   getters: {
-    currentUserName(): string {
-      return this.user?.username || ''
+    currentUserName(state): string {
+      return state.user?.username || ''
     },
-    authorizationHeader(): string {
-      return `Bearer ${this.token}`
+    authorizationHeader(state): string {
+      return state.token ? `Bearer ${state.token}` : ''
+    },
+    currentUserId(state): number | null {
+      return state.userId
     },
   },
   actions: {
@@ -41,13 +63,9 @@ export const useAuthStore = defineStore('auth', {
           firstname: firstname,
           lastname: lastname,
         })
-        .then((response) => {
-          this.token = response.data.access_token
-          this.user = response.data.user
-          localStorage.setItem('user', JSON.stringify(this.user))
-          localStorage.setItem('access_token', this.token as string)
-          axios.defaults.headers.common['Authorization'] = `Bearer ${this.token}`
-          return response
+        .then(({ data }) => {
+          applyToken(this, data.access_token, data.user)
+          return data
         })
         .catch((error) => {
           throw error
@@ -59,12 +77,11 @@ export const useAuthStore = defineStore('auth', {
           username: username,
           password: password,
         })
-        .then((response) => {
-          this.token = response.data.access_token
-          this.user = response.data.user
-          localStorage.setItem('access_token', this.token as string)
-          localStorage.setItem('user', JSON.stringify(this.user))
-          return response
+        .then(({ data }) => {
+          const token = data.access_token
+          if (isTokenExpired(token)) throw new Error('Token is expired')
+          applyToken(this, token, data.user)
+          return data
         })
         .catch((error) => {
           throw error
@@ -73,17 +90,50 @@ export const useAuthStore = defineStore('auth', {
     logout() {
       this.token = null
       this.user = null
+      this.userId = null
+      this.roles = []
       localStorage.removeItem('access_token')
       localStorage.removeItem('user')
+      delete axios.defaults.headers.common['Authorization']
     },
     reload() {
-      // โหลดข้อมูลจาก Local Storage ถ้ามี
-      const token = localStorage.getItem('access_token')
-      const user = localStorage.getItem('user')
-      if (token && user) {
-        this.token = token
-        this.user = JSON.parse(user)
+      const stored = localStorage.getItem('access_token')
+      if (!stored) return // ไม่ได้ login
+
+      if (isTokenExpired(stored)) {
+        return this.logout()
+      }
+
+      // decode and restore id/roles
+      const { sub, roles } = jwtDecode<JwtPayload>(stored)
+      this.token = stored
+      this.userId = Number(sub)
+      this.roles = roles ?? []
+
+      axios.defaults.headers.common['Authorization'] = this.authorizationHeader
+
+      // optional: restore user (ไม่บังคับ)
+      const userStr = localStorage.getItem('user')
+      if (userStr && userStr !== 'undefined') {
+        try {
+          this.user = JSON.parse(userStr)
+        } catch {
+          /* ignore */
+        }
       }
     },
   },
 })
+
+const applyToken = (store: any, accessToken: string, user?: User) => {
+  const payload = jwtDecode<JwtPayload>(accessToken)
+  store.token = accessToken
+  store.userId = Number(payload.sub)
+  store.roles = payload.roles ?? []
+  store.user = user ?? null
+
+  localStorage.setItem('access_token', accessToken)
+  if (user) localStorage.setItem('user', JSON.stringify(user))
+
+  axios.defaults.headers.common['Authorization'] = store.authorizationHeader
+}

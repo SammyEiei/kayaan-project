@@ -2,24 +2,72 @@
 @tailwind components;
 @tailwind utilities;
 @layer base {
+  /* Add this to your src/assets/style.css or create a new theme.css file */
+
   :root {
-    --color-primary: #f8fafc;
-    --color-secondary: #d8dfe8;
+    /* Default Light Theme Colors */
+    --primary: #3b82f6;
+    --secondary: #8b5cf6;
+    --background: #ffffff;
+    --surface: #f3f4f6;
+    --text: #1f2937;
+    --text-secondary: #6b7280;
+    --border: #e5e7eb;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --error: #ef4444;
+  }
 
-    --color-text-base: #1e293b;
-    --color-text-alt: #555d68;
-    --color-text-muted: #eaedf1; /* 64748b */
+  /* Dark mode will be applied via JavaScript when theme changes */
+  .dark {
+    --primary: #60a5fa;
+    --secondary: #a78bfa;
+    --background: #0f172a;
+    --surface: #1e293b;
+    --text: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --border: #334155;
+    --success: #34d399;
+    --warning: #fbbf24;
+    --error: #f87171;
+  }
 
-    --color-text-gold: #eab308;
-    --color-text-silver: #94a3b8;
-    --color-text-bronze: #ea580c;
+  /* High contrast mode helper */
+  .hc * {
+    outline: 2px solid var(--primary) !important;
+  }
 
-    --color-card-primary: #ffffff;
-    --color-card-secondary: #eeeff0;
+  /* Smooth color transitions */
+  * {
+    transition:
+      background-color 0.3s ease,
+      color 0.3s ease,
+      border-color 0.3s ease;
+  }
 
-    --color-button-primary: #667284;
-    --color-button-primary-hover: #334155;
-    --color-button-muted: #64748b;
-    --color-button-muted-hover: #475569;
+  /* Additional utility classes for theme colors */
+  .bg-primary {
+    background-color: var(--primary);
+  }
+  .bg-secondary {
+    background-color: var(--secondary);
+  }
+  .bg-surface {
+    background-color: var(--surface);
+  }
+  .text-primary {
+    color: var(--primary);
+  }
+  .text-secondary {
+    color: var(--secondary);
+  }
+  .text-theme {
+    color: var(--text);
+  }
+  .text-theme-secondary {
+    color: var(--text-secondary);
+  }
+  .border-theme {
+    border-color: var(--border);
   }
 }
