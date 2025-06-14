@@ -314,7 +314,7 @@ const isLoggedIn = computed(() => !!authStore.token)
 
 const menuItems = [
   { to: '/dashboard', icon: 'grid', label: 'Dashboard' },
-  { to: '/flashcards', icon: 'book', label: 'Flashcards & Quizzes' },
+  { to: '/study-content', icon: 'book', label: 'My content' },
   { to: '/create-content', icon: 'sparkles', label: 'Create Content' },
   { to: '/study-groups', icon: 'users', label: 'Study Groups' },
   { to: '/pomodoro', icon: 'clock', label: 'Pomodoro Timer' },

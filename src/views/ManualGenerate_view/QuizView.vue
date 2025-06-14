@@ -41,8 +41,9 @@
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">Quiz Title</label>
+        <label for="quiz-title" class="block text-sm font-medium text-gray-700 mb-2">Quiz Title</label>
         <input
+          id="quiz-title"
           v-model="title"
           placeholder="Enter an engaging quiz title..."
           class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150"
@@ -51,16 +52,18 @@
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Subject</label>
+          <label for="quiz-subject" class="block text-sm font-medium text-gray-700 mb-2">Subject</label>
           <input
+            id="quiz-subject"
             v-model="subject"
             placeholder="e.g., Mathematics, Science, History"
             class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150"
           />
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Tags</label>
+          <label for="quiz-tags" class="block text-sm font-medium text-gray-700 mb-2">Tags</label>
           <input
+            id="quiz-tags"
             v-model="tags"
             placeholder="concepts, practice, exam-prep"
             class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150"
@@ -69,8 +72,8 @@
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-3">Difficulty Level</label>
-        <div class="flex gap-3">
+        <label for="difficulty-level" class="block text-sm font-medium text-gray-700 mb-3">Difficulty Level</label>
+        <div id="difficulty-level" class="flex gap-3" role="radiogroup" aria-labelledby="difficulty-level">
           <button
             v-for="diff in difficultyOptions"
             :key="diff.value"
@@ -138,8 +141,9 @@
           <div class="space-y-4">
             <!-- Question Type -->
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Question Type</label>
+              <label for="question-type" class="block text-sm font-medium text-gray-700 mb-2">Question Type</label>
               <select
+                id="question-type"
                 v-model="question.type"
                 class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150 bg-white"
               >
@@ -151,8 +155,9 @@
 
             <!-- Question Content -->
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Question</label>
+              <label for="question-text" class="block text-sm font-medium text-gray-700 mb-2">Question</label>
               <textarea
+                id="question-text"
                 v-model="question.question"
                 class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150 resize-none"
                 rows="3"
@@ -161,41 +166,41 @@
             </div>
 
             <!-- Multiple Choice Options -->
-            <div v-if="question.type === 'multiple-choice'" class="space-y-3">
-              <label class="block text-sm font-medium text-gray-700">Answer Options</label>
-              <div class="space-y-2">
-                <div v-for="(option, i) in question.options" :key="i" class="flex items-center gap-3">
-                  <span class="w-8 h-8 bg-gray-200 rounded-lg flex items-center justify-center text-sm font-medium text-gray-700">
+            <div v-if="question.type === 'multiple-choice'" class="space-y-4">
+              <fieldset id="answer-options" class="space-y-3 border-0 p-0">
+                <legend class="block text-base font-semibold text-gray-700 mb-2">Answer Options</legend>
+                <div v-for="(option, i) in question.options" :key="i" class="flex items-center gap-4">
+                  <span class="w-10 h-10 bg-gray-200 rounded-lg flex items-center justify-center text-lg font-medium text-gray-700">
                     {{ String.fromCharCode(65 + i) }}
                   </span>
                   <input
                     v-model="question.options[i]"
-                    class="flex-1 px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150"
+                    class="flex-1 px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150"
                     :placeholder="'Option ' + String.fromCharCode(65 + i)"
                   />
+                  <div class="flex items-center">
+                    <input
+                      type="radio"
+                      :id="'correct-' + question.id + '-' + i"
+                      :name="'correct-' + question.id"
+                      :value="String.fromCharCode(65 + i)"
+                      v-model="question.correctAnswer"
+                      class="w-6 h-6 text-blue-600 border-gray-300 focus:ring-blue-500"
+                    >
+                    <label :for="'correct-' + question.id + '-' + i" class="ml-3 text-lg font-medium text-gray-700">
+                      Correct
+                    </label>
+                  </div>
                 </div>
-              </div>
+              </fieldset>
             </div>
 
-            <!-- Correct Answer -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">
-                {{ question.type === 'multiple-choice' ? 'Correct Answer' : 'Answer' }}
-              </label>
+            <!-- Remove the separate Correct Answer section since it's now integrated with options -->
+            <div v-if="question.type !== 'multiple-choice'">
+              <label for="correct-answer" class="block text-sm font-medium text-gray-700 mb-2">Answer</label>
 
               <select
-                v-if="question.type === 'multiple-choice'"
-                v-model="question.correctAnswer"
-                class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150 bg-white"
-              >
-                <option value="">Select correct answer...</option>
-                <option v-for="(opt, i) in question.options" :key="i" :value="String.fromCharCode(65 + i)">
-                  {{ String.fromCharCode(65 + i) }}. {{ opt || 'Option ' + String.fromCharCode(65 + i) }}
-                </option>
-              </select>
-
-              <select
-                v-else-if="question.type === 'true-false'"
+                v-if="question.type === 'true-false'"
                 v-model="question.correctAnswer"
                 class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150 bg-white"
               >
@@ -246,18 +251,30 @@ interface Question {
   id: string;
   type: 'multiple-choice' | 'true-false' | 'open-ended';
   question: string;
-  options?: string[];
+  options: string[];
   correctAnswer: string;
 }
 
-const props = defineProps<{ onBack: () => void; editingContent?: any }>()
+interface QuizContent {
+  title: string;
+  subject: string;
+  tags: string[];
+  difficulty: string;
+  questions: Question[];
+}
+
+const props = defineProps<{ onBack: () => void; editingContent?: QuizContent }>()
 
 const title = ref(props.editingContent?.title || '')
 const subject = ref(props.editingContent?.subject || '')
 const tags = ref(props.editingContent?.tags?.join(', ') || '')
 const difficulty = ref(props.editingContent?.difficulty || 'easy')
 const questions = ref<Question[]>(
-  props.editingContent?.questions || [
+  props.editingContent?.questions?.map((q) => ({
+    ...q,
+    options: q.options || ['', '', '', ''],
+    correctAnswer: q.type === 'multiple-choice' ? (Array.isArray(q.correctAnswer) ? q.correctAnswer[0] : q.correctAnswer) : q.correctAnswer
+  })) || [
     {
       id: '1',
       type: 'multiple-choice',
