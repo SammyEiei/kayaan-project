@@ -75,7 +75,7 @@ const router = createRouter({
       component: () => import('../views/features_view/CalendarView.vue'),
     },
     {
-      path: '/ManualGenerateMainView',
+      path: '/create-content',//change name to create-content from MunualGenerateMainView
       name: 'ManualGenerateMainView',
       component: () => import('../views/ManualGenerate_view/ManualGenerateMainView.vue'),
     },

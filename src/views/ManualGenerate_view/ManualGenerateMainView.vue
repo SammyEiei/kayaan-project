@@ -1,19 +1,5 @@
 <template>
   <div class="space-y-8 p-6">
-    <!-- Welcome Section -->
-    <div class="text-center space-y-4 max-w-3xl mx-auto">
-      <div class="flex justify-center mb-4">
-        <div class="w-12 h-12 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-sm">
-          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5S19.832 5.477 21 6.253v13C19.832 18.477 18.246 18 16.5 18s-3.332.477-4.5 1.253" />
-          </svg>
-        </div>
-      </div>
-      <h2 class="text-2xl md:text-3xl font-bold text-gray-900">Welcome to Your Learning Hub</h2>
-      <p class="text-gray-600 text-lg">
-        Create and manage your learning content. Build quizzes, flashcards, and notes to enhance your study experience.
-      </p>
-    </div>
 
     <!-- Quick Actions -->
     <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
@@ -28,7 +14,7 @@
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <button
-          @click="() => emitCreate('quiz')"
+          @click="() => navigateToCreate('quiz')"
           class="group p-6 flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-xl hover:from-blue-100 hover:to-blue-200 hover:border-blue-300 transition-all duration-200 hover:-translate-y-1 hover:shadow-md"
         >
           <div class="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center mb-3 group-hover:bg-blue-600 transition-colors duration-200">
@@ -41,7 +27,7 @@
         </button>
 
         <button
-          @click="() => emitCreate('flashcard')"
+          @click="() => navigateToCreate('flashcard')"
           class="group p-6 flex flex-col items-center justify-center bg-gradient-to-br from-indigo-50 to-indigo-100 border border-indigo-200 rounded-xl hover:from-indigo-100 hover:to-indigo-200 hover:border-indigo-300 transition-all duration-200 hover:-translate-y-1 hover:shadow-md"
         >
           <div class="w-12 h-12 bg-indigo-500 rounded-lg flex items-center justify-center mb-3 group-hover:bg-indigo-600 transition-colors duration-200">
@@ -54,7 +40,7 @@
         </button>
 
         <button
-          @click="() => emitCreate('note')"
+          @click="() => navigateToCreate('note')"
           class="group p-6 flex flex-col items-center justify-center bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-xl hover:from-purple-100 hover:to-purple-200 hover:border-purple-300 transition-all duration-200 hover:-translate-y-1 hover:shadow-md"
         >
           <div class="w-12 h-12 bg-purple-500 rounded-lg flex items-center justify-center mb-3 group-hover:bg-purple-600 transition-colors duration-200">
@@ -211,7 +197,7 @@
         <h3 class="text-lg font-medium text-gray-900 mb-2">No content found</h3>
         <p class="text-gray-600 mb-4">Try adjusting your filters or create some new content to get started.</p>
         <button
-          @click="() => emitCreate('quiz')"
+          @click="() => navigateToCreate('quiz')"
           class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-150"
         >
           Create Your First Content
@@ -223,9 +209,10 @@
 
 <script setup lang="ts">
 import { ref, computed, h } from 'vue'
+import { useRouter } from 'vue-router'
 
-const emit = defineEmits(['create-content', 'edit-content'])
-
+const emit = defineEmits(['edit-content'])
+const router = useRouter()
 const searchQuery = ref('')
 const selectedSubject = ref('all')
 const selectedTags = ref<string[]>([])
@@ -318,8 +305,18 @@ const toggleTag = (tag: string) => {
   }
 }
 
-const emitCreate = (type: string) => {
-  emit('create-content', type)
+const navigateToCreate = (type: string) => {
+  switch (type) {
+    case 'quiz':
+      router.push('/QuizView')
+      break
+    case 'flashcard':
+      router.push('/FlashcardView')
+      break
+    case 'note':
+      router.push('/NoteView')
+      break
+  }
 }
 
 const emitEdit = (content: any, type: string) => {
