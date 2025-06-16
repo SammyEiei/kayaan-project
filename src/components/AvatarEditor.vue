@@ -370,6 +370,7 @@ import { ref, computed } from 'vue'
 import { watchEffect } from 'vue'
 import { useAvatarStore } from '@/service/AvatarService'
 import { useAuthStore } from '@/stores/auth'
+
 const avatarStore = useAvatarStore()
 const authStore = useAuthStore()
 const avatarStyles = [
@@ -533,6 +534,10 @@ async function saveAvatar(): Promise<void> {
       avatarUrl: selectedAvatar.value,
       rotation: rotation.value,
     })
+
+    // 🆕 Update authStore with new avatar URL
+    authStore.setAvatar(selectedAvatar.value)
+
     showMessage('Avatar saved successfully! 🎉', 'success')
     isEditing.value = false
   } catch (error: any) {

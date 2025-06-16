@@ -48,6 +48,7 @@ export const useThemeStore = defineStore('theme', {
       try {
         const response = await apiClient.get('/api/themes')
         this.systemThemes = response.data
+        console.log('Fetched themes:', this.systemThemes)
       } catch (error: any) {
         this.error = error.message || 'Failed to fetch themes'
         console.error('Error fetching themes:', error)
@@ -77,7 +78,7 @@ export const useThemeStore = defineStore('theme', {
     },
 
     applyTheme(theme: Theme) {
-      // เปลี่ยน CSS variables แบบ runtime
+      // Apply CSS variables at runtime
       const root = document.documentElement
 
       // Set color variables
@@ -133,7 +134,7 @@ export const useThemeStore = defineStore('theme', {
       }
     },
 
-    async removePreset(userId: number, presetId: string) {
+    async removePreset(userId: number, presetId: number) {
       this.isLoading = true
       this.error = null
       try {
@@ -172,8 +173,8 @@ export const useThemeStore = defineStore('theme', {
       await this.fetchThemes()
 
       // If user is logged in, fetch their theme
-      if (authStore.user?.id) {
-        await this.fetchUserTheme(authStore.user.id)
+      if (authStore.currentUserId) {
+        await this.fetchUserTheme(authStore.currentUserId)
       } else {
         // Apply default theme for non-logged in users
         if (this.systemThemes.length > 0) {

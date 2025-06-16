@@ -37,9 +37,11 @@
                 <div
                   class="w-full h-full rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center overflow-hidden"
                 >
+                  <!-- 🆕 Add key binding to force reload -->
                   <img
                     v-if="currentAvatar"
                     :src="currentAvatar"
+                    :key="avatarKey"
                     class="w-full h-full rounded-2xl object-cover"
                     alt="Profile photo"
                   />
@@ -56,7 +58,9 @@
               ></div>
             </div>
             <div>
-              <h3 class="text-2xl font-semibold text-gray-900 mb-1">{{ displayName }}</h3>
+              <h3 class="text-2xl font-semibold text-gray-900 mb-1">
+                {{ authStore.user?.username || 'User' }}
+              </h3>
               <p class="text-gray-600 text-lg">
                 {{ currentAvatar ? 'Custom avatar' : 'Default avatar' }}
               </p>
@@ -147,9 +151,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue' // 🆕 Add computed, watch
 import AvatarEditor from '@/components/AvatarEditor.vue'
 import ThemeSelector from '@/components/ThemeSelector.vue'
+import { useAuthStore } from '@/stores/auth' // 🆕 Add import
 
 interface Theme {
   id: string
@@ -164,13 +169,28 @@ interface Theme {
   isDark: boolean
 }
 
+// 🆕 Add authStore
+const authStore = useAuthStore()
+
+// 🆕 Add reactive key for forcing image reload
+const avatarKey = ref(0)
+
 const tab = ref<'avatar' | 'theme'>('avatar')
 const displayName = ref('Kay Anderson')
-const currentAvatar = ref<string>('')
+
+// 🆕 Update currentAvatar to use authStore
+const currentAvatar = computed(() => authStore.user?.avatarUrl || '')
+
+// 🆕 Watch for avatar changes and increment key
+watch(currentAvatar, () => {
+  avatarKey.value++
+})
+
 const currentTheme = ref<Theme | null>(null)
 
 function handleAvatarChange(avatar: string) {
-  currentAvatar.value = avatar
+  // 🆕 Update authStore when avatar changes
+  authStore.setAvatar(avatar)
   console.log('Avatar changed:', avatar)
 }
 
