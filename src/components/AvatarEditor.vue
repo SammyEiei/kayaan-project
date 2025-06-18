@@ -370,6 +370,7 @@ import { ref, computed } from 'vue'
 import { watchEffect } from 'vue'
 import { useAvatarStore } from '@/service/AvatarService'
 import { useAuthStore } from '@/stores/auth'
+
 const avatarStore = useAvatarStore()
 const authStore = useAuthStore()
 const avatarStyles = [
@@ -397,6 +398,7 @@ const messageType = ref<'success' | 'error'>('success')
 const displayName = 'Kay Anderson'
 const userId = computed(() => authStore.userId)
 const fileInput = ref<HTMLInputElement>()
+const fileToUpload = ref<File | null>(null) // 🆕 Add this to store the actual file
 
 watchEffect(() => {
   if (authStore.user?.id) {
@@ -474,6 +476,9 @@ function handleFileUpload(event: Event) {
     return
   }
 
+  // 🆕 Store the actual file for upload
+  fileToUpload.value = file
+
   const reader = new FileReader()
   reader.onload = (e) => {
     const result = e.target?.result as string
@@ -489,6 +494,7 @@ function handleFileUpload(event: Event) {
 function selectGeneratedAvatar(avatar: string): void {
   selectedAvatar.value = avatar
   uploadedImage.value = null
+  fileToUpload.value = null // 🆕 Clear file when selecting generated avatar
   isEditing.value = false
   rotation.value = 0
   clearMessage()
@@ -497,6 +503,7 @@ function selectGeneratedAvatar(avatar: string): void {
 function resetSelection(): void {
   selectedAvatar.value = ''
   uploadedImage.value = null
+  fileToUpload.value = null // 🆕 Clear file on reset
   isEditing.value = false
   rotation.value = 0
   clearMessage()
@@ -529,12 +536,27 @@ async function saveAvatar(): Promise<void> {
       return
     }
 
-    await avatarStore.updateAvatarUrl(userId.value, {
-      avatarUrl: selectedAvatar.value,
-      rotation: rotation.value,
-    })
+    // 🆕 Check if we have a file to upload
+    if (fileToUpload.value) {
+      // Use uploadAvatar for file uploads (multipart/form-data)
+      await avatarStore.uploadAvatar(userId.value, fileToUpload.value, rotation.value)
+    } else if (selectedAvatar.value) {
+      // Use updateAvatarUrl for URLs (generated avatars)
+      await avatarStore.updateAvatarUrl(userId.value, {
+        avatarUrl: selectedAvatar.value,
+        rotation: rotation.value,
+      })
+    }
+
+    // 🆕 Refresh user info to ensure everything is synced
+    await authStore.fetchUserInfo()
+
+    // Update authStore with new avatar URL
+    authStore.setAvatar(selectedAvatar.value)
+
     showMessage('Avatar saved successfully! 🎉', 'success')
     isEditing.value = false
+    fileToUpload.value = null // Clear file after successful save
   } catch (error: any) {
     showMessage(`Error saving avatar: ${error.message}`, 'error')
   } finally {

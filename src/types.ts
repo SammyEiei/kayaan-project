@@ -6,4 +6,6 @@ export interface User {
   firstname: string
   lastname: string
   password: string //add password
+  avatarUrl?: string
+  avatarRotation?: number
 }

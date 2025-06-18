@@ -1,13 +1,13 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-@layer base {
-  /* Add this to your src/assets/style.css or create a new theme.css file */
 
+@layer base {
+  /* Theme CSS Variables */
   :root {
     /* Default Light Theme Colors */
-    --primary: #3b82f6;
-    --secondary: #8b5cf6;
+    --primary: #7e69ab;
+    --secondary: #1eaedb;
     --background: #ffffff;
     --surface: #f3f4f6;
     --text: #1f2937;
@@ -20,9 +20,9 @@
 
   /* Dark mode will be applied via JavaScript when theme changes */
   .dark {
-    --primary: #60a5fa;
-    --secondary: #a78bfa;
-    --background: #0f172a;
+    --primary: #9b87f5;
+    --secondary: #33c3f0;
+    --background: #0a0a0a;
     --surface: #1e293b;
     --text: #f1f5f9;
     --text-secondary: #94a3b8;
