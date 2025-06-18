@@ -296,13 +296,12 @@
                   <div
                     class="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center"
                   >
-                    <svg
-                      class="w-6 h-6 text-white font-bold"
-                      viewBox="0 0 24 24"
-                      fill="currentColor"
-                    >
-                      <path d="M3 3h4v18H3V3zm6 0h2l6 8-6 8h-2l6-8-6-8zm8 0h4v18h-4V3z" />
-                      <circle cx="12" cy="12" r="2" fill="currentColor" opacity="0.7" />
+                    <svg class="w-6 h-6 text-white" viewBox="0 0 32 32" fill="currentColor">
+                      <path d="M7 6c0-1.1.9-2 2-2s2 .9 2 2v20c0 1.1-.9 2-2 2s-2-.9-2-2V6z" />
+                      <path
+                        d="M11 16c0-.6.4-1 1-1h.5c.3 0 .6.1.8.3l6.4 6.4c.8.8 2.1.8 2.8 0 .8-.8.8-2.1 0-2.8L16.8 13c-.2-.2-.3-.5-.3-.8V12c0-.3.1-.6.3-.8l5.7-5.7c.8-.8.8-2.1 0-2.8-.8-.8-2.1-.8-2.8 0L13.3 9.1c-.2.2-.5.3-.8.3H12c-.6 0-1 .4-1 1v5z"
+                      />
+                      <circle cx="22" cy="16" r="2.5" opacity="0.4" />
                     </svg>
                   </div>
                   <div>

@@ -39,11 +39,11 @@
                 >
                   <!-- 🆕 Add key binding to force reload -->
                   <img
-                    v-if="currentAvatar"
-                    :src="currentAvatar"
+                    v-if="userAvatarUrl"
+                    :src="userAvatarUrl"
                     :key="avatarKey"
-                    class="w-full h-full rounded-2xl object-cover"
-                    alt="Profile photo"
+                    :alt="authStore.user?.username || 'User avatar'"
+                    class="w-full h-full object-cover"
                   />
                   <span v-else class="text-2xl font-semibold text-white">{{
                     displayName
@@ -168,6 +168,7 @@ interface Theme {
   }
   isDark: boolean
 }
+const userAvatarUrl = computed(() => authStore.user?.avatarUrl || '')
 
 // 🆕 Add authStore
 const authStore = useAuthStore()
@@ -176,10 +177,9 @@ const authStore = useAuthStore()
 const avatarKey = ref(0)
 
 const tab = ref<'avatar' | 'theme'>('avatar')
-const displayName = ref('Kay Anderson')
-
-// 🆕 Update currentAvatar to use authStore
-const currentAvatar = computed(() => authStore.user?.avatarUrl || '')
+const displayName = computed(() => authStore.user?.username || 'User')
+// Use avatar from auth store
+const currentAvatar = computed(() => authStore.currentUserAvatar)
 
 // 🆕 Watch for avatar changes and increment key
 watch(currentAvatar, () => {
@@ -187,7 +187,6 @@ watch(currentAvatar, () => {
 })
 
 const currentTheme = ref<Theme | null>(null)
-
 function handleAvatarChange(avatar: string) {
   // 🆕 Update authStore when avatar changes
   authStore.setAvatar(avatar)

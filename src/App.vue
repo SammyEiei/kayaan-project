@@ -328,13 +328,12 @@ const avatarKey = ref(0)
 // 🆕 Add computed for avatar URL
 const userAvatarUrl = computed(() => authStore.user?.avatarUrl || '')
 
-// 🆕 Watch for avatar changes and increment key
+// ระบุว่าอยู่ในหน้า auth หรือไม่ (login/register)
+const isAuthPage = computed(() => route.path === '/login' || route.path === '/register')
+
+// เมื่อ avatar เปลี่ยน ให้บังคับ reload รูปภาพ
 watch(userAvatarUrl, () => {
   avatarKey.value++
-})
-
-const isAuthPage = computed(() => {
-  return route.path === '/login' || route.path === '/register'
 })
 
 const isLoggedIn = computed(() => !!authStore.token)

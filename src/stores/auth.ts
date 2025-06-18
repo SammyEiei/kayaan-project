@@ -19,6 +19,7 @@ interface UserInfo {
   firstname: string
   lastname: string
   avatarUrl?: string
+  avatarRotation?: number
   roles: string[]
 }
 
@@ -34,13 +35,27 @@ function isTokenExpired(token: string): boolean {
 
 /* ----------  axios instance ---------- */
 const apiClient: AxiosInstance = axios.create({
-  baseURL: 'http://localhost:8080',
+  baseURL: import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080',
   withCredentials: false,
   headers: {
     Accept: 'application/json',
     'Content-Type': 'application/json',
   },
 })
+
+// Helper function to build full URL
+function buildFullUrl(path: string | null | undefined): string | undefined {
+  if (!path) return undefined
+
+  // If already absolute URL, return as is
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    return path
+  }
+
+  // Build full URL
+  const baseUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080'
+  return `${baseUrl}${path.startsWith('/') ? '' : '/'}${path}`
+}
 
 /* ----------  Pinia Store ---------- */
 export const useAuthStore = defineStore('auth', {
@@ -56,6 +71,7 @@ export const useAuthStore = defineStore('auth', {
     authorizationHeader: (state) => (state.token ? `Bearer ${state.token}` : ''),
     currentUserId: (state) => state.userId,
     isAuthenticated: (state) => !!state.token && !isTokenExpired(state.token),
+    currentUserAvatar: (state) => buildFullUrl(state.user?.avatarUrl),
   },
 
   actions: {
@@ -74,8 +90,15 @@ export const useAuthStore = defineStore('auth', {
         firstname,
         lastname,
       })
+
+      // Apply token and user info
       await applyToken(this, data.access_token, data.user)
-      await this.fetchUserInfo()
+
+      // If no user info from response, fetch it
+      if (!data.user) {
+        await this.fetchUserInfo()
+      }
+
       return data
     },
 
@@ -84,10 +107,17 @@ export const useAuthStore = defineStore('auth', {
         username,
         password,
       })
+
       if (isTokenExpired(data.access_token)) throw new Error('Token is expired')
 
+      // Apply token and user info
       await applyToken(this, data.access_token, data.user)
-      await this.fetchUserInfo()
+
+      // If no user info from response, fetch it
+      if (!data.user) {
+        await this.fetchUserInfo()
+      }
+
       return data
     },
 
@@ -108,6 +138,7 @@ export const useAuthStore = defineStore('auth', {
           lastname: data.lastname,
           roles: data.roles,
           avatarUrl: data.avatarUrl,
+          avatarRotation: data.avatarRotation,
           password: '', // never keep password
         }
         this.userId = data.id
@@ -127,9 +158,15 @@ export const useAuthStore = defineStore('auth', {
     },
 
     /* ----- avatar helpers ----- */
-    setAvatarUrl(avatarUrl: string) {
+    setAvatarUrl(avatarUrl: string, rotation?: number) {
       if (!this.user) return console.error('No user in store')
-      this.user = { ...this.user, avatarUrl }
+
+      this.user = {
+        ...this.user,
+        avatarUrl,
+        avatarRotation: rotation ?? this.user.avatarRotation ?? 0,
+      }
+
       try {
         localStorage.setItem('user', JSON.stringify(this.user))
       } catch (e) {
@@ -146,8 +183,8 @@ export const useAuthStore = defineStore('auth', {
     },
 
     /** shortcut that AvatarEditor เรียก */
-    setAvatar(newAvatarUrl: string) {
-      this.setAvatarUrl(newAvatarUrl)
+    setAvatar(newAvatarUrl: string, rotation?: number) {
+      this.setAvatarUrl(newAvatarUrl, rotation)
     },
 
     /* ----- logout / reload ----- */
@@ -195,25 +232,40 @@ export const useAuthStore = defineStore('auth', {
         }
       }
 
-      if (!this.user || !this.user.email) {
-        await this.fetchUserInfo()
-      }
+      // Always fetch fresh user info to get latest avatar
+      await this.fetchUserInfo()
     },
   },
 })
 
 /* ----------  helper: set token & defaults ---------- */
-const applyToken = async (store: any, accessToken: string, user?: User) => {
+const applyToken = async (store: any, accessToken: string, userInfo?: any) => {
   const payload = jwtDecode<JwtPayload>(accessToken)
 
   store.token = accessToken
   store.userId = Number(payload.sub)
   store.roles = payload.roles ?? []
-  store.user = user ?? store.user
+
+  // If userInfo provided from backend, use it
+  if (userInfo) {
+    store.user = {
+      id: userInfo.id,
+      username: userInfo.username,
+      email: userInfo.email,
+      firstname: userInfo.firstname,
+      lastname: userInfo.lastname,
+      roles: userInfo.roles || store.roles,
+      avatarUrl: userInfo.avatarUrl,
+      avatarRotation: userInfo.avatarRotation,
+      password: '',
+    }
+  }
 
   localStorage.setItem('access_token', accessToken)
   localStorage.setItem('userId', String(store.userId))
-  if (user) localStorage.setItem('user', JSON.stringify(user))
+  if (store.user) {
+    localStorage.setItem('user', JSON.stringify(store.user))
+  }
 
   axios.defaults.headers.common['Authorization'] = store.authorizationHeader
   apiClient.defaults.headers['Authorization'] = store.authorizationHeader

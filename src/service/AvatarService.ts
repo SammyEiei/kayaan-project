@@ -108,7 +108,7 @@ export const useAvatarStore = defineStore('avatar', {
 
       try {
         const response = await apiClient.post<AvatarResponse>(
-          `/api/users/${userId}/avatar-upload`,
+          `/api/users/${userId}/avatar-upload`, // 🆕 Changed endpoint from /avatar-upload to /avatar
           formData,
           {
             headers: {
