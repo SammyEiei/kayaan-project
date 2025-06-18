@@ -94,6 +94,11 @@ const router = createRouter({
       name: 'FlashcardView',
       component: () => import('../views/ManualGenerate_view/FlashcardView.vue'),
     },
+    {
+      path: '/MyContentView',
+      name: 'MyContentView',
+      component: () => import('../views/ManualGenerate_view/MyContentView.vue'),
+    },
   ],
 })
 

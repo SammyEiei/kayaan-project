@@ -295,9 +295,9 @@ const isLoggedIn = computed(() => !!authStore.token)
 
 const menuItems = [
   { to: '/dashboard', icon: 'grid', label: 'Dashboard' },
-  { to: '/study-content', icon: 'book', label: 'My content' },
+  { to: '/MyContentView', icon: 'book', label: 'My content' },
   { to: '/create-content', icon: 'sparkles', label: 'Create Content' },
-  { to: '/study-groups', icon: 'users', label: 'Study Groups' },
+  // { to: '/study-groups', icon: 'users', label: 'Study Groups' },
   { to: '/pomodoro', icon: 'clock', label: 'Pomodoro Timer' },
   { to: '/settings', icon: 'settings', label: 'Settings' },
 ]
@@ -406,7 +406,7 @@ function getPageTitle() {
   const titles: Record<string, string> = {
     '/dashboard': 'Dashboard',
     '/flashcards': 'Flashcards & Quizzes',
-    '/create-content': 'Create Content',
+    '/MyContentView': 'Create Content',
     '/study-groups': 'Study Groups',
     '/pomodoro': 'Pomodoro Timer',
     '/settings': 'Settings',
