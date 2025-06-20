@@ -20,14 +20,18 @@
         <button
           class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-150 font-medium shadow-sm hover:shadow-md flex items-center gap-2"
           @click="handleSave"
+          :disabled="isSaving"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12" />
           </svg>
-          Save Quiz
+          <span v-if="!isSaving">Save Quiz</span>
+          <span v-else>Saving...</span>
         </button>
       </div>
     </div>
+    <div v-if="errorMessage" class="text-red-600 mt-2">{{ errorMessage }}</div>
+    <div v-if="successMessage" class="text-green-600 mt-2">{{ successMessage }}</div>
 
     <!-- Quiz Details -->
     <div class="bg-white border border-gray-200 rounded-xl p-6 space-y-5 shadow-sm">
@@ -246,6 +250,8 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { createQuiz } from '@/service/QuizService'
 
 interface Question {
   id: string;
@@ -263,7 +269,9 @@ interface QuizContent {
   questions: Question[];
 }
 
-const props = defineProps<{ onBack: () => void; editingContent?: QuizContent }>()
+const router = useRouter()
+
+const props = defineProps<{ editingContent?: QuizContent }>()
 
 const title = ref(props.editingContent?.title || '')
 const subject = ref(props.editingContent?.subject || '')
@@ -303,6 +311,10 @@ const difficultyOptions = [
   }
 ]
 
+const isSaving = ref(false)
+const errorMessage = ref('')
+const successMessage = ref('')
+
 function addQuestion() {
   questions.value.push({
     id: Date.now().toString(),
@@ -317,16 +329,41 @@ function removeQuestion(id: string) {
   questions.value = questions.value.filter(q => q.id !== id)
 }
 
-function handleSave() {
-  const quiz = {
+function onBack() {
+  router.push('/MyContentView')
+}
+
+async function handleSave() {
+  isSaving.value = true
+  errorMessage.value = ''
+  successMessage.value = ''
+  const quizPayload = {
     title: title.value,
-    subject: subject.value,
-    tags: tags.value.split(',').map(tag => tag.trim()).filter(Boolean),
-    difficulty: difficulty.value,
-    questions: questions.value.filter(q => q.question.trim())
+    questions: questions.value.filter(q => q.question.trim()).map(q => ({
+      questionText: q.question,
+      type: q.type === 'multiple-choice'
+        ? 'MULTIPLE_CHOICE'
+        : q.type === 'true-false'
+          ? 'TRUE_FALSE'
+          : 'OPEN_ENDED',
+      choices: q.type === 'multiple-choice' ? q.options : undefined,
+      correctAnswer: q.correctAnswer,
+      subject: subject.value,
+      difficulty: difficulty.value,
+      tags: tags.value.split(',').map(tag => tag.trim()).filter(Boolean),
+    })),
   }
-  console.log('Saving quiz:', quiz)
-  props.onBack()
+  try {
+    await createQuiz(quizPayload)
+    successMessage.value = 'Quiz saved successfully!'
+    setTimeout(() => {
+      onBack()
+    }, 1000)
+  } catch (err) {
+    errorMessage.value = err?.message || 'Failed to save quiz'
+  } finally {
+    isSaving.value = false
+  }
 }
 </script>
 

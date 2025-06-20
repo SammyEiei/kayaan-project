@@ -1,6 +1,7 @@
 <template>
-  <!-- Search and Filters -->
-  <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+  <div class="max-w-7xl mx-auto space-y-6 p-6">
+    <!-- Search and Filters -->
+    <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
       <div class="flex items-center gap-2 mb-6">
         <div class="w-8 h-8 bg-gradient-to-r from-gray-500 to-gray-600 rounded-lg flex items-center justify-center">
           <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -151,3 +152,178 @@
     </div>
   </div>
 </template>
+
+<script setup lang="ts">
+import { ref, computed, h } from 'vue'
+import { useRouter } from 'vue-router'
+
+interface ContentItem {
+  id: string
+  type: 'quiz' | 'note' | 'flashcard'
+  title: string
+  subject: string
+  tags: string[]
+  difficulty: string
+  createdAt: string
+}
+
+const router = useRouter()
+
+// Reactive data
+const searchQuery = ref('')
+const selectedSubject = ref('all')
+const selectedTags = ref<string[]>([])
+
+// Mock data - ในอนาคตจะดึงจาก API
+const contentItems = ref<ContentItem[]>([
+  {
+    id: '1',
+    type: 'quiz',
+    title: 'Basic Math Quiz',
+    subject: 'Mathematics',
+    tags: ['algebra', 'basic'],
+    difficulty: 'easy',
+    createdAt: '2024-01-15'
+  },
+  {
+    id: '2',
+    type: 'note',
+    title: 'Physics Notes',
+    subject: 'Physics',
+    tags: ['mechanics', 'advanced'],
+    difficulty: 'hard',
+    createdAt: '2024-01-14'
+  },
+  {
+    id: '3',
+    type: 'flashcard',
+    title: 'Chemistry Elements',
+    subject: 'Chemistry',
+    tags: ['elements', 'periodic-table'],
+    difficulty: 'medium',
+    createdAt: '2024-01-13'
+  }
+])
+
+// Computed properties
+const subjects = computed(() => ['all', ...new Set(contentItems.value.map(item => item.subject))])
+
+const allTags = computed(() => {
+  const tags = contentItems.value.flatMap(item => item.tags)
+  return [...new Set(tags)]
+})
+
+const filteredContent = computed(() => {
+  return contentItems.value.filter(item => {
+    const matchesSearch = item.title.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+                         item.subject.toLowerCase().includes(searchQuery.value.toLowerCase())
+
+    const matchesSubject = selectedSubject.value === 'all' || item.subject === selectedSubject.value
+
+    const matchesTags = selectedTags.value.length === 0 ||
+                       selectedTags.value.some(tag => item.tags.includes(tag))
+
+    return matchesSearch && matchesSubject && matchesTags
+  })
+})
+
+// Methods
+function toggleTag(tag: string) {
+  const index = selectedTags.value.indexOf(tag)
+  if (index > -1) {
+    selectedTags.value.splice(index, 1)
+  } else {
+    selectedTags.value.push(tag)
+  }
+}
+
+function getTypeColor(type: string) {
+  const colors = {
+    quiz: 'bg-gradient-to-r from-blue-500 to-indigo-600',
+    note: 'bg-gradient-to-r from-green-500 to-emerald-600',
+    flashcard: 'bg-gradient-to-r from-purple-500 to-pink-600'
+  }
+  return colors[type as keyof typeof colors] || colors.quiz
+}
+
+function getDifficultyColor(difficulty: string) {
+  const colors = {
+    easy: 'bg-green-100 text-green-800',
+    medium: 'bg-yellow-100 text-yellow-800',
+    hard: 'bg-red-100 text-red-800'
+  }
+  return colors[difficulty as keyof typeof colors] || colors.easy
+}
+
+function getContentIcon(type: string) {
+  const icons = {
+    quiz: () => h('svg', { class: 'w-4 h-4', fill: 'none', stroke: 'currentColor', viewBox: '0 0 24 24' }, [
+      h('path', { 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'stroke-width': '2', d: 'M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' })
+    ]),
+    note: () => h('svg', { class: 'w-4 h-4', fill: 'none', stroke: 'currentColor', viewBox: '0 0 24 24' }, [
+      h('path', { 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'stroke-width': '2', d: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' })
+    ]),
+    flashcard: () => h('svg', { class: 'w-4 h-4', fill: 'none', stroke: 'currentColor', viewBox: '0 0 24 24' }, [
+      h('path', { 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'stroke-width': '2', d: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10' })
+    ])
+  }
+  return icons[type as keyof typeof icons] || icons.quiz
+}
+
+function formatDate(dateString: string) {
+  return new Date(dateString).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  })
+}
+
+function emitEdit(item: ContentItem, type: string) {
+  // Navigate to edit page based on type
+  switch (type) {
+    case 'quiz':
+      router.push(`/QuizView?edit=${item.id}`)
+      break
+    case 'note':
+      router.push(`/NoteView?edit=${item.id}`)
+      break
+    case 'flashcard':
+      router.push(`/FlashcardView?edit=${item.id}`)
+      break
+  }
+}
+
+function navigateToCreate(type: string) {
+  switch (type) {
+    case 'quiz':
+      router.push('/QuizView')
+      break
+    case 'note':
+      router.push('/NoteView')
+      break
+    case 'flashcard':
+      router.push('/FlashcardView')
+      break
+  }
+}
+</script>
+
+<style scoped>
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(59, 130, 246, 0.5);
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(59, 130, 246, 0.7);
+}
+</style>
