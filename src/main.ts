@@ -8,6 +8,7 @@ import '@/service/AxiosInterceptorSetup' // ⭐ ดึง interceptor เข้�
 import App from './App.vue'
 import router from './router'
 import 'nprogress/nprogress.css'
+import './assets/theme.css' // <-- นี่นะ
 
 const app = createApp(App)
 
