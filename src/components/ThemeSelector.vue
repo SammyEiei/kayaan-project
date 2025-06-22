@@ -1,3 +1,4 @@
+09:51 Wasan
 <template>
   <div class="space-y-8">
     <!-- Preview Notice -->
@@ -38,6 +39,7 @@
       </div>
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div
+          v-for="theme in predefinedThemes"
           v-for="theme in predefinedThemes"
           :key="theme.id"
           class="bg-white/80 rounded-xl p-6 cursor-pointer border border-white/50 transition-all duration-500 group hover:shadow-xl hover:scale-105"
@@ -187,6 +189,10 @@
               :style="{ backgroundColor: color }"
             />
           </div>
+        </div>
+
+        <!-- Apply custom theme -->
+        <div class="flex justify-center">
           <button
             @click="applyTheme(theme)"
             class="w-full bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-lg px-4 py-2 mt-2"
