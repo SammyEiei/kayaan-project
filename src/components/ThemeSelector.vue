@@ -220,33 +220,105 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useAuthStore } from '@/stores/auth'
-import {
-  getPredefinedThemes,
-  getUserPresets,
-  createUserPreset,
-  deleteUserPreset,
-  setActiveTheme,
-  getActiveTheme,
-  resetPersonalization,
-  type Theme as ApiTheme
-} from '@/service/ThemeService'
-
-const authStore = useAuthStore()
 
 // ----------------- Theme Types & Data ---------------------
-type Theme = ApiTheme
+interface Theme {
+  id: string
+  name: string
+  colors: Record<string, string>
+  isDark: boolean
+  description?: string
+}
 
-const predefinedThemes = ref<Theme[]>([])
+const predefinedThemes: Theme[] = [
+  {
+    id: 'light',
+    name: 'Light',
+    description: 'Clean and bright design perfect for daytime use',
+    colors: {
+      primary: '#7E69AB',
+      secondary: '#1EAEDB',
+      background: '#ffffff',
+      foreground: '#0a0a0a',
+      accent: '#f4f4f5',
+    },
+    isDark: false,
+  },
+  {
+    id: 'dark',
+    name: 'Dark',
+    description: 'Easy on the eyes for low-light environments',
+    colors: {
+      primary: '#9b87f5',
+      secondary: '#33C3F0',
+      background: '#0a0a0a',
+      foreground: '#fafafa',
+      accent: '#27272a',
+    },
+    isDark: true,
+  },
+  {
+    id: 'ocean',
+    name: 'Ocean',
+    description: 'Calming blue tones inspired by the sea',
+    colors: {
+      primary: '#0891b2',
+      secondary: '#06b6d4',
+      background: '#f0f9ff',
+      foreground: '#0c4a6e',
+      accent: '#e0f2fe',
+    },
+    isDark: false,
+  },
+  {
+    id: 'sunset',
+    name: 'Sunset',
+    description: 'Warm oranges and purples like a beautiful sunset',
+    colors: {
+      primary: '#ea580c',
+      secondary: '#f97316',
+      background: '#fff7ed',
+      foreground: '#9a3412',
+      accent: '#fed7aa',
+    },
+    isDark: false,
+  },
+  {
+    id: 'forest',
+    name: 'Forest',
+    description: 'Natural greens bringing the outdoors inside',
+    colors: {
+      primary: '#059669',
+      secondary: '#10b981',
+      background: '#f0fdf4',
+      foreground: '#064e3b',
+      accent: '#bbf7d0',
+    },
+    isDark: false,
+  },
+  {
+    id: 'midnight',
+    name: 'Midnight',
+    description: 'Deep blues and purples for the night owls',
+    colors: {
+      primary: '#6366f1',
+      secondary: '#8b5cf6',
+      background: '#0f172a',
+      foreground: '#f1f5f9',
+      accent: '#1e293b',
+    },
+    isDark: true,
+  },
+]
 
 // ----------------- States ---------------------
-const currentTheme = ref<Theme | null>(null)
+const currentTheme = ref<Theme>(predefinedThemes[0])
 const previewTheme = ref<Theme | null>(null)
 const isPreviewMode = ref(false)
 const customThemeName = ref('')
 const savedThemes = ref<Theme[]>([])
 const customTheme = ref<Theme>({
-  id: 0,
+  id: 'custom',
   name: 'Custom Theme',
   colors: {
     primary: '#7e69ab',
@@ -271,20 +343,12 @@ function applyThemeToDOM(theme: Theme) {
     root.classList.remove('dark')
   }
 }
-async function applyTheme(theme: Theme) {
+function applyTheme(theme: Theme) {
   applyThemeToDOM(theme)
   currentTheme.value = theme
   previewTheme.value = null
   isPreviewMode.value = false
-  const userId = authStore.currentUserId
-  if (userId) {
-    const preset = savedThemes.value.find(t => t.id === theme.id)
-    if (preset) {
-      await setActiveTheme(userId, undefined, preset.id)
-    } else {
-      await setActiveTheme(userId, theme.id, undefined)
-    }
-  }
+  localStorage.setItem('enhancedCurrentTheme', JSON.stringify(theme))
 }
 function handlePreview(theme: Theme) {
   previewTheme.value = theme
@@ -310,65 +374,46 @@ function updateCustomColorMode() {
   applyThemeToDOM(customTheme.value)
 }
 function applyCustomTheme() {
-  const theme = { ...customTheme.value }
+  const theme = { ...customTheme.value, id: `custom-${Date.now()}` }
   applyTheme(theme)
 }
-async function saveCustomTheme() {
+function saveCustomTheme() {
   if (!customThemeName.value.trim()) return
   const newTheme: Theme = {
-    id: 0,
+    id: `custom-${Date.now()}`,
     name: customThemeName.value,
     colors: { ...customTheme.value.colors },
     isDark: customTheme.value.isDark,
+    description: 'Custom theme created by user',
   }
-  const userId = authStore.currentUserId
-  if (userId) {
-    const created = await createUserPreset(userId, newTheme)
-    savedThemes.value.push(created)
-  }
+  savedThemes.value.push(newTheme)
+  localStorage.setItem('enhancedSavedThemes', JSON.stringify(savedThemes.value))
   customThemeName.value = ''
 }
-async function deleteCustomTheme(themeId: number) {
-  const userId = authStore.currentUserId
-  if (userId) {
-    await deleteUserPreset(userId, themeId)
-    savedThemes.value = savedThemes.value.filter((t) => t.id !== themeId)
-  }
+function deleteCustomTheme(themeId: string) {
+  savedThemes.value = savedThemes.value.filter((t) => t.id !== themeId)
+  localStorage.setItem('enhancedSavedThemes', JSON.stringify(savedThemes.value))
 }
-async function resetToDefaults() {
-  const userId = authStore.currentUserId
-  if (userId) {
-    await resetPersonalization(userId)
+function resetToDefaults() {
+  savedThemes.value = []
+  customTheme.value = {
+    ...customTheme.value,
+    colors: { ...predefinedThemes[0].colors },
+    isDark: predefinedThemes[0].isDark,
   }
-  if (predefinedThemes.value.length > 0) {
-    customTheme.value = {
-      ...customTheme.value,
-      colors: { ...predefinedThemes.value[0].colors },
-      isDark: predefinedThemes.value[0].isDark,
-    }
-    applyTheme(predefinedThemes.value[0])
-  }
+  applyTheme(predefinedThemes[0])
+  localStorage.removeItem('enhancedSavedThemes')
+  localStorage.removeItem('enhancedCurrentTheme')
 }
 
-onMounted(async () => {
-  predefinedThemes.value = await getPredefinedThemes()
-  const userId = authStore.currentUserId
-  if (userId) {
-    savedThemes.value = await getUserPresets(userId)
-    const active = await getActiveTheme(userId)
-    let theme: Theme | undefined
-    if (active?.activePresetId) {
-      theme = savedThemes.value.find(t => t.id === active.activePresetId)
-    } else if (active?.activeThemeId) {
-      theme = predefinedThemes.value.find(t => t.id === active.activeThemeId)
-    }
-    if (theme) {
-      await applyTheme(theme)
-    } else if (predefinedThemes.value.length > 0) {
-      await applyTheme(predefinedThemes.value[0])
-    }
-  } else if (predefinedThemes.value.length > 0) {
-    await applyTheme(predefinedThemes.value[0])
+onMounted(() => {
+  const saved = localStorage.getItem('enhancedSavedThemes')
+  if (saved) savedThemes.value = JSON.parse(saved)
+  const currentSaved = localStorage.getItem('enhancedCurrentTheme')
+  if (currentSaved) {
+    const parsedTheme = JSON.parse(currentSaved)
+    currentTheme.value = parsedTheme
+    applyThemeToDOM(parsedTheme)
   }
 })
 </script>
