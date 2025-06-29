@@ -3,15 +3,12 @@ import HomeView from '../views/welcome_view/HomeView.vue'
 
 import { useAuthStore } from '@/stores/auth'
 import nProgress from 'nprogress'
-import LoginView from '@/views/authentication_view/LoginView.vue';
-import RegisterView from '@/views/authentication_view/RegisterView.vue';
-import ManualGenerateMainView from '@/views/ManualGenerate_view/ManualGenerateMainView.vue';
-import QuizView from '@/views/ManualGenerate_view/QuizView.vue';
-import NoteView from '@/views/ManualGenerate_view/NoteView.vue';
-import FlashcardView from '@/views/ManualGenerate_view/FlashcardView.vue';
-import { useAuthStore } from '@/stores/auth';
-import nProgress from 'nprogress';
-// import HomeView from '../views/HomeView.vue'
+import LoginView from '@/views/authentication_view/LoginView.vue'
+import RegisterView from '@/views/authentication_view/RegisterView.vue'
+import ManualGenerateMainView from '@/views/ManualGenerate_view/ManualGenerateMainView.vue'
+import QuizView from '@/views/ManualGenerate_view/QuizView.vue'
+import NoteView from '@/views/ManualGenerate_view/NoteView.vue'
+import FlashcardView from '@/views/ManualGenerate_view/FlashcardView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -24,9 +21,6 @@ const router = createRouter({
     {
       path: '/about',
       name: 'about',
-      // route level code-splitting
-      // this generates a separate chunk (About.[hash].js) for this route
-      // which is lazy-loaded when the route is visited.
       component: () => import('../views/welcome_view/AboutView.vue'),
     },
     {
@@ -44,6 +38,16 @@ const router = createRouter({
       name: 'register',
       component: () => import('../views/authentication_view/RegisterView.vue'),
     },
+    // {
+    //   path: '/forgot-password',
+    //   name: 'forgot-password',
+    //   component: () => import('../views/authentication_view/ForgotPasswordView.vue'),
+    // },
+    // {
+    //   path: '/reset-password',
+    //   name: 'reset-password',
+    //   component: () => import('../views/authentication_view/ResetPasswordView.vue'),
+    // },
     {
       path: '/dashboard',
       name: 'dashboard',
@@ -75,7 +79,7 @@ const router = createRouter({
       component: () => import('../views/features_view/CalendarView.vue'),
     },
     {
-      path: '/create-content',//change name to create-content from MunualGenerateMainView
+      path: '/create-content',
       name: 'ManualGenerateMainView',
       component: () => import('../views/ManualGenerate_view/ManualGenerateMainView.vue'),
     },

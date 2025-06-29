@@ -3,17 +3,38 @@
     <!-- Header -->
     <div class="flex items-center justify-between">
       <div class="flex items-center">
-        <button @click="$emit('back')" class="mr-4 p-2 text-gray-600 hover:text-gray-800">
-          <i data-lucide="arrow-left" class="w-5 h-5"></i>
+        <button @click="goBack" class="mr-4 p-2 text-gray-600 hover:text-gray-800">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M10 19l-7-7m0 0l7-7m-7 7h18"
+            />
+          </svg>
         </button>
-        <h2 class="text-2xl font-bold text-gray-900">Create Notes</h2>
+        <h2 class="text-2xl font-bold text-gray-900">
+          {{ isEditing ? 'Edit Note' : 'Create Notes' }}
+        </h2>
       </div>
       <button
         @click="saveNote"
-        class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
+        :disabled="isLoading"
+        class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
       >
-        Save Notes
+        {{ isLoading ? 'Saving...' : isEditing ? 'Update Note' : 'Save Notes' }}
       </button>
+    </div>
+
+    <!-- Error/Success Messages -->
+    <div v-if="errorMessage" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+      {{ errorMessage }}
+    </div>
+    <div
+      v-if="successMessage"
+      class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded"
+    >
+      {{ successMessage }}
     </div>
 
     <!-- Note Settings -->
@@ -27,7 +48,7 @@
             type="text"
             placeholder="Enter subject name"
             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-          >
+          />
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Tags (comma separated)</label>
@@ -36,7 +57,7 @@
             type="text"
             placeholder="biology, cells, study guide"
             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-          >
+          />
         </div>
       </div>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -58,7 +79,7 @@
             type="text"
             placeholder="Enter note title"
             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-          >
+          />
         </div>
       </div>
     </div>
@@ -97,7 +118,7 @@
               :placeholder="block.placeholder"
               :class="getBlockClasses(block.type)"
               class="w-full border-none focus:outline-none bg-transparent resize-none"
-            >
+            />
             <textarea
               v-else
               v-model="block.content"
@@ -105,7 +126,7 @@
               :class="getBlockClasses(block.type)"
               class="w-full border-none focus:outline-none bg-transparent resize-none min-h-[2rem]"
               rows="1"
-              @input="$event.target.style.height = 'auto'; $event.target.style.height = $event.target.scrollHeight + 'px'"
+              @input="autoResize($event)"
             ></textarea>
           </div>
 
@@ -116,7 +137,14 @@
               :disabled="noteData.blocks.length === 1"
               class="w-6 h-6 text-gray-400 hover:text-red-600 disabled:text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity"
             >
-              <i data-lucide="x" class="w-4 h-4"></i>
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
             </button>
           </div>
         </div>
@@ -174,9 +202,18 @@
 </template>
 
 <script setup lang="ts">
-import { reactive } from 'vue'
+import { reactive, ref, computed, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { createNote, updateNote, getNoteById } from '@/service/NoteService'
 
+const router = useRouter()
+const route = useRoute()
 const emit = defineEmits(['save', 'back'])
+
+const isLoading = ref(false)
+const errorMessage = ref('')
+const successMessage = ref('')
+const editingId = ref<number | null>(null)
 
 const noteData = reactive({
   subject: '',
@@ -188,13 +225,42 @@ const noteData = reactive({
       id: 1,
       type: 'paragraph',
       content: '',
-      placeholder: 'Start writing...'
-    }
-  ]
+      placeholder: 'Start writing...',
+    },
+  ],
 })
 
+// Load note for editing if edit parameter exists
+onMounted(async () => {
+  const editId = route.query.edit
+  if (editId) {
+    editingId.value = Number(editId)
+    try {
+      const note = await getNoteById(editingId.value)
+      noteData.title = note.title
+      noteData.subject = note.subject || ''
+      noteData.difficulty = note.difficulty || 'medium'
+      noteData.tags = note.tags?.join(', ') || ''
+
+      // Parse content into blocks
+      const contentLines = note.content.split('\n')
+      noteData.blocks = contentLines.map((line, index) => ({
+        id: index + 1,
+        type: 'paragraph',
+        content: line,
+        placeholder: 'Start writing...',
+      }))
+    } catch (error) {
+      errorMessage.value = 'Failed to load note'
+      console.error(error)
+    }
+  }
+})
+
+const isEditing = computed(() => editingId.value !== null)
+
 const addBlock = (type = 'paragraph') => {
-  const newId = Math.max(...noteData.blocks.map(b => b.id)) + 1
+  const newId = Math.max(...noteData.blocks.map((b) => b.id)) + 1
   const placeholders = {
     paragraph: 'Start writing...',
     heading1: 'Heading 1',
@@ -203,26 +269,26 @@ const addBlock = (type = 'paragraph') => {
     bullet: 'List item',
     numbered: 'List item',
     quote: 'Quote',
-    code: 'Code block'
+    code: 'Code block',
   }
 
   noteData.blocks.push({
     id: newId,
     type: type,
     content: '',
-    placeholder: placeholders[type] || 'Start writing...'
+    placeholder: placeholders[type] || 'Start writing...',
   })
 }
 
 const removeBlock = (id: number) => {
-  const index = noteData.blocks.findIndex(b => b.id === id)
+  const index = noteData.blocks.findIndex((b) => b.id === id)
   if (index > -1 && noteData.blocks.length > 1) {
     noteData.blocks.splice(index, 1)
   }
 }
 
 const changeBlockType = (id: number, newType: string) => {
-  const block = noteData.blocks.find(b => b.id === id)
+  const block = noteData.blocks.find((b) => b.id === id)
   if (block) {
     block.type = newType
     const placeholders = {
@@ -233,7 +299,7 @@ const changeBlockType = (id: number, newType: string) => {
       bullet: 'List item',
       numbered: 'List item',
       quote: 'Quote',
-      code: 'Code block'
+      code: 'Code block',
     }
     block.placeholder = placeholders[newType] || 'Start writing...'
   }
@@ -248,7 +314,7 @@ const getBlockClasses = (type: string) => {
     bullet: 'text-base text-gray-900',
     numbered: 'text-base text-gray-900',
     quote: 'text-lg italic text-gray-700 border-l-4 border-gray-300 pl-4',
-    code: 'text-sm font-mono bg-gray-100 text-gray-800 p-3 rounded'
+    code: 'text-sm font-mono bg-gray-100 text-gray-800 p-3 rounded',
   }
   return classes[type] || classes.paragraph
 }
@@ -257,15 +323,60 @@ const getInputType = (type: string) => {
   return ['heading1', 'heading2', 'heading3'].includes(type) ? 'input' : 'textarea'
 }
 
-const saveNote = () => {
-  const tagsArray = noteData.tags.split(',').map(tag => tag.trim()).filter(tag => tag)
-  const noteToSave = {
-    ...noteData,
-    tags: tagsArray,
-    type: 'note',
-    id: Date.now(),
-    createdAt: new Date().toISOString()
+const saveNote = async () => {
+  isLoading.value = true
+  errorMessage.value = ''
+  successMessage.value = ''
+
+  try {
+    const tagsArray = noteData.tags
+      .split(',')
+      .map((tag) => tag.trim())
+      .filter((tag) => tag)
+
+    // Combine blocks into content
+    const content = noteData.blocks
+      .map((block) => block.content)
+      .filter((text) => text.trim())
+      .join('\n')
+
+    const notePayload = {
+      title: noteData.title,
+      content: content,
+      subject: noteData.subject,
+      difficulty: noteData.difficulty,
+      tags: tagsArray,
+    }
+
+    if (editingId.value) {
+      await updateNote(editingId.value, notePayload)
+      successMessage.value = 'Note updated successfully!'
+    } else {
+      await createNote(notePayload)
+      successMessage.value = 'Note created successfully!'
+    }
+
+    setTimeout(() => {
+      router.push('/MyContentView')
+    }, 1000)
+  } catch (error: any) {
+    errorMessage.value = error?.response?.data?.message || 'Failed to save note'
+    console.error(error)
+  } finally {
+    isLoading.value = false
   }
-  emit('save', noteToSave)
+}
+
+const goBack = () => {
+  router.push('/MyContentView')
+}
+
+/**
+ * Automatically adjusts a textarea's height to its scrollHeight.
+ */
+const autoResize = (event: Event) => {
+  const target = event.target as HTMLTextAreaElement
+  target.style.height = 'auto'
+  target.style.height = `${target.scrollHeight}px`
 }
 </script>
