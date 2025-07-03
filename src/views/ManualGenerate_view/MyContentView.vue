@@ -143,7 +143,7 @@
         <h3 class="text-lg font-medium text-gray-900 mb-2">No content found</h3>
         <p class="text-gray-600 mb-4">Try adjusting your filters or create some new content to get started.</p>
         <button
-          @click="() => navigateToCreate('quiz')"
+          @click="navigateToManualGenerateMainView"
           class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-150"
         >
           Create Your First Content
@@ -174,36 +174,8 @@ const searchQuery = ref('')
 const selectedSubject = ref('all')
 const selectedTags = ref<string[]>([])
 
-// Mock data - ในอนาคตจะดึงจาก API
-const contentItems = ref<ContentItem[]>([
-  {
-    id: '1',
-    type: 'quiz',
-    title: 'Basic Math Quiz',
-    subject: 'Mathematics',
-    tags: ['algebra', 'basic'],
-    difficulty: 'easy',
-    createdAt: '2024-01-15'
-  },
-  {
-    id: '2',
-    type: 'note',
-    title: 'Physics Notes',
-    subject: 'Physics',
-    tags: ['mechanics', 'advanced'],
-    difficulty: 'hard',
-    createdAt: '2024-01-14'
-  },
-  {
-    id: '3',
-    type: 'flashcard',
-    title: 'Chemistry Elements',
-    subject: 'Chemistry',
-    tags: ['elements', 'periodic-table'],
-    difficulty: 'medium',
-    createdAt: '2024-01-13'
-  }
-])
+// TODO: Fetch real content items from API
+const contentItems = ref<ContentItem[]>([])
 
 // Computed properties
 const subjects = computed(() => ['all', ...new Set(contentItems.value.map(item => item.subject))])
@@ -293,18 +265,8 @@ function emitEdit(item: ContentItem, type: string) {
   }
 }
 
-function navigateToCreate(type: string) {
-  switch (type) {
-    case 'quiz':
-      router.push('/QuizView')
-      break
-    case 'note':
-      router.push('/NoteView')
-      break
-    case 'flashcard':
-      router.push('/FlashcardView')
-      break
-  }
+function navigateToManualGenerateMainView() {
+  router.push('/create-content')
 }
 </script>
 

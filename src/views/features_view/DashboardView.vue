@@ -462,52 +462,27 @@ const username = computed(() => {
 })
 
 // Study stats
-const studyStreak = ref(7)
-const focusTime = ref({
-  hours: 12,
-  minutes: 30,
-})
-const flashcardsReviewed = ref(42)
-const lastReviewTime = ref('3 hours ago')
+type FocusTime = { hours: number; minutes: number }
+const studyStreak = ref<number|null>(null) // TODO: Fetch from API
+const focusTime = ref<FocusTime>({ hours: 0, minutes: 0 }) // TODO: Fetch from API
+const flashcardsReviewed = ref<number|null>(null) // TODO: Fetch from API
+const lastReviewTime = ref<string>('') // TODO: Fetch from API
 
 // Study progress data (for chart)
-const studyHoursData = ref([
-  { day: 'Mon', hours: 2 },
-  { day: 'Tue', hours: 3 },
-  { day: 'Wed', hours: 4 },
-  { day: 'Thu', hours: 1.5 },
-  { day: 'Fri', hours: 1.5 },
-  { day: 'Sat', hours: 3.5 },
-  { day: 'Sun', hours: 5 },
-  { day: 'Mon', hours: 4 },
-  { day: 'Tue', hours: 2 },
-  { day: 'Wed', hours: 3.5 },
-  { day: 'Thu', hours: 1 },
-  { day: 'Fri', hours: 3.5 },
-  { day: 'Sat', hours: 4 },
-  { day: 'Sun', hours: 5 },
-])
+type StudyHour = { day: string; hours: number }
+const studyHoursData = ref<StudyHour[]>([]) // TODO: Fetch from API
 
 // Study groups
-const studyGroups = ref([
-  { id: 1, name: 'Biology 101', members: 5, letter: 'B' },
-  { id: 2, name: 'Calculus II', members: 5, letter: 'C' },
-  { id: 3, name: 'History Group', members: 5, letter: 'H' },
-])
+type StudyGroup = { id: number; name: string; members: number; letter: string }
+const studyGroups = ref<StudyGroup[]>([]) // TODO: Fetch from API
 
 // Learning progress
-const learningProgress = ref([
-  { id: 1, subject: 'Biology Fundamentals', progress: 85, daysLeft: 2 },
-  { id: 2, subject: 'Chemistry Equations', progress: 45, daysLeft: 5 },
-  { id: 3, subject: 'World History', progress: 20, daysLeft: 7 },
-])
+type LearningProgress = { id: number; subject: string; progress: number; daysLeft: number }
+const learningProgress = ref<LearningProgress[]>([]) // TODO: Fetch from API
 
 // AI-generated content
-const aiContent = ref([
-  { id: 1, title: 'Biology Summary', daysAgo: 2, type: 'summary' },
-  { id: 2, title: 'Chemistry Flashcards', daysAgo: 2, type: 'flashcards' },
-  { id: 3, title: 'History Quiz', daysAgo: 2, type: 'quiz' },
-])
+type AIContent = { id: number; title: string; daysAgo: number; type: string }
+const aiContent = ref<AIContent[]>([]) // TODO: Fetch from API
 
 onMounted(() => {
   console.log('Dashboard loaded')

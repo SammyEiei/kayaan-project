@@ -29,15 +29,6 @@
                     <div
                       class="relative w-16 h-16 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-110"
                     >
-                      <!-- Modern K Logo SVG -->
-                      <!-- <svg
-                        class="w-8 h-8 text-white font-bold"
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                      >
-                        <path d="M3 3h4v18H3V3zm6 0h2l6 8-6 8h-2l6-8-6-8zm8 0h4v18h-4V3z" />
-                        <circle cx="12" cy="12" r="2" fill="currentColor" opacity="0.7" />
-                      </svg> -->
                       <svg class="w-6 h-6 text-white" viewBox="0 0 32 32" fill="currentColor">
                         <path d="M7 6c0-1.1.9-2 2-2s2 .9 2 2v20c0 1.1-.9 2-2 2s-2-.9-2-2V6z" />
                         <path
@@ -66,6 +57,24 @@
                   <span class="text-sm text-gray-500 font-medium">Learning Hub</span>
                 </div>
                 <p class="text-gray-600">Join and boost your productivity</p>
+              </div>
+            </div>
+
+            <!-- Success Message -->
+            <div v-if="successMessage" class="mb-6 bg-green-50 border border-green-200 rounded-xl p-4">
+              <div class="flex items-center">
+                <div class="flex-shrink-0">
+                  <svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path
+                      fill-rule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                      clip-rule="evenodd"
+                    />
+                  </svg>
+                </div>
+                <div class="ml-3">
+                  <p class="text-sm text-green-700">{{ successMessage }}</p>
+                </div>
               </div>
             </div>
 
@@ -433,14 +442,6 @@
                   <div
                     class="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center"
                   >
-                    <!-- <svg
-                      class="w-6 h-6 text-white font-bold"
-                      viewBox="0 0 24 24"
-                      fill="currentColor"
-                    >
-                      <path d="M3 3h4v18H3V3zm6 0h2l6 8-6 8h-2l6-8-6-8zm8 0h4v18h-4V3z" />
-                      <circle cx="12" cy="12" r="2" fill="currentColor" opacity="0.7" />
-                    </svg> -->
                     <svg class="w-6 h-6 text-white" viewBox="0 0 32 32" fill="currentColor">
                       <path d="M7 6c0-1.1.9-2 2-2s2 .9 2 2v20c0 1.1-.9 2-2 2s-2-.9-2-2V6z" />
                       <path
@@ -566,6 +567,7 @@ const authStore = useAuthStore()
 const router = useRouter()
 const isLoading = ref(false)
 const serverError = ref('')
+const successMessage = ref('')
 
 // Create validation schema
 const schema = yup.object({
@@ -597,6 +599,8 @@ const { value: confirmPassword } = useField('confirmPassword')
 const register = handleSubmit(async (vals) => {
   isLoading.value = true
   serverError.value = ''
+  successMessage.value = ''
+
   try {
     await authStore.register(
       vals.email,
@@ -605,7 +609,12 @@ const register = handleSubmit(async (vals) => {
       vals.firstName,
       vals.lastName,
     )
-    router.push({ name: 'dashboard' })
+    successMessage.value = 'Sign up successfully'
+
+    // Wait 1 second before redirecting
+    setTimeout(() => {
+      router.push({ name: 'login' })
+    }, 1000)
   } catch (err: any) {
     serverError.value = err.response?.data?.message || 'Registration failed'
   } finally {

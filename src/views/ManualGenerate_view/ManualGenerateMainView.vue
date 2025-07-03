@@ -22,20 +22,21 @@
         <h3 class="text-lg font-semibold" style="color: var(--text)">Quick Create</h3>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Create Quiz Button -->
         <button
           @click="() => navigateToCreate('quiz')"
-          class="group p-6 flex flex-col items-center justify-center rounded-xl transition-all duration-200 hover:-translate-y-1 hover:shadow-md"
+          class="group p-16 flex flex-col items-center justify-center rounded-3xl transition-all duration-200 hover:-translate-y-1 hover:shadow-2xl"
           style="
             background: linear-gradient(135deg, var(--primary) 10%, var(--accent) 100%);
             border: 1px solid var(--primary);
           "
         >
           <div
-            class="w-12 h-12 rounded-lg flex items-center justify-center mb-3 transition-colors duration-200"
+            class="w-32 h-32 rounded-3xl flex items-center justify-center mb-8 transition-colors duration-200"
             :style="{ background: 'var(--primary)' }"
           >
-            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-20 h-20 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 stroke-linecap="round"
                 stroke-linejoin="round"
@@ -44,25 +45,24 @@
               />
             </svg>
           </div>
-          <span class="font-medium" style="color: var(--text)">Create Quiz</span>
-          <span class="text-xs mt-1" style="color: var(--text-secondary)"
-            >Interactive questions</span
-          >
+          <span class="font-bold text-2xl mt-4" style="color: var(--text)">Create Quiz</span>
+          <span class="text-lg mt-2" style="color: var(--text-secondary)">Interactive questions</span>
         </button>
 
+        <!-- Create Flashcards Button -->
         <button
           @click="() => navigateToCreate('flashcard')"
-          class="group p-6 flex flex-col items-center justify-center rounded-xl transition-all duration-200 hover:-translate-y-1 hover:shadow-md"
+          class="group p-16 flex flex-col items-center justify-center rounded-3xl transition-all duration-200 hover:-translate-y-1 hover:shadow-2xl"
           style="
             background: linear-gradient(135deg, var(--secondary) 10%, var(--accent) 100%);
             border: 1px solid var(--secondary);
           "
         >
           <div
-            class="w-12 h-12 rounded-lg flex items-center justify-center mb-3 transition-colors duration-200"
+            class="w-32 h-32 rounded-3xl flex items-center justify-center mb-8 transition-colors duration-200"
             :style="{ background: 'var(--secondary)' }"
           >
-            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-20 h-20 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 stroke-linecap="round"
                 stroke-linejoin="round"
@@ -71,325 +71,40 @@
               />
             </svg>
           </div>
-          <span class="font-medium" style="color: var(--text)">Create Flashcards</span>
-          <span class="text-xs mt-1" style="color: var(--text-secondary)">Study deck builder</span>
+          <span class="font-bold text-2xl mt-4" style="color: var(--text)">Create Flashcards</span>
+          <span class="text-lg mt-2" style="color: var(--text-secondary)">Study deck builder</span>
         </button>
 
+        <!-- Create Notes Button -->
         <button
-          @click="() => navigateToCreate('note')"
-          class="group p-6 flex flex-col items-center justify-center rounded-xl transition-all duration-200 hover:-translate-y-1 hover:shadow-md"
+          @click="() => navigateToCreate('quiz')"
+          class="group p-16 flex flex-col items-center justify-center rounded-3xl transition-all duration-200 hover:-translate-y-1 hover:shadow-2xl"
           style="
-            background: linear-gradient(
-              135deg,
-              var(--primary),
-              var(--secondary),
-              var(--accent) 100%
-            );
-            border: 1px solid var(--accent);
+            background: linear-gradient(135deg, var(--primary) 10%, var(--accent) 100%);
+            border: 1px solid var(--primary);
           "
         >
           <div
-            class="w-12 h-12 rounded-lg flex items-center justify-center mb-3 transition-colors duration-200"
-            :style="{ background: 'var(--accent)' }"
+            class="w-32 h-32 rounded-3xl flex items-center justify-center mb-8 transition-colors duration-200"
+            :style="{ background: 'var(--secondary)' }"
           >
-            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-20 h-20 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 stroke-linecap="round"
                 stroke-linejoin="round"
                 stroke-width="2"
-                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
+               d="m7.8 2.25h-.0321-.00002c-.81283-.00001-1.46844-.00001-1.99935.04336-.54663.04467-1.02678.13903-1.47099.36537-.70561.35952-1.27929.9332-1.63881 1.63881-.22634.44421-.3207.92436-.36537 1.47099-.04337.53091-.04337 1.18652-.04336 1.99935v.00002.0321 8.4.0321c-.00001.8129-.00001 1.4685.04336 1.9994.04467.5466.13903 1.0267.36537 1.471.35952.7056.9332 1.2792 1.63881 1.6388.44421.2263.92436.3207 1.47099.3653.53091.0434 1.18652.0434 1.99935.0434h.03212 3.3965.0775c.5929.0002 1.0034.0003 1.4012-.0869.3517-.077.6905-.2043 1.0059-.3779.3567-.1964.6656-.4668 1.1118-.8574l.0583-.051 5.0035-4.3781.0705-.0617c.5354-.4682.9059-.7921 1.1775-1.1921.2398-.3533.4175-.745.5255-1.1581.1222-.4678.122-.9599.1218-1.6712v-.0937-4.0219-.03212c0-.81283 0-1.46844-.0434-1.99935-.0446-.54663-.139-1.02678-.3653-1.47099-.3596-.70561-.9332-1.27929-1.6388-1.63881-.4443-.22634-.9244-.3207-1.471-.36537-.5309-.04337-1.1865-.04337-1.9994-.04336h-.0321zm-2.82148 1.74524c.19752-.10064.45829-.16977.91216-.20686.46263-.0378 1.05687-.03838 1.90932-.03838h8.4c.8525 0 1.4467.00058 1.9093.03838.4539.03709.7147.10622.9122.20686.4233.21571.7675.55992.9833.98328.1006.19752.1697.45829.2068.91216.0378.46263.0384 1.05687.0384 1.90932v4.0219c0 .8408-.0057 1.1277-.0731 1.3856-.0052.02-.0107.0399-.0165.0597-.0517-.0113-.1053-.0172-.1604-.0172h-2.2-.0321c-.8128 0-1.4685 0-1.9994.0434-.5466.0446-1.0267.139-1.471.3653-.7056.3596-1.2792.9332-1.6388 1.6388-.2263.4443-.3207.9244-.3653 1.471-.0434.5309-.0434 1.1866-.0434 1.9994v.0321 1.4171c-.1996.03-.4615.0329-1.0535.0329h-3.3965c-.85245 0-1.44669-.0006-1.90932-.0384-.45387-.0371-.71464-.1062-.91216-.2068-.42336-.2158-.76757-.56-.98328-.9833-.10064-.1975-.16977-.4583-.20686-.9122-.0378-.4626-.03838-1.0568-.03838-1.9093v-8.4c0-.85245.00058-1.44669.03838-1.90932.03709-.45387.10622-.71464.20686-.91216.21571-.42336.55992-.76757.98328-.98328zm8.77148 15.35186c.0359-.0314.0737-.0644.1134-.0992l5.0035-4.3781c.048-.0419.0935-.0818.1368-.1198h-1.2037c-.8525 0-1.4467.0006-1.9093.0384-.4539.0371-.7147.1062-.9122.2068-.4233.2158-.7675.56-.9833.9833-.1006.1975-.1697.4583-.2068.9122-.0378.4626-.0384 1.0568-.0384 1.9093z" fill="#000000" fill-rule="evenodd">
+               </path>
             </svg>
           </div>
-          <span class="font-medium" style="color: var(--text)">Create Notes</span>
-          <span class="text-xs mt-1" style="color: var(--text-secondary)">Rich text editor</span>
-        </button>
-      </div>
-    </div>
-
-    <!-- Search and Filters -->
-    <div
-      class="rounded-xl border p-6 shadow-sm"
-      style="background: var(--surface); border-color: var(--border)"
-    >
-      <div class="flex items-center gap-2 mb-6">
-        <div
-          class="w-8 h-8 rounded-lg flex items-center justify-center"
-          style="background: linear-gradient(90deg, var(--border), var(--text-secondary))"
-        >
-          <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-            />
-          </svg>
-        </div>
-        <h3 class="text-lg font-semibold" style="color: var(--text)">Find Your Content</h3>
-      </div>
-
-      <div class="space-y-4">
-        <!-- Search Bar -->
-        <div class="relative">
-          <svg
-            class="absolute left-3 top-1/2 transform -translate-y-1/2"
-            style="color: var(--text-secondary)"
-            width="16"
-            height="16"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-            />
-          </svg>
-          <input
-            type="text"
-            v-model="searchQuery"
-            placeholder="Search your content..."
-            class="w-full pl-10 pr-4 py-2.5 rounded-lg focus:ring-2 transition-colors duration-150"
-            style="
-              background: var(--background);
-              border: 1px solid var(--border);
-              color: var(--text);
-            "
-          />
-        </div>
-
-        <!-- Filters -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-medium mb-2" style="color: var(--text-secondary)"
-              >Subject</label
-            >
-            <select
-              v-model="selectedSubject"
-              class="w-full px-3 py-2.5 rounded-lg focus:ring-2 transition-colors duration-150"
-              style="
-                background: var(--background);
-                border: 1px solid var(--border);
-                color: var(--text);
-              "
-            >
-              <option v-for="subject in subjects" :key="subject" :value="subject">
-                {{ subject === 'all' ? 'All Subjects' : subject }}
-              </option>
-            </select>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium mb-2" style="color: var(--text-secondary)"
-              >Filter by Tags</label
-            >
-            <div class="flex flex-wrap gap-2">
-              <button
-                v-for="tag in allTags"
-                :key="tag"
-                @click="toggleTag(tag)"
-                class="px-3 py-1.5 rounded-full text-sm font-medium border transition-all duration-150"
-                :style="
-                  selectedTags.includes(tag)
-                    ? {
-                        background: 'var(--primary)',
-                        color: 'var(--background)',
-                        borderColor: 'var(--primary)',
-                      }
-                    : {
-                        background: 'var(--surface)',
-                        color: 'var(--text-secondary)',
-                        borderColor: 'var(--border)',
-                      }
-                "
-              >
-                {{ tag }}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Content Grid -->
-    <div
-      class="rounded-xl border p-6 shadow-sm"
-      style="background: var(--surface); border-color: var(--border)"
-    >
-      <div class="flex items-center justify-between mb-6">
-        <div class="flex items-center gap-2">
-          <div
-            class="w-8 h-8 rounded-lg flex items-center justify-center"
-            style="background: linear-gradient(90deg, var(--success), var(--primary))"
-          >
-            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-              />
-            </svg>
-          </div>
-          <h3 class="text-lg font-semibold" style="color: var(--text)">Your Content</h3>
-          <span
-            class="text-sm font-medium px-2.5 py-0.5 rounded-full"
-            style="background: var(--accent); color: var(--text-secondary)"
-          >
-            {{ filteredContent.length }} items
-          </span>
-        </div>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div
-          v-for="item in filteredContent"
-          :key="item.id"
-          class="group border rounded-xl p-4 transition-all duration-200 cursor-pointer"
-          style="background: var(--background); border-color: var(--border)"
-        >
-          <!-- Card Header -->
-          <div class="flex items-center justify-between mb-3">
-            <div class="flex items-center gap-2">
-              <div
-                :class="getTypeColor(item.type)"
-                class="w-8 h-8 rounded-lg flex items-center justify-center"
-                :style="{
-                  background:
-                    item.type === 'quiz'
-                      ? 'var(--primary)'
-                      : item.type === 'flashcard'
-                        ? 'var(--secondary)'
-                        : 'var(--accent)',
-                }"
-              >
-                <component :is="getContentIcon(item.type)" class="w-4 h-4 text-white" />
-              </div>
-              <span class="capitalize text-sm font-medium" style="color: var(--text-secondary)">{{
-                item.type
-              }}</span>
-            </div>
-            <span
-              class="text-xs font-medium px-2 py-1 rounded-full"
-              :style="
-                item.difficulty === 'easy'
-                  ? { background: 'var(--success)', color: '#fff' }
-                  : item.difficulty === 'medium'
-                    ? { background: 'var(--warning)', color: '#fff' }
-                    : item.difficulty === 'hard'
-                      ? { background: 'var(--error)', color: '#fff' }
-                      : { background: 'var(--accent)', color: 'var(--text-secondary)' }
-              "
-            >
-              {{ item.difficulty }}
-            </span>
-          </div>
-
-          <!-- Card Content -->
-          <div class="space-y-2 mb-4">
-            <h3
-              class="font-semibold text-lg group-hover:underline transition-colors duration-200"
-              style="color: var(--text)"
-            >
-              {{ item.title }}
-            </h3>
-            <p class="text-sm flex items-center gap-1" style="color: var(--text-secondary)">
-              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5S19.832 5.477 21 6.253v13C19.832 18.477 18.246 18 16.5 18s-3.332.477-4.5 1.253"
-                />
-              </svg>
-              {{ item.subject }}
-            </p>
-            <div class="flex flex-wrap gap-1">
-              <span
-                v-for="tag in item.tags"
-                :key="tag"
-                class="text-xs px-2 py-1 rounded-md"
-                style="background: var(--accent); color: var(--text-secondary)"
-              >
-                {{ tag }}
-              </span>
-            </div>
-          </div>
-
-          <!-- Card Footer -->
-          <div
-            class="flex justify-between items-center pt-3 border-t"
-            style="border-color: var(--border)"
-          >
-            <span class="text-xs flex items-center gap-1" style="color: var(--text-secondary)">
-              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                />
-              </svg>
-              {{ formatDate(item.createdAt) }}
-            </span>
-            <button
-              @click="() => emitEdit(item, item.type)"
-              class="text-xs font-medium flex items-center gap-1 transition-colors duration-150"
-              style="color: var(--primary)"
-            >
-              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                />
-              </svg>
-              Edit
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Empty State -->
-      <div v-if="filteredContent.length === 0" class="text-center py-12">
-        <div
-          class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
-          style="background: var(--accent)"
-        >
-          <svg
-            class="w-8 h-8"
-            style="color: var(--border)"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-            />
-          </svg>
-        </div>
-        <h3 class="text-lg font-medium mb-2" style="color: var(--text)">No content found</h3>
-        <p class="mb-4" style="color: var(--text-secondary)">
-          Try adjusting your filters or create some new content to get started.
-        </p>
-        <button
-          @click="() => navigateToCreate('quiz')"
-          class="px-4 py-2 rounded-lg transition-colors duration-150"
-          style="background: var(--primary); color: var(--background)"
-        >
-          Create Your First Content
+          <span class="font-bold text-2xl mt-4" style="color: var(--text)">Create Notes</span>
+          <span class="text-lg mt-2" style="color: var(--text-secondary)">Rich text editor</span>
         </button>
       </div>
     </div>
   </div>
 </template>
+
 <script setup lang="ts">
 import { ref, computed, h } from 'vue'
 import { useRouter } from 'vue-router'
@@ -402,36 +117,6 @@ const selectedTags = ref<string[]>([])
 
 const subjects = ['all', 'Programming', 'Mathematics', 'Science', 'History']
 const allTags = ['javascript', 'react', 'hooks', 'basics', 'web', 'best-practices']
-
-const mockContent = [
-  {
-    id: 1,
-    type: 'quiz',
-    title: 'JavaScript Fundamentals',
-    subject: 'Programming',
-    tags: ['javascript', 'basics'],
-    difficulty: 'easy',
-    createdAt: '2024-01-15',
-  },
-  {
-    id: 2,
-    type: 'flashcard',
-    title: 'React Hooks',
-    subject: 'Programming',
-    tags: ['react', 'hooks'],
-    difficulty: 'medium',
-    createdAt: '2024-01-14',
-  },
-  {
-    id: 3,
-    type: 'note',
-    title: 'Web Development Best Practices',
-    subject: 'Programming',
-    tags: ['web', 'best-practices'],
-    difficulty: 'hard',
-    createdAt: '2024-01-13',
-  },
-]
 
 const getDifficultyColor = (level: string) => {
   switch (level) {
@@ -485,7 +170,7 @@ const getContentIcon = (type: string) => {
           'stroke-linecap': 'round',
           'stroke-linejoin': 'round',
           'stroke-width': '2',
-          d: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
+          d: 'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z',
         }),
       ]),
   }
@@ -532,4 +217,35 @@ const navigateToCreate = (type: string) => {
 const emitEdit = (content: any, type: string) => {
   emit('edit-content', content, type)
 }
+
+// Mock content for testing - you can remove this if you have real data
+const mockContent = [
+  {
+    id: 1,
+    title: 'Sample Quiz',
+    subject: 'Programming',
+    tags: ['javascript', 'basics'],
+    difficulty: 'easy',
+    type: 'quiz',
+    createdAt: '2024-01-15',
+  },
+  {
+    id: 2,
+    title: 'Sample Flashcard',
+    subject: 'Mathematics',
+    tags: ['algebra', 'basics'],
+    difficulty: 'medium',
+    type: 'flashcard',
+    createdAt: '2024-01-16',
+  },
+  {
+    id: 3,
+    title: 'Sample Note',
+    subject: 'Science',
+    tags: ['biology', 'basics'],
+    difficulty: 'easy',
+    type: 'note',
+    createdAt: '2024-01-17',
+  },
+]
 </script>
