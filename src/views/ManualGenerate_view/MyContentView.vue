@@ -129,6 +129,15 @@
               </svg>
               Edit
             </button>
+            <button
+              @click="() => emitDelete(item, item.type)"
+              class="text-xs font-medium text-red-600 hover:text-red-700 flex items-center gap-1 transition-colors duration-150"
+            >
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              Delete
+            </button>
           </div>
         </div>
       </div>
@@ -156,9 +165,10 @@
 <script setup lang="ts">
 import { ref, computed, h, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { getAllQuizzes } from '@/service/QuizService'
-import { getAllNotes } from '@/service/NoteService'
-import { getAllFlashcardDecks } from '@/service/FlashcardService'
+import { getAllQuizzes, deleteQuiz } from '@/service/QuizService'
+import { getAllNotes, deleteNote } from '@/service/NoteService'
+import { getAllFlashcardDecks, deleteFlashcardDeck } from '@/service/FlashcardService'
+
 
 interface ContentItem {
   id: string
@@ -314,6 +324,27 @@ function emitEdit(item: ContentItem, type: string) {
     case 'flashcard':
       router.push(`/FlashcardView?edit=${item.id}`)
       break
+  }
+}
+
+async function emitDelete(item: ContentItem, type: string) {
+  if (!confirm('Are you sure you want to delete this item?')) return
+
+  try {
+    switch (type) {
+      case 'quiz':
+        await deleteQuiz(Number(item.id))
+        break
+      case 'note':
+        await deleteNote(Number(item.id))
+        break
+      case 'flashcard':
+        await deleteFlashcardDeck(Number(item.id))
+        break
+    }
+    await loadContentItems()
+  } catch (err) {
+    console.error('Failed to delete item', err)
   }
 }
 
