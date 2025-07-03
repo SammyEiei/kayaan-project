@@ -77,7 +77,7 @@
 
         <!-- Create Notes Button -->
         <button
-          @click="() => navigateToCreate('quiz')"
+          @click="() => navigateToCreate('note')"
           class="group p-16 flex flex-col items-center justify-center rounded-3xl transition-all duration-200 hover:-translate-y-1 hover:shadow-2xl"
           style="
             background: linear-gradient(135deg, var(--primary) 10%, var(--accent) 100%);
