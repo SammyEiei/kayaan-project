@@ -288,9 +288,6 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   document.removeEventListener('keydown', handleKeyboard)
-
-  if (isRunning.value) pomodoro.pauseTimer()
-
 })
 
 watch(mode, () => {
