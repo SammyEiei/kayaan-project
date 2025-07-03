@@ -129,6 +129,15 @@
               </svg>
               Edit
             </button>
+            <button
+              @click="() => emitDelete(item, item.type)"
+              class="text-xs font-medium text-red-600 hover:text-red-700 flex items-center gap-1 transition-colors duration-150"
+            >
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              Delete
+            </button>
           </div>
         </div>
       </div>
@@ -154,8 +163,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, h } from 'vue'
+import { ref, computed, h, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { getAllQuizzes, deleteQuiz } from '@/service/QuizService'
+import { getAllNotes, deleteNote } from '@/service/NoteService'
+import { getAllFlashcardDecks, deleteFlashcardDeck } from '@/service/FlashcardService'
 
 interface ContentItem {
   id: string
@@ -174,8 +186,54 @@ const searchQuery = ref('')
 const selectedSubject = ref('all')
 const selectedTags = ref<string[]>([])
 
-// TODO: Fetch real content items from API
+// Fetch real content items from API
 const contentItems = ref<ContentItem[]>([])
+
+async function loadContentItems() {
+  try {
+    const [quizzes, notes, flashcards] = await Promise.all([
+      getAllQuizzes(),
+      getAllNotes(),
+      getAllFlashcardDecks(),
+    ])
+
+    const quizItems = quizzes.map(q => ({
+      id: q.id.toString(),
+      type: 'quiz' as const,
+      title: q.title || '',
+      subject: q.questions?.[0]?.subject || '',
+      tags: q.questions?.flatMap((qq: any) => qq.tags || []) || [],
+      difficulty: q.questions?.[0]?.difficulty || 'medium',
+      createdAt: (q as any).createdAt || new Date().toISOString(),
+    }))
+
+    const noteItems = notes.map(n => ({
+      id: n.id.toString(),
+      type: 'note' as const,
+      title: n.title || '',
+      subject: n.subject || '',
+      tags: n.tags || [],
+      difficulty: n.difficulty || 'medium',
+      createdAt: (n as any).createdAt || new Date().toISOString(),
+    }))
+
+    const flashcardItems = flashcards.map(f => ({
+      id: f.id.toString(),
+      type: 'flashcard' as const,
+      title: f.title || '',
+      subject: f.subject || '',
+      tags: f.tags || [],
+      difficulty: f.difficulty || 'medium',
+      createdAt: (f as any).createdAt || new Date().toISOString(),
+    }))
+
+    contentItems.value = [...quizItems, ...noteItems, ...flashcardItems]
+  } catch (err) {
+    console.error('Failed to load content items', err)
+  }
+}
+
+onMounted(loadContentItems)
 
 // Computed properties
 const subjects = computed(() => ['all', ...new Set(contentItems.value.map(item => item.subject))])
@@ -187,8 +245,10 @@ const allTags = computed(() => {
 
 const filteredContent = computed(() => {
   return contentItems.value.filter(item => {
-    const matchesSearch = item.title.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-                         item.subject.toLowerCase().includes(searchQuery.value.toLowerCase())
+    const title = (item.title || '').toLowerCase()
+    const subject = (item.subject || '').toLowerCase()
+    const query = searchQuery.value.toLowerCase()
+    const matchesSearch = title.includes(query) || subject.includes(query)
 
     const matchesSubject = selectedSubject.value === 'all' || item.subject === selectedSubject.value
 
@@ -262,6 +322,27 @@ function emitEdit(item: ContentItem, type: string) {
     case 'flashcard':
       router.push(`/FlashcardView?edit=${item.id}`)
       break
+  }
+}
+
+async function emitDelete(item: ContentItem, type: string) {
+  if (!confirm('Are you sure you want to delete this item?')) return
+
+  try {
+    switch (type) {
+      case 'quiz':
+        await deleteQuiz(Number(item.id))
+        break
+      case 'note':
+        await deleteNote(Number(item.id))
+        break
+      case 'flashcard':
+        await deleteFlashcardDeck(Number(item.id))
+        break
+    }
+    await loadContentItems()
+  } catch (err) {
+    console.error('Failed to delete item', err)
   }
 }
 
