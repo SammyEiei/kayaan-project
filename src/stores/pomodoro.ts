@@ -77,6 +77,7 @@ export const usePomodoroStore = defineStore('pomodoro', () => {
         completeSession()
       }
       save()
+
     }, 1000)
     save()
   }
