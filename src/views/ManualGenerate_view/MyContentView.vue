@@ -202,6 +202,7 @@ async function loadContentItems() {
       id: n.id.toString(),
       type: 'note' as const,
       title: n.title || '',
+
       subject: n.subject || '',
       tags: n.tags || [],
       difficulty: n.difficulty || 'medium',
