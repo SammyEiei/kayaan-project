@@ -191,7 +191,7 @@ async function loadContentItems() {
     const quizItems = quizzes.map(q => ({
       id: q.id.toString(),
       type: 'quiz' as const,
-      title: q.title,
+      title: q.title || '',
       subject: q.questions?.[0]?.subject || '',
       tags: q.questions?.flatMap((qq: any) => qq.tags || []) || [],
       difficulty: q.questions?.[0]?.difficulty || 'medium',
@@ -201,7 +201,8 @@ async function loadContentItems() {
     const noteItems = notes.map(n => ({
       id: n.id.toString(),
       type: 'note' as const,
-      title: n.title,
+      title: n.title || '',
+
       subject: n.subject || '',
       tags: n.tags || [],
       difficulty: n.difficulty || 'medium',
@@ -211,7 +212,7 @@ async function loadContentItems() {
     const flashcardItems = flashcards.map(f => ({
       id: f.id.toString(),
       type: 'flashcard' as const,
-      title: f.title,
+      title: f.title || '',
       subject: f.subject || '',
       tags: f.tags || [],
       difficulty: f.difficulty || 'medium',
@@ -236,8 +237,10 @@ const allTags = computed(() => {
 
 const filteredContent = computed(() => {
   return contentItems.value.filter(item => {
-    const matchesSearch = item.title.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-                         item.subject.toLowerCase().includes(searchQuery.value.toLowerCase())
+    const title = (item.title || '').toLowerCase()
+    const subject = (item.subject || '').toLowerCase()
+    const query = searchQuery.value.toLowerCase()
+    const matchesSearch = title.includes(query) || subject.includes(query)
 
     const matchesSubject = selectedSubject.value === 'all' || item.subject === selectedSubject.value
 
