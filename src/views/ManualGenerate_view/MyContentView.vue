@@ -154,8 +154,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, h } from 'vue'
+import { ref, computed, h, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { getAllQuizzes } from '@/service/QuizService'
+import { getAllNotes } from '@/service/NoteService'
+import { getAllFlashcardDecks } from '@/service/FlashcardService'
 
 interface ContentItem {
   id: string
@@ -174,8 +177,54 @@ const searchQuery = ref('')
 const selectedSubject = ref('all')
 const selectedTags = ref<string[]>([])
 
-// TODO: Fetch real content items from API
+// Fetch real content items from API
 const contentItems = ref<ContentItem[]>([])
+
+async function loadContentItems() {
+  try {
+    const [quizzes, notes, flashcards] = await Promise.all([
+      getAllQuizzes(),
+      getAllNotes(),
+      getAllFlashcardDecks(),
+    ])
+
+    const quizItems = quizzes.map(q => ({
+      id: q.id.toString(),
+      type: 'quiz' as const,
+      title: q.title,
+      subject: q.questions?.[0]?.subject || '',
+      tags: q.questions?.flatMap((qq: any) => qq.tags || []) || [],
+      difficulty: q.questions?.[0]?.difficulty || 'medium',
+      createdAt: (q as any).createdAt || new Date().toISOString(),
+    }))
+
+    const noteItems = notes.map(n => ({
+      id: n.id.toString(),
+      type: 'note' as const,
+      title: n.title,
+      subject: n.subject || '',
+      tags: n.tags || [],
+      difficulty: n.difficulty || 'medium',
+      createdAt: (n as any).createdAt || new Date().toISOString(),
+    }))
+
+    const flashcardItems = flashcards.map(f => ({
+      id: f.id.toString(),
+      type: 'flashcard' as const,
+      title: f.title,
+      subject: f.subject || '',
+      tags: f.tags || [],
+      difficulty: f.difficulty || 'medium',
+      createdAt: (f as any).createdAt || new Date().toISOString(),
+    }))
+
+    contentItems.value = [...quizItems, ...noteItems, ...flashcardItems]
+  } catch (err) {
+    console.error('Failed to load content items', err)
+  }
+}
+
+onMounted(loadContentItems)
 
 // Computed properties
 const subjects = computed(() => ['all', ...new Set(contentItems.value.map(item => item.subject))])
