@@ -49,3 +49,4 @@ export function updateFlashcardDeck(id: number, payload: FlashcardDeckDTO) {
 export function deleteFlashcardDeck(id: number) {
   return apiClient.delete<void>(`/api/manual/flashcard/${id}`)
 }
+

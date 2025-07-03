@@ -169,6 +169,7 @@ import { getAllQuizzes, deleteQuiz } from '@/service/QuizService'
 import { getAllNotes, deleteNote } from '@/service/NoteService'
 import { getAllFlashcardDecks, deleteFlashcardDeck } from '@/service/FlashcardService'
 
+
 interface ContentItem {
   id: string
   type: 'quiz' | 'note' | 'flashcard'
@@ -211,6 +212,7 @@ async function loadContentItems() {
       id: n.id.toString(),
       type: 'note' as const,
       title: n.title || '',
+
       subject: n.subject || '',
       tags: n.tags || [],
       difficulty: n.difficulty || 'medium',
