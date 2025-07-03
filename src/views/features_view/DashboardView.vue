@@ -200,14 +200,37 @@
                 />
               </svg>
             </div>
-            <h3 class="text-sm font-medium text-gray-600 mb-2">Flashcards Reviewed</h3>
-            <div class="flex items-baseline gap-2">
-              <span class="text-3xl font-bold text-gray-900">{{ flashcardsReviewed }}</span>
-              <span class="text-sm text-gray-500">cards</span>
+          <h3 class="text-sm font-medium text-gray-600 mb-2">Flashcards Reviewed</h3>
+          <div class="flex items-baseline gap-2">
+            <span class="text-3xl font-bold text-gray-900">{{ flashcardsReviewed }}</span>
+            <span class="text-sm text-gray-500">cards</span>
+          </div>
+          <p class="text-sm text-gray-500 mt-2">{{ lastReviewTime }}</p>
+        </div>
+
+        <!-- Today's Pomodoro Streak -->
+        <div
+          class="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/50 p-6 shadow-xl hover:shadow-2xl transition-all duration-300 group"
+        >
+          <div class="flex items-center justify-between mb-4">
+            <div
+              class="w-12 h-12 bg-gradient-to-r from-red-500 to-orange-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300"
+            >
+              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
             </div>
-            <p class="text-sm text-gray-500 mt-2">{{ lastReviewTime }}</p>
+            <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+          </div>
+          <h3 class="text-sm font-medium text-gray-600 mb-2">Today's Pomodoros</h3>
+          <div class="flex items-baseline gap-2">
+            <span class="text-3xl font-bold text-gray-900">{{ pomodorosToday }}</span>
+            <span class="text-sm text-gray-500">sessions</span>
           </div>
         </div>
+      </div>
 
         <!-- Study Progress & Groups Row -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
@@ -444,9 +467,11 @@
 import { ref, onMounted, computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
+import { useGamificationStore } from '@/stores/gamification'
 
 const authStore = useAuthStore()
 const router = useRouter()
+const gamification = useGamificationStore()
 
 // ถ้า user ไม่ได้ login ให้ redirect ไปหน้า login
 onMounted(() => {
@@ -467,6 +492,7 @@ const studyStreak = ref<number|null>(null) // TODO: Fetch from API
 const focusTime = ref<FocusTime>({ hours: 0, minutes: 0 }) // TODO: Fetch from API
 const flashcardsReviewed = ref<number|null>(null) // TODO: Fetch from API
 const lastReviewTime = ref<string>('') // TODO: Fetch from API
+const pomodorosToday = computed(() => gamification.pomodorosToday)
 
 // Study progress data (for chart)
 type StudyHour = { day: string; hours: number }

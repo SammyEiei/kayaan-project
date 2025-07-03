@@ -159,24 +159,9 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
+import { usePomodoroStore } from '@/stores/pomodoro'
 
-const mode = ref('pomodoro')
-const timeLeft = ref(25 * 60)
-const isRunning = ref(false)
-const isPaused = ref(false)
-const timer = ref(null)
-const completedPomodoros = ref(0)
-const currentSession = ref(1)
-
-const durations = {
-  pomodoro: 25 * 60,
-  shortBreak: 5 * 60,
-  longBreak: 15 * 60,
-}
-
-const longBreakInterval = 4
-const autoStartBreaks = true
-const autoStartPomodoros = false
+const pomodoro = usePomodoroStore()
 
 const modes = [
   { label: 'Pomodoro', value: 'pomodoro' },
@@ -184,13 +169,13 @@ const modes = [
   { label: 'Long Break', value: 'longBreak' },
 ]
 
-const formattedTime = computed(() => {
-  const m = Math.floor(timeLeft.value / 60)
-    .toString()
-    .padStart(2, '0')
-  const s = (timeLeft.value % 60).toString().padStart(2, '0')
-  return `${m}:${s}`
-})
+const mode = computed(() => pomodoro.mode)
+const timeLeft = computed(() => pomodoro.timeLeft)
+const isRunning = computed(() => pomodoro.isRunning)
+const isPaused = computed(() => pomodoro.isPaused)
+const currentSession = computed(() => pomodoro.currentSession)
+
+const formattedTime = computed(() => pomodoro.formattedTime)
 
 const buttonText = computed(() => {
   if (isRunning.value) return 'Pause'
@@ -219,66 +204,31 @@ const motivationalText = computed(() => {
 })
 
 function toggleTimer() {
-  if (isRunning.value) {
-    pauseTimer()
-  } else {
-    startTimer()
-  }
+  pomodoro.toggleTimer()
 }
 
 function startTimer() {
-  isRunning.value = true
-  isPaused.value = false
-  if (timer.value) clearInterval(timer.value)
-  timer.value = setInterval(() => {
-    if (timeLeft.value > 0) {
-      timeLeft.value--
-    } else {
-      completeSession()
-    }
-  }, 1000)
+  pomodoro.startTimer()
 }
 
 function pauseTimer() {
-  isRunning.value = false
-  isPaused.value = true
-  clearInterval(timer.value)
+  pomodoro.pauseTimer()
 }
 
 function resetTimer() {
-  isRunning.value = false
-  isPaused.value = false
-  clearInterval(timer.value)
-  timeLeft.value = durations[mode.value]
+  pomodoro.resetTimer()
 }
 
 function skipSession() {
-  completeSession()
+  pomodoro.skipSession()
 }
 
 function completeSession() {
-  clearInterval(timer.value)
-  isRunning.value = false
-  isPaused.value = false
-  playNotification()
-  if (mode.value === 'pomodoro') {
-    completedPomodoros.value++
-    currentSession.value++
-    if (completedPomodoros.value % longBreakInterval === 0) {
-      switchMode('longBreak')
-    } else {
-      switchMode('shortBreak')
-    }
-    if (autoStartBreaks) setTimeout(startTimer, 1000)
-  } else {
-    switchMode('pomodoro')
-    if (autoStartPomodoros) setTimeout(startTimer, 1000)
-  }
+  pomodoro.completeSession()
 }
 
 function switchMode(newMode) {
-  mode.value = newMode
-  resetTimer()
+  pomodoro.switchMode(newMode)
   document.title = `${formattedTime.value} - ${getModeName(newMode)}`
 }
 
@@ -326,6 +276,7 @@ onMounted(() => {
   if ('Notification' in window && Notification.permission === 'default') {
     Notification.requestPermission()
   }
+  pomodoro.load()
   document.addEventListener('keydown', handleKeyboard)
   // Update page title periodically
   setInterval(() => {
@@ -337,7 +288,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   document.removeEventListener('keydown', handleKeyboard)
-  if (timer.value) clearInterval(timer.value)
+  if (isRunning.value) pomodoro.pauseTimer()
 })
 
 watch(mode, () => {
