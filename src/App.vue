@@ -332,12 +332,14 @@
         </footer>
       </div>
     </div>
+    <PomodoroWidget v-if="isLoggedIn" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { RouterView, useRoute, useRouter } from 'vue-router'
 import { computed, onMounted, h, ref, watch } from 'vue' // 🆕 Add ref, watch
+import PomodoroWidget from '@/components/PomodoroWidget.vue'
 import { useAuthStore } from '@/stores/auth'
 
 const route = useRoute()
