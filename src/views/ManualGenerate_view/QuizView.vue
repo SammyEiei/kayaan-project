@@ -334,12 +334,42 @@ function onBack() {
 }
 
 async function handleSave() {
-  isSaving.value = true
   errorMessage.value = ''
   successMessage.value = ''
+
+  if (!title.value.trim()) {
+    errorMessage.value = 'Please enter a quiz title'
+    return
+  }
+
+  if (questions.value.length === 0) {
+    errorMessage.value = 'Please add at least one question'
+    return
+  }
+
+  for (let i = 0; i < questions.value.length; i++) {
+    const q = questions.value[i]
+    if (!q.question.trim()) {
+      errorMessage.value = `Question ${i + 1} cannot be empty`
+      return
+    }
+    if (q.type === 'multiple-choice') {
+      const filled = q.options.filter(o => o.trim())
+      if (filled.length < 2) {
+        errorMessage.value = `Question ${i + 1} must have at least 2 answer choices`
+        return
+      }
+    }
+    if (!q.correctAnswer) {
+      errorMessage.value = `Please select a correct answer for question ${i + 1}`
+      return
+    }
+  }
+
+  isSaving.value = true
   const quizPayload = {
     title: title.value,
-    questions: questions.value.filter(q => q.question.trim()).map(q => ({
+    questions: questions.value.map(q => ({
       questionText: q.question,
       type: q.type === 'multiple-choice'
         ? 'MULTIPLE_CHOICE'
