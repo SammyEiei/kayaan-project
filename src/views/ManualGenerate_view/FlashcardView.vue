@@ -325,9 +325,13 @@ const handleSave = async () => {
     return
   }
 
-  const validCards = cards.value.filter((card) => card.front.trim() && card.back.trim())
-  if (validCards.length === 0) {
-    errorMessage.value = 'Please add at least one complete flashcard'
+  if (cards.value.length === 0) {
+    errorMessage.value = 'Please add at least one flashcard'
+    return
+  }
+
+  if (cards.value.some((card) => !card.front.trim() || !card.back.trim())) {
+    errorMessage.value = 'All flashcards must have both front and back filled'
     return
   }
 
@@ -344,7 +348,7 @@ const handleSave = async () => {
         .map((tag) => tag.trim())
         .filter((tag) => tag),
       difficulty: difficulty.value,
-      cards: validCards,
+      cards: cards.value,
     }
 
     await createFlashcardDeck(flashcardDeck)

@@ -324,6 +324,21 @@ const getInputType = (type: string) => {
 }
 
 const saveNote = async () => {
+  if (!noteData.title.trim()) {
+    errorMessage.value = 'Please enter a note title'
+    return
+  }
+
+  const content = noteData.blocks
+    .map((block) => block.content)
+    .filter((text) => text.trim())
+    .join('\n')
+
+  if (!content.trim()) {
+    errorMessage.value = 'Please enter note content'
+    return
+  }
+
   isLoading.value = true
   errorMessage.value = ''
   successMessage.value = ''
@@ -333,12 +348,6 @@ const saveNote = async () => {
       .split(',')
       .map((tag) => tag.trim())
       .filter((tag) => tag)
-
-    // Combine blocks into content
-    const content = noteData.blocks
-      .map((block) => block.content)
-      .filter((text) => text.trim())
-      .join('\n')
 
     const notePayload = {
       title: noteData.title,
