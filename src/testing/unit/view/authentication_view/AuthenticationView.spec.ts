@@ -26,11 +26,14 @@ const router = createRouter({
   routes,
 })
 
+let pinia: ReturnType<typeof createPinia>
+
 describe('Authentication Tests', () => {
   beforeEach(async () => {
     router.push('/register')
 
-    setActivePinia(createPinia())
+    pinia = createPinia()
+    setActivePinia(pinia)
     vi.clearAllMocks()
     localStorage.clear()
     await router.isReady()
@@ -60,7 +63,7 @@ describe('Authentication Tests', () => {
 
       const wrapper = mount(RegisterView, {
         global: {
-          plugins: [router],
+          plugins: [router, pinia],
         },
       })
       await flushPromises()
@@ -96,7 +99,7 @@ describe('Authentication Tests', () => {
     it('should show validation errors for invalid input', async () => {
       const wrapper = mount(RegisterView, {
         global: {
-          plugins: [router],
+          plugins: [router, pinia],
         },
       })
       await flushPromises()
@@ -112,7 +115,7 @@ describe('Authentication Tests', () => {
     it('should validate password confirmation matches', async () => {
       const wrapper = mount(RegisterView, {
         global: {
-          plugins: [router],
+          plugins: [router, pinia],
         },
       })
 
@@ -144,7 +147,7 @@ describe('Authentication Tests', () => {
 
       const wrapper = mount(LoginView, {
         global: {
-          plugins: [router],
+          plugins: [router, pinia],
         },
       })
       await flushPromises()
@@ -173,7 +176,7 @@ describe('Authentication Tests', () => {
 
       const wrapper = mount(LoginView, {
         global: {
-          plugins: [router],
+          plugins: [router, pinia],
         },
       })
       await flushPromises()
@@ -189,7 +192,7 @@ describe('Authentication Tests', () => {
     it('should validate required fields', async () => {
       const wrapper = mount(LoginView, {
         global: {
-          plugins: [router],
+          plugins: [router, pinia],
         },
       })
       await flushPromises()
