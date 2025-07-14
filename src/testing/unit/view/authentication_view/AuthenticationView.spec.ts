@@ -43,7 +43,7 @@ describe('Authentication Tests', () => {
           access_token: 'mock-token-123',
           user: {
             id: 1,
-            userName: 'testuser',
+            username: 'testuser',
             email: 'test@example.com',
             firstname: 'Test',
             lastname: 'User',
@@ -132,7 +132,7 @@ describe('Authentication Tests', () => {
           access_token: 'mock-token-123',
           user: {
             id: 1,
-            userName: 'testuser',
+            username: 'testuser',
             email: 'test@example.com',
             roles: ['USER'],
           },
@@ -152,7 +152,7 @@ describe('Authentication Tests', () => {
       const authStore = useAuthStore()
       vi.spyOn(authStore, 'login')
 
-      await wrapper.find('input[name="userName"]').setValue('testuser')
+      await wrapper.find('input[name="username"]').setValue('testuser')
       await wrapper.find('input[name="password"]').setValue('password123')
 
       await wrapper.find('form').trigger('submit.prevent')
@@ -178,12 +178,12 @@ describe('Authentication Tests', () => {
       })
       await flushPromises()
 
-      await wrapper.find('input[name="userName"]').setValue('wronguser')
+      await wrapper.find('input[name="username"]').setValue('wronguser')
       await wrapper.find('input[name="password"]').setValue('wrongpassword')
       await wrapper.find('form').trigger('submit.prevent')
       await flushPromises()
 
-      expect(wrapper.text()).toContain('No user found in the database')
+      expect(wrapper.text()).toContain('No user found in the database. Please try again.')
     })
 
     it('should validate required fields', async () => {
@@ -197,7 +197,7 @@ describe('Authentication Tests', () => {
       await wrapper.find('form').trigger('submit.prevent')
       await flushPromises()
 
-      expect(wrapper.text()).toContain('The userName is required')
+      expect(wrapper.text()).toContain('The username is required')
       expect(wrapper.text()).toContain('Password is required')
     })
   })
@@ -209,7 +209,7 @@ describe('Authentication Tests', () => {
       authStore.token = 'mock-token'
       authStore.user = {
         id: 1,
-        userName: 'testuser',
+        username: 'testuser',
         email: 'test@example.com',
         roles: ['USER'],
         firstname: 'Test',
