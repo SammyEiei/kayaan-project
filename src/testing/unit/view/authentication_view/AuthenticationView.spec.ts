@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createMemoryHistory } from 'vue-router'
 import { createPinia, setActivePinia } from 'pinia'
 import RegisterView from '@/views/authentication_view/RegisterView.vue'
 import LoginView from '@/views/authentication_view/LoginView.vue'
@@ -22,7 +22,7 @@ const routes = [
 ]
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createMemoryHistory(),
   routes,
 })
 
@@ -55,11 +55,15 @@ describe('Authentication Tests', () => {
       const mockedApi = vi.mocked(api)
       mockedApi.post.mockResolvedValueOnce(mockResponse)
 
+      const authStore = useAuthStore()
+      const registerSpy = vi.spyOn(authStore, 'register')
+
       const wrapper = mount(RegisterView, {
         global: {
           plugins: [router],
         },
       })
+      await flushPromises()
 
       await wrapper.find('input[name="firstName"]').setValue('Test')
       await wrapper.find('input[name="lastName"]').setValue('User')
@@ -71,12 +75,19 @@ describe('Authentication Tests', () => {
       await wrapper.find('form').trigger('submit.prevent')
       await flushPromises()
 
+      expect(registerSpy).toHaveBeenCalledWith(
+        'test@example.com',
+        'password123',
+        'testuser',
+        'Test',
+        'User',
+      )
       expect(api.post).toHaveBeenCalledWith('/api/v1/auth/register', {
+        email: 'test@example.com',
+        password: 'password123',
+        username: 'testuser',
         firstname: 'Test',
         lastname: 'User',
-        email: 'test@example.com',
-        userName: 'testuser',
-        password: 'password123',
       })
 
       expect(wrapper.text()).toContain('Sign up successfully')
@@ -88,6 +99,7 @@ describe('Authentication Tests', () => {
           plugins: [router],
         },
       })
+      await flushPromises()
 
       await wrapper.find('form').trigger('submit.prevent')
       await flushPromises()
@@ -135,6 +147,7 @@ describe('Authentication Tests', () => {
           plugins: [router],
         },
       })
+      await flushPromises()
 
       const authStore = useAuthStore()
       vi.spyOn(authStore, 'login')
@@ -163,6 +176,7 @@ describe('Authentication Tests', () => {
           plugins: [router],
         },
       })
+      await flushPromises()
 
       await wrapper.find('input[name="userName"]').setValue('wronguser')
       await wrapper.find('input[name="password"]').setValue('wrongpassword')
@@ -178,6 +192,7 @@ describe('Authentication Tests', () => {
           plugins: [router],
         },
       })
+      await flushPromises()
 
       await wrapper.find('form').trigger('submit.prevent')
       await flushPromises()
