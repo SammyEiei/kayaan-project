@@ -106,9 +106,16 @@
             </div>
 
             <!-- Success Message -->
-            <div v-if="successMessage" class="mb-4 bg-green-50 border border-green-200 rounded-xl p-4 flex items-center">
+            <div
+              v-if="successMessage"
+              class="mb-4 bg-green-50 border border-green-200 rounded-xl p-4 flex items-center"
+            >
               <svg class="h-5 w-5 text-green-400 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707a1 1 0 00-1.414-1.414L9 11.586 7.707 10.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                <path
+                  fill-rule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707a1 1 0 00-1.414-1.414L9 11.586 7.707 10.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clip-rule="evenodd"
+                />
               </svg>
               <span class="text-green-700 text-sm">{{ successMessage }}</span>
             </div>
@@ -152,7 +159,11 @@
                     placeholder="Enter your username"
                   />
                 </div>
-                <p v-if="errors.username" class="mt-2 text-sm text-red-600">
+                <p
+                  v-if="errors.username"
+                  class="mt-2 text-sm text-red-600"
+                  data-testid="login-username-error"
+                >
                   {{ errors.username }}
                 </p>
               </div>
@@ -194,7 +205,11 @@
                     placeholder="Enter your password"
                   />
                 </div>
-                <p v-if="errors.password" class="mt-2 text-sm text-red-600">
+                <p
+                  v-if="errors.password"
+                  class="mt-2 text-sm text-red-600"
+                  data-testid="login-password-error"
+                >
                   {{ errors.password }}
                 </p>
               </div>
@@ -455,7 +470,7 @@ const onSubmit = handleSubmit(async (values) => {
   try {
     await authStore.login(values.username, values.password)
     successMessage.value = 'Sign in successfully'
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    await new Promise((resolve) => setTimeout(resolve, 1000))
     router.push({ name: 'dashboard' })
   } catch (error: any) {
     if (
