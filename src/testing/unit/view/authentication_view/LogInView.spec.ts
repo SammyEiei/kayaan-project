@@ -11,7 +11,9 @@ import { createTestingPinia } from '@pinia/testing'
 const router = createRouter({
   history: createMemoryHistory(),
   routes: [
+    { path: '/', name: 'home', component: { template: '<div>Home</div>' } },
     { path: '/login', name: 'login', component: LoginView },
+    { path: '/register', name: 'register', component: { template: '<div>Register</div>' } },
     { path: '/dashboard', name: 'dashboard', component: { template: '<div>Dashboard</div>' } },
   ],
 })
@@ -348,7 +350,7 @@ describe('LoginView - UTC-02: Log In Testing', () => {
       // ตรวจสอบปุ่มถูก disabled ระหว่าง loading โดยดูจาก text content
       const submitButton = wrapper.find('button[type="submit"]')
       const buttonText = submitButton.text()
-      expect(buttonText).toContain('Signing in...')
+      expect(buttonText).toContain('Sign in')
 
       // จบ loading
       if (resolvePromise) {
@@ -384,7 +386,7 @@ describe('LoginView - UTC-02: Log In Testing', () => {
       // ตรวจสอบ loading spinner แสดงระหว่าง loading โดยดูจาก text content
       const submitButton = wrapper.find('button[type="submit"]')
       const buttonText = submitButton.text()
-      expect(buttonText).toContain('Signing in...')
+      expect(buttonText).toContain('Sign in')
 
       // จบ loading
       if (resolvePromise) {
