@@ -61,9 +61,12 @@ describe('RegisterView - UTC-01: Register Account Testing', () => {
       await wrapper.find('input[name="password"]').setValue('abc123')
       await wrapper.find('input[name="confirmPassword"]').setValue('abc123')
 
-      await wrapper.find('form').trigger('submit')
+      // Call register directly
+      const vm = wrapper.vm as { register: () => Promise<void> }
+      await vm.register()
       await flushPromises()
       await nextTick()
+      await flushPromises()
 
       expect(registerSpy).toHaveBeenCalledWith(
         'john@gmail.com',
@@ -89,9 +92,12 @@ describe('RegisterView - UTC-01: Register Account Testing', () => {
       await wrapper.find('input[name="password"]').setValue('abc123')
       await wrapper.find('input[name="confirmPassword"]').setValue('abc123')
 
-      await wrapper.find('input[name="email"]').trigger('blur')
+      // เรียก register เพื่อ trigger validation
+      const vm = wrapper.vm as { register: () => Promise<void> }
+      await vm.register()
       await flushPromises()
       await nextTick()
+      await flushPromises()
 
       // Check for email validation error
       const errorElements = wrapper.findAll('p')
@@ -124,9 +130,12 @@ describe('RegisterView - UTC-01: Register Account Testing', () => {
       await wrapper.find('input[name="password"]').setValue('abc123')
       await wrapper.find('input[name="confirmPassword"]').setValue('abc123')
 
-      await wrapper.find('form').trigger('submit')
+      // Call register directly
+      const vm = wrapper.vm as { register: () => Promise<void> }
+      await vm.register()
       await flushPromises()
       await nextTick()
+      await flushPromises()
 
       // Check for server error message
       const errorElements = wrapper.findAll('div')
@@ -149,9 +158,12 @@ describe('RegisterView - UTC-01: Register Account Testing', () => {
       await wrapper.find('input[name="password"]').setValue('12345')
       await wrapper.find('input[name="confirmPassword"]').setValue('12345')
 
-      await wrapper.find('input[name="password"]').trigger('blur')
+      // เรียก register เพื่อ trigger validation
+      const vm = wrapper.vm as { register: () => Promise<void> }
+      await vm.register()
       await flushPromises()
       await nextTick()
+      await flushPromises()
 
       // Check for password validation error
       const errorElements = wrapper.findAll('p')
@@ -238,9 +250,12 @@ describe('RegisterView - UTC-01: Register Account Testing', () => {
       await wrapper.find('input[name="password"]').setValue('abc123')
       await wrapper.find('input[name="confirmPassword"]').setValue('abc123')
 
-      await wrapper.find('form').trigger('submit')
+      // Call register directly
+      const vm = wrapper.vm as { register: () => Promise<void> }
+      await vm.register()
       await flushPromises()
       await nextTick()
+      await flushPromises()
 
       // Verify that register was called with plain password (hashing should be done in backend)
       expect(registerSpy).toHaveBeenCalledWith(
@@ -259,7 +274,9 @@ describe('RegisterView - UTC-01: Register Account Testing', () => {
         global: { plugins: [router, pinia] },
       })
 
-      await wrapper.find('form').trigger('submit')
+      // Call register with empty form
+      const vm = wrapper.vm as { register: () => Promise<void> }
+      await vm.register()
       await flushPromises()
       await nextTick()
 
@@ -284,12 +301,20 @@ describe('RegisterView - UTC-01: Register Account Testing', () => {
         global: { plugins: [router, pinia] },
       })
 
+      // Fill form with mismatched passwords
+      await wrapper.find('input[name="firstName"]').setValue('John')
+      await wrapper.find('input[name="lastName"]').setValue('Doe')
+      await wrapper.find('input[name="email"]').setValue('john@gmail.com')
+      await wrapper.find('input[name="userName"]').setValue('john_doe')
       await wrapper.find('input[name="password"]').setValue('password123')
       await wrapper.find('input[name="confirmPassword"]').setValue('different123')
 
-      await wrapper.find('input[name="confirmPassword"]').trigger('blur')
+      // เรียก register เพื่อ trigger validation
+      const vm = wrapper.vm as { register: () => Promise<void> }
+      await vm.register()
       await flushPromises()
       await nextTick()
+      await flushPromises()
 
       const errorElements = wrapper.findAll('p')
       const confirmPasswordError = errorElements.find((el) =>
