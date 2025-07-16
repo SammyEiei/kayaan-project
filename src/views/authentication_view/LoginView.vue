@@ -100,7 +100,9 @@
                   </svg>
                 </div>
                 <div class="ml-3">
-                  <p class="text-sm text-red-700">{{ loginError }}</p>
+                  <p class="text-sm text-red-700" data-testid="login-error-message">
+                    {{ loginError }}
+                  </p>
                 </div>
               </div>
             </div>
