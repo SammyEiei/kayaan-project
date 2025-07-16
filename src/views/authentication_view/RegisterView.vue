@@ -142,11 +142,7 @@
                       placeholder="First name"
                     />
                   </div>
-                  <p
-                    v-if="errors.firstName"
-                    class="mt-2 text-sm text-red-600"
-                    data-testid="first-name-error"
-                  >
+                  <p v-if="errors.firstName" class="mt-2 text-sm text-red-600">
                     {{ errors.firstName }}
                   </p>
                 </div>
@@ -190,11 +186,7 @@
                       placeholder="Last name"
                     />
                   </div>
-                  <p
-                    v-if="errors.lastName"
-                    class="mt-2 text-sm text-red-600"
-                    data-testid="last-name-error"
-                  >
+                  <p v-if="errors.lastName" class="mt-2 text-sm text-red-600">
                     {{ errors.lastName }}
                   </p>
                 </div>
@@ -237,9 +229,7 @@
                     placeholder="Enter your email"
                   />
                 </div>
-                <p v-if="errors.email" class="mt-2 text-sm text-red-600" data-testid="email-error">
-                  {{ errors.email }}
-                </p>
+                <p v-if="errors.email" class="mt-2 text-sm text-red-600">{{ errors.email }}</p>
               </div>
 
               <!-- Username Field -->
@@ -279,11 +269,7 @@
                     placeholder="Choose a username"
                   />
                 </div>
-                <p
-                  v-if="errors.userName"
-                  class="mt-2 text-sm text-red-600"
-                  data-testid="username-error"
-                >
+                <p v-if="errors.userName" class="mt-2 text-sm text-red-600">
                   {{ errors.userName }}
                 </p>
               </div>
@@ -329,11 +315,7 @@
                       placeholder="Create password"
                     />
                   </div>
-                  <p
-                    v-if="errors.password"
-                    class="mt-2 text-sm text-red-600"
-                    data-testid="password-error"
-                  >
+                  <p v-if="errors.password" class="mt-2 text-sm text-red-600">
                     {{ errors.password }}
                   </p>
                 </div>
@@ -377,11 +359,7 @@
                       placeholder="Confirm password"
                     />
                   </div>
-                  <p
-                    v-if="errors.confirmPassword"
-                    class="mt-2 text-sm text-red-600"
-                    data-testid="confirm-password-error"
-                  >
+                  <p v-if="errors.confirmPassword" class="mt-2 text-sm text-red-600">
                     {{ errors.confirmPassword }}
                   </p>
                 </div>

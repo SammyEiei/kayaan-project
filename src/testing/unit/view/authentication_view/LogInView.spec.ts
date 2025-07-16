@@ -25,14 +25,10 @@ describe('LoginView', () => {
   beforeEach(async () => {
     router.push('/login')
     pinia = createTestingPinia({
-      stubActions: false, // เปลี่ยนเป็น false เพื่อ mock action จริง
+      stubActions: true, // เปลี่ยนเป็น true เพื่อให้ spy action ได้
       createSpy: vi.fn,
     })
     setActivePinia(pinia)
-
-    // Mock action ก่อน mount component
-    const authStore = useAuthStore()
-    authStore.login = vi.fn()
 
     vi.clearAllMocks()
     localStorage.clear()
@@ -57,8 +53,9 @@ describe('LoginView', () => {
       global: { plugins: [router, pinia] },
     })
 
+    // Spy action หลัง mount component เท่านั้น
     const authStore = useAuthStore()
-    authStore.login = vi.fn().mockResolvedValue(mockResponse.data)
+    const loginSpy = vi.spyOn(authStore, 'login').mockResolvedValue(mockResponse.data)
 
     await wrapper.find('input[name="username"]').setValue('testuser')
     await wrapper.find('input[name="password"]').setValue('password123')
@@ -69,7 +66,7 @@ describe('LoginView', () => {
     await flushPromises()
     await nextTick()
 
-    expect(authStore.login).toHaveBeenCalledWith('testuser', 'password123')
+    expect(loginSpy).toHaveBeenCalledWith('testuser', 'password123')
   })
 
   it('แสดง error เมื่อ login ผิด', async () => {
@@ -82,6 +79,15 @@ describe('LoginView', () => {
 
     const wrapper = mount(LoginView, {
       global: { plugins: [router, pinia] },
+    })
+
+    // Spy action หลัง mount component
+    const authStore = useAuthStore()
+    vi.spyOn(authStore, 'login').mockRejectedValue({
+      response: {
+        status: 401,
+        data: { message: 'No user found in the database. Please try again.' },
+      },
     })
 
     await wrapper.find('input[name="username"]').setValue('wronguser')
@@ -109,6 +115,7 @@ describe('LoginView', () => {
     await flushPromises()
     await nextTick()
 
+    // Trigger blur events เพื่อให้ vee-validate แสดง error
     await wrapper.find('input[name="username"]').trigger('blur')
     await wrapper.find('input[name="password"]').trigger('blur')
     await flushPromises()

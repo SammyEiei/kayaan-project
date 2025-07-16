@@ -21,14 +21,10 @@ describe('RegisterView', () => {
   beforeEach(async () => {
     router.push('/register')
     pinia = createTestingPinia({
-      stubActions: false, // เปลี่ยนเป็น false เพื่อ mock action จริง
+      stubActions: true, // เปลี่ยนเป็น true เพื่อให้ spy action ได้
       createSpy: vi.fn,
     })
     setActivePinia(pinia)
-
-    // Mock action ก่อน mount component
-    const authStore = useAuthStore()
-    authStore.register = vi.fn()
 
     vi.clearAllMocks()
     localStorage.clear()
@@ -55,8 +51,9 @@ describe('RegisterView', () => {
       global: { plugins: [router, pinia] },
     })
 
+    // Spy action หลัง mount component เท่านั้น
     const authStore = useAuthStore()
-    authStore.register = vi.fn().mockResolvedValue(mockResponse.data)
+    const registerSpy = vi.spyOn(authStore, 'register').mockResolvedValue(mockResponse.data)
 
     await wrapper.find('input[name="firstName"]').setValue('Test')
     await wrapper.find('input[name="lastName"]').setValue('User')
@@ -71,7 +68,7 @@ describe('RegisterView', () => {
     await flushPromises()
     await nextTick()
 
-    expect(authStore.register).toHaveBeenCalledWith(
+    expect(registerSpy).toHaveBeenCalledWith(
       'test@example.com',
       'password123',
       'testuser',

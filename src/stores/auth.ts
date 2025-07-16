@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia'
 import axios from 'axios'
 import type { AxiosInstance } from 'axios'
-import api from '@/service/api'
 import type { User } from '@/types'
 import { jwtDecode } from 'jwt-decode'
 
@@ -35,9 +34,14 @@ function isTokenExpired(token: string): boolean {
 }
 
 /* ----------  axios instance ---------- */
-// Reuse the shared axios instance from `@/service/api` so that tests can easily
-// mock API calls in one place.
-const apiClient: AxiosInstance = api
+const apiClient: AxiosInstance = axios.create({
+  baseURL: import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080',
+  withCredentials: false,
+  headers: {
+    Accept: 'application/json',
+    'Content-Type': 'application/json',
+  },
+})
 
 // Helper function to build full URL
 function buildFullUrl(path: string | null | undefined): string | undefined {

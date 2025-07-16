@@ -100,9 +100,7 @@
                   </svg>
                 </div>
                 <div class="ml-3">
-                  <p class="text-sm text-red-700" data-testid="login-error-message">
-                    {{ loginError }}
-                  </p>
+                  <p class="text-sm text-red-700">{{ loginError }}</p>
                 </div>
               </div>
             </div>
@@ -161,11 +159,7 @@
                     placeholder="Enter your username"
                   />
                 </div>
-                <p
-                  v-if="errors.username"
-                  class="mt-2 text-sm text-red-600"
-                  data-testid="login-username-error"
-                >
+                <p v-if="errors.username" class="mt-2 text-sm text-red-600">
                   {{ errors.username }}
                 </p>
               </div>
@@ -207,11 +201,7 @@
                     placeholder="Enter your password"
                   />
                 </div>
-                <p
-                  v-if="errors.password"
-                  class="mt-2 text-sm text-red-600"
-                  data-testid="login-password-error"
-                >
+                <p v-if="errors.password" class="mt-2 text-sm text-red-600">
                   {{ errors.password }}
                 </p>
               </div>
