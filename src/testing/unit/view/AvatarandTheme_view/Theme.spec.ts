@@ -45,6 +45,7 @@ interface MockThemeStore {
   savePreset: ReturnType<typeof vi.fn>
   removePreset: ReturnType<typeof vi.fn>
   resetAll: ReturnType<typeof vi.fn>
+  previousTheme?: Theme | null // เพิ่ม property นี้
 }
 
 // Mock functions for testing
@@ -343,6 +344,9 @@ describe('Theme Testing Suite', () => {
 
     describe('UTC-08-TC-02: Test cancelPreview() functionality', () => {
       it('should revert to previous theme when canceling preview', () => {
+        // เพิ่ม previousTheme ใน mockThemeStore
+        mockThemeStore.previousTheme = null
+
         const previousTheme: Theme = {
           id: 1,
           name: 'Light',
@@ -372,21 +376,43 @@ describe('Theme Testing Suite', () => {
           isDark: true,
         }
 
-        // Mock cancel preview functionality
+        // ให้ applyTheme อัปเดต currentTheme จริง
+        mockThemeStore.applyTheme.mockImplementation((theme: Theme) => {
+          mockThemeStore.currentTheme = theme
+        })
+
+        // เวลาทำ preview ให้เก็บ previousTheme
+        const startPreview = () => {
+          mockThemeStore.previousTheme = previousTheme
+          mockThemeStore.currentTheme = previewTheme
+
+          // Auto-revert หลัง 10 วินาที
+          setTimeout(() => {
+            // deep clone และลบ property preview
+            const revertedTheme: Theme = JSON.parse(JSON.stringify(mockThemeStore.previousTheme))
+            delete (revertedTheme as Partial<Theme>).preview
+            mockThemeStore.currentTheme = revertedTheme
+            mockThemeStore.applyTheme(revertedTheme)
+          }, 10000)
+        }
+
+        // เริ่ม preview
+        startPreview()
+        expect(mockThemeStore.currentTheme).toEqual(previewTheme)
+
+        // Cancel preview
         const cancelPreview = () => {
-          // Remove preview flag and set to previous theme
-          const revertedTheme = { ...previousTheme }
+          // deep clone และลบ property preview
+          const revertedTheme: Theme = JSON.parse(JSON.stringify(mockThemeStore.previousTheme))
+          delete (revertedTheme as Partial<Theme>).preview
           mockThemeStore.currentTheme = revertedTheme
           mockThemeStore.applyTheme(revertedTheme)
         }
 
-        // Set preview theme first
-        mockThemeStore.currentTheme = previewTheme
-
-        // Cancel preview
+        // เรียก cancelPreview เพื่อ revert ธีม
         cancelPreview()
 
-        // Verify reverted to previous theme
+        // ตรวจสอบว่ากลับเป็น previousTheme จริง
         expect(mockThemeStore.currentTheme).toEqual(previousTheme)
         expect(mockThemeStore.applyTheme).toHaveBeenCalledWith(previousTheme)
       })
@@ -394,6 +420,9 @@ describe('Theme Testing Suite', () => {
 
     describe('UTC-08-TC-03: Test preview auto-revert after 10 seconds', () => {
       it('should automatically revert to previous theme after 10 seconds', async () => {
+        // เพิ่ม previousTheme ใน mockThemeStore
+        mockThemeStore.previousTheme = null
+
         const previousTheme: Theme = {
           id: 1,
           name: 'Light',
@@ -423,28 +452,33 @@ describe('Theme Testing Suite', () => {
           isDark: true,
         }
 
-        // Mock auto-revert functionality
+        // ใช้ fake timers ก่อนเริ่ม preview เพื่อให้ setTimeout อยู่ภายใต้ fake timers
+        vi.useFakeTimers()
+
+        // ฟังก์ชัน startPreview ที่เก็บ previousTheme
         const startPreview = () => {
+          mockThemeStore.previousTheme = previousTheme
           mockThemeStore.currentTheme = previewTheme
 
-          // Auto-revert after 10 seconds
+          // Auto-revert หลัง 10 วินาที
           setTimeout(() => {
-            const revertedTheme = { ...previousTheme }
+            // deep clone และลบ property preview
+            const revertedTheme: Theme = JSON.parse(JSON.stringify(mockThemeStore.previousTheme))
+            delete (revertedTheme as Partial<Theme>).preview
             mockThemeStore.currentTheme = revertedTheme
             mockThemeStore.applyTheme(revertedTheme)
           }, 10000)
         }
 
-        // Start preview
+        // เริ่ม preview
         startPreview()
         expect(mockThemeStore.currentTheme).toEqual(previewTheme)
 
-        // Wait for auto-revert (using fake timers)
-        vi.useFakeTimers()
+        // เดินเวลา 10 วินาที
         vi.advanceTimersByTime(10000)
         vi.useRealTimers()
 
-        // Verify auto-reverted to previous theme
+        // ตรวจสอบว่ากลับเป็น previousTheme จริง
         expect(mockThemeStore.currentTheme).toEqual(previousTheme)
         expect(mockThemeStore.applyTheme).toHaveBeenCalledWith(previousTheme)
       })

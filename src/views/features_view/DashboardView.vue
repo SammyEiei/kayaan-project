@@ -25,9 +25,16 @@
                   <div
                     class="w-16 h-16 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg"
                   >
-                    <span class="text-2xl font-bold text-white">{{
-                      username.charAt(0).toUpperCase()
-                    }}</span>
+                    <img
+                      v-if="userAvatarUrl"
+                      :src="userAvatarUrl"
+                      :key="avatarKey"
+                      :alt="authStore.user?.username || 'User avatar'"
+                      class="w-full h-full object-cover rounded-2xl"
+                    />
+                    <span v-else class="text-2xl font-bold text-white">
+                      {{ username.charAt(0).toUpperCase() }}
+                    </span>
                   </div>
                   <div
                     class="absolute -bottom-1 -right-1 w-5 h-5 bg-green-400 rounded-full border-2 border-white"
@@ -200,37 +207,57 @@
                 />
               </svg>
             </div>
-          <h3 class="text-sm font-medium text-gray-600 mb-2">Flashcards Reviewed</h3>
-          <div class="flex items-baseline gap-2">
-            <span class="text-3xl font-bold text-gray-900">{{ flashcardsReviewed }}</span>
-            <span class="text-sm text-gray-500">cards</span>
+            <h3 class="text-sm font-medium text-gray-600 mb-2">Flashcards Reviewed</h3>
+            <div class="flex items-baseline gap-2">
+              <span class="text-3xl font-bold text-gray-900">{{ flashcardsReviewed }}</span>
+              <span class="text-sm text-gray-500">cards</span>
+            </div>
+            <p class="text-sm text-gray-500 mt-2">{{ lastReviewTime }}</p>
           </div>
-          <p class="text-sm text-gray-500 mt-2">{{ lastReviewTime }}</p>
-        </div>
 
-        <!-- Today's Pomodoro Streak -->
-        <div
-          class="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/50 p-6 shadow-xl hover:shadow-2xl transition-all duration-300 group"
-        >
-          <div class="flex items-center justify-between mb-4">
-            <div
-              class="w-12 h-12 bg-gradient-to-r from-red-500 to-orange-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300"
-            >
-              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <!-- Today's Pomodoro Streak -->
+          <div
+            class="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/50 p-6 shadow-xl hover:shadow-2xl transition-all duration-300 group"
+          >
+            <div class="flex items-center justify-between mb-4">
+              <div
+                class="w-12 h-12 bg-gradient-to-r from-red-500 to-orange-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300"
+              >
+                <svg
+                  class="w-6 h-6 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+              </div>
+              <svg
+                class="w-6 h-6 text-red-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M13 10V3L4 14h7v7l9-11h-7z"
+                />
               </svg>
             </div>
-            <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-          </div>
-          <h3 class="text-sm font-medium text-gray-600 mb-2">Today's Pomodoros</h3>
-          <div class="flex items-baseline gap-2">
-            <span class="text-3xl font-bold text-gray-900">{{ pomodorosToday }}</span>
-            <span class="text-sm text-gray-500">sessions</span>
+            <h3 class="text-sm font-medium text-gray-600 mb-2">Today's Pomodoros</h3>
+            <div class="flex items-baseline gap-2">
+              <span class="text-3xl font-bold text-gray-900">{{ pomodorosToday }}</span>
+              <span class="text-sm text-gray-500">sessions</span>
+            </div>
           </div>
         </div>
-      </div>
 
         <!-- Study Progress & Groups Row -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
@@ -486,11 +513,15 @@ const username = computed(() => {
   return authStore.user?.username || authStore.user?.name || authStore.user?.email || 'Student'
 })
 
+// Avatar
+const userAvatarUrl = computed(() => authStore.currentUserAvatar)
+const avatarKey = computed(() => authStore.user?.avatarRotation || 0)
+
 // Study stats
 type FocusTime = { hours: number; minutes: number }
-const studyStreak = ref<number|null>(null) // TODO: Fetch from API
+const studyStreak = ref<number | null>(null) // TODO: Fetch from API
 const focusTime = ref<FocusTime>({ hours: 0, minutes: 0 }) // TODO: Fetch from API
-const flashcardsReviewed = ref<number|null>(null) // TODO: Fetch from API
+const flashcardsReviewed = ref<number | null>(null) // TODO: Fetch from API
 const lastReviewTime = ref<string>('') // TODO: Fetch from API
 const pomodorosToday = computed(() => gamification.pomodorosToday)
 

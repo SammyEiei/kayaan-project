@@ -59,6 +59,11 @@ const router = createRouter({
       component: () => import('../views/features_view/StudyGroupView.vue'),
     },
     {
+      path: '/study-groups/:id',
+      name: 'group-detail',
+      component: () => import('../views/features_view/GroupDetailView.vue'),
+    },
+    {
       path: '/pomodoro',
       name: 'pomodoro',
       component: () => import('../views/features_view/PomodoroView.vue'),
