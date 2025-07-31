@@ -417,7 +417,8 @@
               </div>
               <h2 class="text-xl font-bold text-gray-900">AI-Generated Content</h2>
             </div>
-            <button
+            <router-link
+              to="/ai-content-generator"
               class="px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl font-medium transition-all duration-200 hover:shadow-lg transform hover:scale-105 flex items-center gap-2"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -429,7 +430,7 @@
                 />
               </svg>
               Generate New
-            </button>
+            </router-link>
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">

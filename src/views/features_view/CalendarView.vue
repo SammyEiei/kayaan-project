@@ -22,61 +22,61 @@ const selectedDate = ref(new Date())
 const viewMode = ref<'month' | 'week' | 'day'>('month')
 const showEventForm = ref(false)
 const eventTypes = [
-  { value: 'assignment', label: 'การบ้าน/งาน', color: '#4CAF50' },
-  { value: 'exam', label: 'การสอบ', color: '#f44336' },
-  { value: 'meeting', label: 'การประชุม', color: '#2196F3' },
-  { value: 'class', label: 'คาบเรียน', color: '#FF9800' },
-  { value: 'other', label: 'อื่นๆ', color: '#9C27B0' },
+  { value: 'assignment', label: 'Assignment/Work', color: '#4CAF50' },
+  { value: 'exam', label: 'Exam', color: '#f44336' },
+  { value: 'meeting', label: 'Meeting', color: '#2196F3' },
+  { value: 'class', label: 'Class', color: '#FF9800' },
+  { value: 'other', label: 'Other', color: '#9C27B0' },
 ]
 
 const events = ref<Event[]>([
   {
     id: 1,
-    title: 'ส่งงานวิชาคณิตศาสตร์',
+    title: 'Submit Math Assignment',
     date: new Date(2024, 2, 15),
     time: '23:59',
-    description: 'ส่งการบ้านบทที่ 5-6 แคลคูลัสเบื้องต้น',
-    location: 'ออนไลน์',
+    description: 'Submit homework chapters 5-6 Basic Calculus',
+    location: 'Online',
     type: 'assignment',
     isCompleted: true,
   },
   {
     id: 2,
-    title: 'สอบกลางภาควิชาฟิสิกส์',
+    title: 'Physics Midterm Exam',
     date: new Date(2024, 2, 20),
     time: '09:00',
     endTime: '12:00',
-    description: 'สอบกลางภาคบทที่ 1-4',
-    location: 'ห้อง SC 101',
+    description: 'Midterm exam chapters 1-4',
+    location: 'Room SC 101',
     type: 'exam',
   },
   {
     id: 3,
-    title: 'ประชุมกลุ่มโปรเจค',
+    title: 'Project Group Meeting',
     date: new Date(2024, 2, 18),
     time: '13:30',
     endTime: '15:30',
-    description: 'ประชุมวางแผนและแบ่งงานในโปรเจคเว็บแอปพลิเคชัน',
-    location: 'ห้องประชุม EN 204',
+    description: 'Meeting to plan and assign tasks for web application project',
+    location: 'Conference Room EN 204',
     type: 'meeting',
   },
   {
     id: 4,
-    title: 'คาบเรียนภาษาอังกฤษ',
+    title: 'English Class',
     date: new Date(2024, 2, 22),
     time: '10:00',
     endTime: '12:00',
-    description: 'บทเรียนเรื่อง Academic Writing',
-    location: 'ห้อง LA 305',
+    description: 'Lesson on Academic Writing',
+    location: 'Room LA 305',
     type: 'class',
   },
   {
     id: 5,
-    title: 'ส่งรายงานวิชาชีววิทยา',
+    title: 'Submit Biology Report',
     date: new Date(2024, 2, 25),
     time: '23:59',
-    description: 'ส่งรายงานการทดลองเรื่องเซลล์พืช',
-    location: 'ออนไลน์',
+    description: 'Submit lab report on plant cells',
+    location: 'Online',
     type: 'assignment',
   },
 ])
@@ -209,19 +209,19 @@ function formatDate(date: Date): string {
     month: 'long',
     day: 'numeric',
   }
-  return date.toLocaleDateString('th-TH', options)
+  return date.toLocaleDateString('en-US', options)
 }
 
-// ฟอร์แมตวันที่แบบสั้น
+// Format short date
 function formatShortDate(date: Date): string {
   const options: Intl.DateTimeFormatOptions = { day: 'numeric' }
-  return date.toLocaleDateString('th-TH', options)
+  return date.toLocaleDateString('en-US', options)
 }
 
-// ฟอร์แมตเดือนและปี
+// Format month and year
 function formatMonthYear(date: Date): string {
   const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long' }
-  return date.toLocaleDateString('th-TH', options)
+  return date.toLocaleDateString('en-US', options)
 }
 
 // ฟังก์ชันสำหรับสลับสถานะเสร็จสิ้นของกิจกรรม
@@ -241,27 +241,27 @@ onMounted(() => {
 <template>
   <main class="calendar-page">
     <header class="page-header">
-      <h1>ปฏิทินกิจกรรม</h1>
+      <h1>Activity Calendar</h1>
       <div class="header-actions">
-        <button class="btn-add-event" @click="toggleEventForm">เพิ่มกิจกรรม</button>
+        <button class="btn-add-event" @click="toggleEventForm">Add Event</button>
         <div class="view-selector">
           <button
             :class="['view-btn', viewMode === 'month' ? 'active' : '']"
             @click="changeViewMode('month')"
           >
-            เดือน
+            Month
           </button>
           <button
             :class="['view-btn', viewMode === 'week' ? 'active' : '']"
             @click="changeViewMode('week')"
           >
-            สัปดาห์
+            Week
           </button>
           <button
             :class="['view-btn', viewMode === 'day' ? 'active' : '']"
             @click="changeViewMode('day')"
           >
-            วัน
+            Day
           </button>
         </div>
       </div>
@@ -281,20 +281,20 @@ onMounted(() => {
           currentDate = new Date()
         "
       >
-        วันนี้
+        Today
       </button>
     </div>
 
     <!-- มุมมองเดือน -->
     <div v-if="viewMode === 'month'" class="calendar-month-view">
       <div class="calendar-weekdays">
-        <div class="weekday">อา</div>
-        <div class="weekday">จ</div>
-        <div class="weekday">อ</div>
-        <div class="weekday">พ</div>
-        <div class="weekday">พฤ</div>
-        <div class="weekday">ศ</div>
-        <div class="weekday">ส</div>
+        <div class="weekday">Sun</div>
+        <div class="weekday">Mon</div>
+        <div class="weekday">Tue</div>
+        <div class="weekday">Wed</div>
+        <div class="weekday">Thu</div>
+        <div class="weekday">Fri</div>
+        <div class="weekday">Sat</div>
       </div>
       <div class="calendar-days">
         <div
@@ -337,7 +337,7 @@ onMounted(() => {
         >
           <div class="week-day-header">
             <div class="weekday-name">
-              {{ day.date.toLocaleDateString('th-TH', { weekday: 'short' }) }}
+              {{ day.date.toLocaleDateString('en-US', { weekday: 'short' }) }}
             </div>
             <div class="date-number">{{ formatShortDate(day.date) }}</div>
           </div>

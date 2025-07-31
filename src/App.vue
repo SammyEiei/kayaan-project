@@ -224,7 +224,7 @@
 
         <!-- Footer -->
         <footer
-          v-if="!isAuthPage"
+          v-if="!isAuthPage && !isLoggedIn"
           class="backdrop-blur-sm border-t py-8 px-6"
           style="background: var(--surface); border-top: 1px solid var(--border)"
         >
@@ -364,8 +364,9 @@ const isLoggedIn = computed(() => !!authStore.token)
 
 const menuItems = [
   { to: '/dashboard', icon: 'grid', label: 'Dashboard' },
-  { to: '/MyContentView', icon: 'book', label: 'My content' },
+  { to: '/MyContentView', icon: 'book', label: 'My Content' },
   { to: '/create-content', icon: 'sparkles', label: 'Create Content' },
+  { to: '/ai-content-generator', icon: 'ai', label: 'AI Content Generator' },
   { to: '/study-groups', icon: 'users', label: 'Study Groups' },
   { to: '/pomodoro', icon: 'clock', label: 'Pomodoro Timer' },
   { to: '/settings', icon: 'settings', label: 'Settings' },
@@ -467,6 +468,22 @@ function getIconComponent(iconName: string) {
           }),
         ],
       ),
+    ai: () =>
+      h(
+        'svg',
+        {
+          class: 'w-5 h-5',
+          fill: 'none',
+          stroke: 'currentColor',
+          strokeWidth: '2',
+          viewBox: '0 0 24 24',
+        },
+        [
+          h('path', {
+            d: 'M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z',
+          }),
+        ],
+      ),
   }
   return icons[iconName as keyof typeof icons] || icons.grid
 }
@@ -476,6 +493,7 @@ function getPageTitle() {
     '/dashboard': 'Dashboard',
     '/flashcards': 'Flashcards & Quizzes',
     '/MyContentView': 'Create Content',
+    '/ai-content-generator': 'AI Content Generator',
     '/study-groups': 'Study Groups',
     '/pomodoro': 'Pomodoro Timer',
     '/settings': 'Settings',

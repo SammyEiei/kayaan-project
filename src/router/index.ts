@@ -108,6 +108,11 @@ const router = createRouter({
       name: 'MyContentView',
       component: () => import('../views/ManualGenerate_view/MyContentView.vue'),
     },
+    {
+      path: '/ai-content-generator',
+      name: 'ai-content-generator',
+      component: () => import('../views/features_view/AIContentGeneratorView.vue'),
+    },
   ],
 })
 
