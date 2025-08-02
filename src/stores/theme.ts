@@ -1,30 +1,17 @@
 // src/stores/theme.ts
 import { defineStore } from 'pinia'
-import apiClient from '../service/AxiosClient'
-import { useAuthStore } from '@/stores/auth'
-
-export interface Theme {
-  id: number
-  name: string
-  primaryColor: string
-  secondaryColor: string
-  backgroundColor: string
-  surfaceColor: string
-  textColor: string
-  textSecondaryColor: string
-  borderColor: string
-  successColor: string
-  warningColor: string
-  errorColor: string
-  isDark: boolean
-  isHighContrast: boolean
-  isSystemTheme?: boolean
-}
-
-export interface UserThemeResponse {
-  current: Theme
-  presets: Theme[]
-}
+import { useAuthStore } from './auth'
+import {
+  Theme,
+  UserThemeResponse,
+  getPredefinedThemes,
+  getUserPresets,
+  createUserPreset,
+  deleteUserPreset,
+  setActiveTheme,
+  getActiveTheme,
+  resetPersonalization,
+} from '../service/ThemeService'
 
 // Default theme fallback
 const defaultTheme: Theme = {
@@ -65,8 +52,8 @@ export const useThemeStore = defineStore('theme', {
       this.isLoading = true
       this.error = null
       try {
-        const response = await apiClient.get('/api/themes')
-        this.systemThemes = response.data
+        const themes = await getPredefinedThemes()
+        this.systemThemes = themes
         console.log('Fetched themes:', this.systemThemes)
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error'
@@ -82,9 +69,9 @@ export const useThemeStore = defineStore('theme', {
       this.isLoading = true
       this.error = null
       try {
-        const response = await apiClient.get(`/api/users/${userId}/theme`)
-        this.currentTheme = response.data.current
-        this.presets = response.data.presets
+        const response: UserThemeResponse = await getActiveTheme(userId)
+        this.currentTheme = response.current
+        this.presets = response.presets
         this.applyTheme(this.currentTheme!)
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error'
@@ -128,7 +115,7 @@ export const useThemeStore = defineStore('theme', {
       this.isLoading = true
       this.error = null
       try {
-        await apiClient.put(`/api/users/${userId}/theme`, this.currentTheme)
+        await setActiveTheme(userId, this.currentTheme.id)
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : 'Failed to save theme'
         this.error = errorMessage
@@ -143,8 +130,8 @@ export const useThemeStore = defineStore('theme', {
       this.isLoading = true
       this.error = null
       try {
-        const response = await apiClient.post(`/api/users/${userId}/presets`, theme)
-        this.presets = response.data
+        const updatedPresets = await createUserPreset(userId, theme)
+        this.presets = updatedPresets
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : 'Failed to save preset'
         this.error = errorMessage
@@ -159,8 +146,8 @@ export const useThemeStore = defineStore('theme', {
       this.isLoading = true
       this.error = null
       try {
-        const response = await apiClient.delete(`/api/users/${userId}/presets/${presetId}`)
-        this.presets = response.data
+        const updatedPresets = await deleteUserPreset(userId, presetId)
+        this.presets = updatedPresets
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : 'Failed to remove preset'
         this.error = errorMessage
@@ -175,7 +162,7 @@ export const useThemeStore = defineStore('theme', {
       this.isLoading = true
       this.error = null
       try {
-        await apiClient.post(`/api/users/${userId}/reset-personalization`)
+        await resetPersonalization(userId)
         // Fetch user theme again to get the reset state
         await this.fetchUserTheme(userId)
       } catch (error: unknown) {
