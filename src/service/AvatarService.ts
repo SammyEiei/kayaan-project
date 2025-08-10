@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
-import { api } from '@/services/api'
-import { useAuthStore } from '@/stores/auth'
+import api from './api'
+import { useAuthStore } from '../stores/auth'
 
 interface AvatarUpdateData {
   avatarUrl: string
@@ -73,6 +73,58 @@ export const useAvatarStore = defineStore('avatar', {
         const errorMessage = error instanceof Error ? error.message : 'Failed to update avatar'
         this.error = errorMessage
         console.error('❌ Update avatar URL error:', error)
+        throw error
+      } finally {
+        this.isLoading = false
+      }
+    },
+
+    // Legacy multipart upload method (fallback)
+    async uploadAvatar(userId: number, file: File) {
+      this.isLoading = true
+      this.error = null
+
+      console.log('🔄 Legacy upload avatar:', file.name)
+
+      try {
+        const formData = new FormData()
+        formData.append('avatar', file)
+
+        const response = await api.post<AvatarResponse>(
+          `/api/users/${userId}/avatar-upload`,
+          formData,
+          {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          }
+        )
+
+        console.log('✅ Legacy upload response:', response.data)
+
+        // Update auth store
+        const authStore = useAuthStore()
+        if (authStore.user && response.data.avatarUrl) {
+          authStore.user.avatarUrl = response.data.avatarUrl
+
+          // Update localStorage
+          const userStr = localStorage.getItem('user')
+          if (userStr && userStr !== 'undefined') {
+            try {
+              const userData = JSON.parse(userStr)
+              userData.avatarUrl = response.data.avatarUrl
+              localStorage.setItem('user', JSON.stringify(userData))
+            } catch (e) {
+              console.error('Failed to update localStorage:', e)
+            }
+          }
+        }
+
+        return response.data
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to upload avatar'
+        this.error = errorMessage
+        console.error('❌ Legacy upload error:', error)
         throw error
       } finally {
         this.isLoading = false

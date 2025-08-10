@@ -130,7 +130,6 @@ describe('avatarService', () => {
       const file = new File(['test'], 'avatar.jpg', { type: 'image/jpeg' })
       const signedResponse = {
         path: 'users/1/avatar.jpg'
-        // No signedUrl or uploadUrl
       }
 
       ;(api.post as any).mockResolvedValueOnce({ data: signedResponse })
@@ -157,6 +156,64 @@ describe('avatarService', () => {
 
       expect(result).toEqual(saveResponse)
       expect(plainFetch).toHaveBeenCalledWith('https://upload.put.url', expect.any(Object))
+    })
+
+    it('should fallback to legacy upload when signed URL endpoint returns 400', async () => {
+      const file = new File(['test'], 'avatar.jpg', { type: 'image/jpeg' })
+      const legacyResponse = {
+        avatarUrl: 'https://cdn.example.com/avatar.jpg',
+        path: 'users/1/avatar.jpg'
+      }
+
+      // Mock signed URL endpoint returning 400
+      ;(api.post as any).mockRejectedValueOnce({
+        response: { status: 400 }
+      })
+      // Mock legacy upload endpoint working
+      ;(api.post as any).mockResolvedValueOnce({ data: legacyResponse })
+
+      const result = await avatarSvc.uploadAvatar(1, file)
+
+      expect(result).toEqual(legacyResponse)
+      expect(api.post).toHaveBeenCalledTimes(2) // Once for signed URL, once for legacy
+    })
+
+    it('should fallback to legacy upload when signed URL endpoint returns 404', async () => {
+      const file = new File(['test'], 'avatar.jpg', { type: 'image/jpeg' })
+      const legacyResponse = {
+        avatarUrl: 'https://cdn.example.com/avatar.jpg',
+        path: 'users/1/avatar.jpg'
+      }
+
+      // Mock signed URL endpoint returning 404
+      ;(api.post as any).mockRejectedValueOnce({
+        response: { status: 404 }
+      })
+      // Mock legacy upload endpoint working
+      ;(api.post as any).mockResolvedValueOnce({ data: legacyResponse })
+
+      const result = await avatarSvc.uploadAvatar(1, file)
+
+      expect(result).toEqual(legacyResponse)
+      expect(api.post).toHaveBeenCalledTimes(2) // Once for signed URL, once for legacy
+    })
+
+    it('should show user-friendly error when both endpoints fail', async () => {
+      const file = new File(['test'], 'avatar.jpg', { type: 'image/jpeg' })
+
+      // Mock signed URL endpoint returning 400
+      ;(api.post as any).mockRejectedValueOnce({
+        response: { status: 400 }
+      })
+      // Mock legacy upload endpoint returning 410 (removed)
+      ;(api.post as any).mockRejectedValueOnce({
+        response: { status: 410 }
+      })
+
+      await expect(avatarSvc.uploadAvatar(1, file)).rejects.toThrow(
+        'Avatar upload is not available. Please contact support or try again later.'
+      )
+      expect(api.post).toHaveBeenCalledTimes(2) // Once for signed URL, once for legacy
     })
   })
 })

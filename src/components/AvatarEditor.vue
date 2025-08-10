@@ -368,8 +368,8 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { watchEffect } from 'vue'
-import { useAvatarStore } from '@/service/AvatarService'
-import { useAuthStore } from '@/stores/auth'
+import { useAvatarStore } from '../service/AvatarService'
+import { useAuthStore } from '../stores/auth'
 
 const avatarStore = useAvatarStore()
 const authStore = useAuthStore()
@@ -549,28 +549,23 @@ async function saveAvatar(): Promise<void> {
 
 // New function for signed URL upload
 async function uploadAvatarFile(userId: number, file: File, rotation: number) {
-  const { getSignedUploadUrl, uploadToSignedUrl, saveAvatarPath } = await import('@/services/avatarService')
+  // Import the uploadAvatar function that handles fallback
+  const { uploadAvatar } = await import('../services/avatarService')
 
-  // Step 1: Get signed URL
-  const signed = await getSignedUploadUrl(userId, file)
-  const putUrl = signed.signedUrl ?? signed.uploadUrl
+  try {
+    // This will try signed URL first, then fall back to legacy upload
+    const result = await uploadAvatar(userId, file)
 
-  if (!putUrl) {
-    throw new Error('No signed upload URL returned from server')
-  }
-
-  // Step 2: Upload to signed URL
-  await uploadToSignedUrl(putUrl, file)
-
-  // Step 3: Save path and get display URL
-  const result = await saveAvatarPath(userId, signed.path)
-
-  if (result.avatarUrl) {
-    // Update auth store
-    authStore.setAvatarUrl(result.avatarUrl, rotation)
-  } else {
-    // Fallback: refresh user data
-    await authStore.fetchUserInfo()
+    if (result.avatarUrl) {
+      // Update auth store
+      authStore.setAvatarUrl(result.avatarUrl, rotation)
+    } else {
+      // Fallback: refresh user data
+      await authStore.fetchUserInfo()
+    }
+  } catch (error: any) {
+    console.error('Upload failed:', error)
+    throw error
   }
 }
 

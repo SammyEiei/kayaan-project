@@ -4,17 +4,35 @@
 
 Avatar Upload feature ได้รับการ refactor จาก legacy multipart upload เป็น signed URL flow ที่ปลอดภัยและมีประสิทธิภาพมากขึ้น โดยไม่ต้องเปิดเผย Supabase keys ใน frontend
 
+## 🚨 Current Backend Status
+
+### ⚠️ Backend API Not Ready
+- **Signed URL endpoint**: `POST /api/users/{id}/avatar-upload-url` → **400 Bad Request**
+- **Legacy endpoint**: `POST /api/users/{id}/avatar-upload` → **410 Gone (Removed)**
+
+### 🔄 Fallback Mechanism Implemented
+ระบบได้ implement fallback mechanism เพื่อจัดการกับสถานการณ์ที่ backend ยังไม่พร้อม:
+
+1. **Try Signed URL first** → ถ้าได้ 400/404 → Fallback to Legacy
+2. **Try Legacy Upload** → ถ้าได้ 410 → Show user-friendly error
+3. **User Experience** → แสดงข้อความ "Avatar upload is not available. Please contact support or try again later."
+
 ## 🔄 Migration Summary
 
 ### ❌ Legacy (Removed)
-- `POST /api/users/{id}/avatar-upload` (multipart/form-data)
+- `POST /api/users/{id}/avatar-upload` (multipart/form-data) - **410 Gone**
 - FormData uploads
 - Direct file upload to backend
 
-### ✅ New Signed URL Flow
-- `POST /api/users/{id}/avatar-upload-url` → Get signed URL
+### ✅ New Signed URL Flow (Not Ready)
+- `POST /api/users/{id}/avatar-upload-url` → Get signed URL - **400 Bad Request**
 - `PUT {signedUrl}` → Direct upload to Supabase
 - `PUT /api/users/{id}/avatar-url` → Save path and get display URL
+
+### 🛡️ Fallback Mechanism
+- **Smart Error Handling**: Detect endpoint availability
+- **Graceful Degradation**: Fallback to legacy when possible
+- **User-Friendly Messages**: Clear error messages when both endpoints fail
 
 ## ฟีเจอร์
 
@@ -26,6 +44,7 @@ Avatar Upload feature ได้รับการ refactor จาก legacy mult
 - ✅ Real-time avatar update
 - ✅ Responsive design
 - ✅ Secure signed URL flow
+- ✅ Automatic fallback to legacy upload
 
 ## การใช้งาน
 
