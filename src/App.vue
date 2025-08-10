@@ -341,10 +341,12 @@ import { RouterView, useRoute, useRouter } from 'vue-router'
 import { computed, onMounted, h, ref, watch } from 'vue' // 🆕 Add ref, watch
 import PomodoroWidget from '@/components/PomodoroWidget.vue'
 import { useAuthStore } from '@/stores/auth'
+import { useThemeStore } from '@/stores/theme'
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
+const themeStore = useThemeStore()
 
 // 🆕 Add reactive key for forcing image reload
 const avatarKey = ref(0)
@@ -506,8 +508,10 @@ function logout() {
   router.push('/login')
 }
 
-onMounted(() => {
+onMounted(async () => {
   authStore.reload()
+  // Initialize theme store
+  await themeStore.initialize()
 })
 </script>
 

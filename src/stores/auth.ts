@@ -206,7 +206,16 @@ export const useAuthStore = defineStore('auth', {
       const stored = localStorage.getItem('access_token')
       if (!stored) return
 
+      // Check if token is valid JWT format
+      const parts = stored.split('.')
+      if (parts.length !== 3 || parts.some(part => part.trim() === '')) {
+        console.warn('Invalid JWT token format found, logging out')
+        this.logout()
+        return
+      }
+
       if (isTokenExpired(stored)) {
+        console.warn('Token expired, logging out')
         this.logout()
         return
       }
@@ -216,10 +225,21 @@ export const useAuthStore = defineStore('auth', {
       axios.defaults.headers.common['Authorization'] = this.authorizationHeader
       apiClient.defaults.headers['Authorization'] = this.authorizationHeader
 
+      // Also set the Authorization header for the apiClient instance used by ThemeService
+      if (apiClient.defaults.headers) {
+        apiClient.defaults.headers['Authorization'] = this.authorizationHeader
+      }
+
       // quick info from JWT
-      const payload = jwtDecode<JwtPayload>(stored)
-      this.userId = Number(payload.sub)
-      this.roles = payload.roles ?? []
+      try {
+        const payload = jwtDecode<JwtPayload>(stored)
+        this.userId = Number(payload.sub)
+        this.roles = payload.roles ?? []
+      } catch (error) {
+        console.error('Failed to decode JWT token:', error)
+        this.logout()
+        return
+      }
 
       // restore user if possible
       const userStr = localStorage.getItem('user')
@@ -240,33 +260,57 @@ export const useAuthStore = defineStore('auth', {
 
 /* ----------  helper: set token & defaults ---------- */
 const applyToken = async (store: any, accessToken: string, userInfo?: any) => {
-  const payload = jwtDecode<JwtPayload>(accessToken)
-
-  store.token = accessToken
-  store.userId = Number(payload.sub)
-  store.roles = payload.roles ?? []
-
-  // If userInfo provided from backend, use it
-  if (userInfo) {
-    store.user = {
-      id: userInfo.id,
-      username: userInfo.username,
-      email: userInfo.email,
-      firstname: userInfo.firstname,
-      lastname: userInfo.lastname,
-      roles: userInfo.roles || store.roles,
-      avatarUrl: userInfo.avatarUrl,
-      avatarRotation: userInfo.avatarRotation,
-      password: '',
+  try {
+    // Validate JWT token format
+    const parts = accessToken.split('.')
+    if (parts.length !== 3 || parts.some(part => part.trim() === '')) {
+      throw new Error('Invalid JWT token format')
     }
-  }
 
-  localStorage.setItem('access_token', accessToken)
-  localStorage.setItem('userId', String(store.userId))
-  if (store.user) {
-    localStorage.setItem('user', JSON.stringify(store.user))
-  }
+    const payload = jwtDecode<JwtPayload>(accessToken)
 
-  axios.defaults.headers.common['Authorization'] = store.authorizationHeader
-  apiClient.defaults.headers['Authorization'] = store.authorizationHeader
+    store.token = accessToken
+    store.userId = Number(payload.sub)
+    store.roles = payload.roles ?? []
+
+    // If userInfo provided from backend, use it
+    if (userInfo) {
+      store.user = {
+        id: userInfo.id,
+        username: userInfo.username,
+        email: userInfo.email,
+        firstname: userInfo.firstname,
+        lastname: userInfo.lastname,
+        roles: userInfo.roles || store.roles,
+        avatarUrl: userInfo.avatarUrl,
+        avatarRotation: userInfo.avatarRotation,
+        password: '',
+      }
+    }
+
+    localStorage.setItem('access_token', accessToken)
+    localStorage.setItem('userId', String(store.userId))
+    if (store.user) {
+      localStorage.setItem('user', JSON.stringify(store.user))
+    }
+
+    axios.defaults.headers.common['Authorization'] = store.authorizationHeader
+    apiClient.defaults.headers['Authorization'] = store.authorizationHeader
+
+    // Also set the Authorization header for the apiClient instance used by ThemeService
+    if (apiClient.defaults.headers) {
+      apiClient.defaults.headers['Authorization'] = store.authorizationHeader
+    }
+  } catch (error) {
+    console.error('Failed to apply token:', error)
+    // Clear any invalid token data
+    store.token = null
+    store.user = null
+    store.userId = null
+    store.roles = []
+    localStorage.removeItem('access_token')
+    localStorage.removeItem('user')
+    localStorage.removeItem('userId')
+    throw error
+  }
 }
