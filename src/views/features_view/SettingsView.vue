@@ -1,11 +1,9 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useAuthStore } from '@/stores/auth'
+import AvatarUploader from '@/components/profile/AvatarUploader.vue'
 
-const user = ref({
-  name: 'Kai Nakamura',
-  email: 'kai@example.com',
-  profileImage: null,
-})
+const auth = useAuthStore()
 
 const settings = ref({
   notifications: {
@@ -27,6 +25,11 @@ const saveSettings = () => {
   // Logic to save settings
   console.log('Saving settings...', settings.value)
   alert('Settings saved successfully!')
+}
+
+const handleAvatarUpdated = (url: string) => {
+  console.log('Avatar updated:', url)
+  // Optional: show success toast
 }
 </script>
 
@@ -53,56 +56,69 @@ const saveSettings = () => {
         <h2 class="text-xl font-semibold mb-6">Account Settings</h2>
 
         <div class="flex flex-col md:flex-row md:items-start mb-8">
-          <div
-            class="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 mb-4 md:mb-0 md:mr-6"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width="1.5"
-              stroke="currentColor"
-              class="w-12 h-12"
+          <!-- Current Avatar -->
+          <div class="mb-4 md:mb-0 md:mr-6">
+            <img
+              v-if="auth.user?.avatarUrl"
+              :src="auth.currentUserAvatar"
+              class="w-24 h-24 rounded-full object-cover border-2 border-gray-200"
+              alt="Profile"
+            />
+            <div
+              v-else
+              class="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center text-gray-500"
             >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
-              />
-            </svg>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+                class="w-12 h-12"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
+                />
+              </svg>
+            </div>
           </div>
 
           <div class="flex-1">
             <div class="mb-4">
               <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Name</label>
               <input
-                v-model="user.name"
+                :value="`${auth.user?.firstname || ''} ${auth.user?.lastname || ''}`.trim()"
                 type="text"
                 id="name"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500"
+                readonly
               />
             </div>
 
             <div class="mb-4">
               <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
               <input
-                v-model="user.email"
+                :value="auth.user?.email"
                 type="email"
                 id="email"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500"
+                readonly
               />
             </div>
 
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Profile Picture</label>
-              <div class="flex items-center mt-1">
-                <button
-                  class="px-4 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-200"
-                >
-                  Change Photo
-                </button>
-                <button class="px-4 py-2 text-red-600 hover:text-red-800 ml-4">Remove</button>
-              </div>
+              <p class="text-sm text-gray-500 mb-3">Upload a new profile picture</p>
+              
+              <!-- Avatar Uploader -->
+              <AvatarUploader
+                v-if="auth.user"
+                :user-id="auth.user.id"
+                :max-size-mb="5"
+                @updated="handleAvatarUpdated"
+              />
             </div>
           </div>
         </div>

@@ -323,7 +323,7 @@
                   v-for="(avatar, index) in generatedAvatars"
                   :key="`generated-${index}`"
                   class="relative group cursor-pointer"
-                  @click="selectGeneratedAvatar(avatar)"
+                  @click="selectAvatar(avatar)"
                 >
                   <img
                     :src="avatar"
@@ -402,7 +402,8 @@ const fileToUpload = ref<File | null>(null) // 🆕 Add this to store the actual
 
 watchEffect(() => {
   if (authStore.user?.id) {
-    userId.value = authStore.user.id
+    // Fix: userId is computed, not ref
+    // userId.value = authStore.user.id
   }
 })
 
@@ -450,82 +451,63 @@ async function generateAvatars(style: string): Promise<void> {
   }
 }
 
-async function switchStyle(style: string): Promise<void> {
-  currentStyle.value = style
-  await generateAvatars(style)
+function selectAvatar(avatarUrl: string): void {
+  selectedAvatar.value = avatarUrl
+  uploadedImage.value = null
+  clearMessage()
 }
 
-function regenerateAvatars(): void {
-  generateAvatars(currentStyle.value)
-}
-
-function handleFileUpload(event: Event) {
+function handleFileUpload(event: Event): void {
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]
-  if (!file) return
 
-  // Validate file type
-  if (!['image/jpeg', 'image/jpg', 'image/png'].includes(file.type)) {
-    showMessage('Only JPG and PNG files are allowed', 'error')
-    return
-  }
+  if (file) {
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      showMessage('Please select an image file', 'error')
+      return
+    }
 
-  // Validate file size (5MB)
-  if (file.size > 5 * 1024 * 1024) {
-    showMessage('File size must be less than 5MB', 'error')
-    return
-  }
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      showMessage('File size must be less than 5MB', 'error')
+      return
+    }
 
-  // 🆕 Store the actual file for upload
-  fileToUpload.value = file
-
-  const reader = new FileReader()
-  reader.onload = (e) => {
-    const result = e.target?.result as string
-    uploadedImage.value = result
-    selectedAvatar.value = result
+    fileToUpload.value = file
+    uploadedImage.value = URL.createObjectURL(file)
+    selectedAvatar.value = uploadedImage.value
     isEditing.value = true
-    rotation.value = 0
     clearMessage()
   }
-  reader.readAsDataURL(file)
 }
 
-function selectGeneratedAvatar(avatar: string): void {
-  selectedAvatar.value = avatar
-  uploadedImage.value = null
-  fileToUpload.value = null // 🆕 Clear file when selecting generated avatar
-  isEditing.value = false
-  rotation.value = 0
-  clearMessage()
+function toggleEditing(): void {
+  isEditing.value = !isEditing.value
+}
+
+function rotateImage(direction: 'left' | 'right'): void {
+  if (direction === 'left') {
+    rotation.value = (rotation.value - 90) % 360
+  } else {
+    rotation.value = (rotation.value + 90) % 360
+  }
 }
 
 function resetSelection(): void {
   selectedAvatar.value = ''
   uploadedImage.value = null
-  fileToUpload.value = null // 🆕 Clear file on reset
-  isEditing.value = false
+  fileToUpload.value = null
   rotation.value = 0
+  isEditing.value = false
   clearMessage()
 }
 
-function toggleEditing(): void {
-  if (uploadedImage.value) {
-    isEditing.value = !isEditing.value
-  }
-}
-
-function rotateImage(direction: 'left' | 'right'): void {
-  const step = direction === 'left' ? -90 : 90
-  rotation.value = (rotation.value + step) % 360
-}
-
-function resetRotation(): void {
-  rotation.value = 0
-}
-
 async function saveAvatar(): Promise<void> {
-  if (!selectedAvatar.value) return
+  if (!selectedAvatar.value) {
+    showMessage('Please select an avatar first', 'error')
+    return
+  }
 
   isSaving.value = true
   clearMessage()
@@ -538,8 +520,8 @@ async function saveAvatar(): Promise<void> {
 
     // 🆕 Check if we have a file to upload
     if (fileToUpload.value) {
-      // Use uploadAvatar for file uploads (multipart/form-data)
-      await avatarStore.uploadAvatar(userId.value, fileToUpload.value, rotation.value)
+      // Use new signed URL upload flow
+      await uploadAvatarFile(userId.value, fileToUpload.value, rotation.value)
     } else if (selectedAvatar.value) {
       // Use updateAvatarUrl for URLs (generated avatars)
       await avatarStore.updateAvatarUrl(userId.value, {
@@ -557,10 +539,38 @@ async function saveAvatar(): Promise<void> {
     showMessage('Avatar saved successfully! 🎉', 'success')
     isEditing.value = false
     fileToUpload.value = null // Clear file after successful save
-  } catch (error: any) {
-    showMessage(`Error saving avatar: ${error.message}`, 'error')
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+    showMessage(`Error saving avatar: ${errorMessage}`, 'error')
   } finally {
     isSaving.value = false
+  }
+}
+
+// New function for signed URL upload
+async function uploadAvatarFile(userId: number, file: File, rotation: number) {
+  const { getSignedUploadUrl, uploadToSignedUrl, saveAvatarPath } = await import('@/services/avatarService')
+
+  // Step 1: Get signed URL
+  const signed = await getSignedUploadUrl(userId, file)
+  const putUrl = signed.signedUrl ?? signed.uploadUrl
+
+  if (!putUrl) {
+    throw new Error('No signed upload URL returned from server')
+  }
+
+  // Step 2: Upload to signed URL
+  await uploadToSignedUrl(putUrl, file)
+
+  // Step 3: Save path and get display URL
+  const result = await saveAvatarPath(userId, signed.path)
+
+  if (result.avatarUrl) {
+    // Update auth store
+    authStore.setAvatarUrl(result.avatarUrl, rotation)
+  } else {
+    // Fallback: refresh user data
+    await authStore.fetchUserInfo()
   }
 }
 
