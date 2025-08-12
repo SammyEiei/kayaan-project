@@ -66,6 +66,13 @@
             >
               Remove Avatar
             </button>
+            <!-- Debug button -->
+            <button
+              @click="debugToken"
+              class="ml-2 px-3 py-1 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md transition-all duration-200"
+            >
+              Debug Token
+            </button>
           </div>
 
           <!-- Image Editor -->
@@ -444,7 +451,7 @@ async function generateAvatars(style: string): Promise<void> {
     await new Promise((resolve) => setTimeout(resolve, 500))
 
     generatedAvatars.value = avatars
-  } catch (error) {
+  } catch {
     showMessage('Error generating avatars', 'error')
   } finally {
     isGenerating.value = false
@@ -503,6 +510,19 @@ function resetSelection(): void {
   clearMessage()
 }
 
+function resetRotation(): void {
+  rotation.value = 0
+}
+
+function switchStyle(style: string): void {
+  currentStyle.value = style
+  generateAvatars(style)
+}
+
+async function regenerateAvatars(): Promise<void> {
+  await generateAvatars(currentStyle.value)
+}
+
 async function saveAvatar(): Promise<void> {
   if (!selectedAvatar.value) {
     showMessage('Please select an avatar first', 'error')
@@ -515,6 +535,33 @@ async function saveAvatar(): Promise<void> {
   try {
     if (!userId.value) {
       showMessage('User ID is not available. Please try logging in again.', 'error')
+      return
+    }
+
+    // Debug: Check auth store token
+    console.log('🔍 AvatarEditor Debug - Auth Store Token:', authStore.token ? 'EXISTS' : 'NOT FOUND')
+    if (authStore.token) {
+      console.log('🔑 Token preview:', authStore.token.substring(0, 20) + '...')
+      console.log('📅 Token length:', authStore.token.length)
+      console.log('✅ Is valid JWT:', authStore.token.split('.').length === 3)
+    }
+
+    // Debug: Check localStorage token
+    const localStorageToken = localStorage.getItem('access_token')
+    console.log('🔍 AvatarEditor Debug - localStorage Token:', localStorageToken ? 'EXISTS' : 'NOT FOUND')
+    if (localStorageToken) {
+      console.log('🔑 localStorage Token preview:', localStorageToken.substring(0, 20) + '...')
+    }
+
+    // Reload token from localStorage if auth store doesn't have it
+    if (!authStore.token && localStorageToken) {
+      console.log('🔄 Reloading token from localStorage...')
+      await authStore.reload()
+    }
+
+    // Check if we have a valid token after reload
+    if (!authStore.token) {
+      showMessage('No authentication token available. Please log in again.', 'error')
       return
     }
 
@@ -549,11 +596,24 @@ async function saveAvatar(): Promise<void> {
 
 // New function for signed URL upload
 async function uploadAvatarFile(userId: number, file: File, rotation: number) {
-  // Import the uploadAvatar function that handles fallback
+  // Import the uploadAvatar function
   const { uploadAvatar } = await import('../services/avatarService')
 
   try {
-    // This will try signed URL first, then fall back to legacy upload
+    // Debug: Check token before upload
+    console.log('🔍 AvatarEditor - Before upload - Auth Store Token:', authStore.token ? 'EXISTS' : 'NOT FOUND')
+    if (authStore.token) {
+      console.log('🔑 Token preview:', authStore.token.substring(0, 20) + '...')
+      console.log('📅 Token length:', authStore.token.length)
+      console.log('✅ Is valid JWT:', authStore.token.split('.').length === 3)
+    }
+
+    // Check if token exists
+    if (!authStore.token) {
+      throw new Error('No authentication token available. Please log in again.')
+    }
+
+    // Upload using signed URL flow
     const result = await uploadAvatar(userId, file)
 
     if (result.avatarUrl) {
@@ -563,7 +623,7 @@ async function uploadAvatarFile(userId: number, file: File, rotation: number) {
       // Fallback: refresh user data
       await authStore.fetchUserInfo()
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Upload failed:', error)
     throw error
   }
@@ -583,6 +643,20 @@ function showMessage(msg: string, type: 'success' | 'error'): void {
 
 function clearMessage(): void {
   message.value = ''
+}
+
+function debugToken(): void {
+  console.log('🔍 AvatarEditor Debug - Auth Store Token:', authStore.token ? 'EXISTS' : 'NOT FOUND')
+  if (authStore.token) {
+    console.log('🔑 Token preview:', authStore.token.substring(0, 20) + '...')
+    console.log('📅 Token length:', authStore.token.length)
+    console.log('✅ Is valid JWT:', authStore.token.split('.').length === 3)
+  }
+  console.log('🔍 AvatarEditor Debug - localStorage Token:', localStorage.getItem('access_token') ? 'EXISTS' : 'NOT FOUND')
+  const localStorageToken = localStorage.getItem('access_token')
+  if (localStorageToken) {
+    console.log('🔑 localStorage Token preview:', localStorageToken.substring(0, 20) + '...')
+  }
 }
 
 // Initialize

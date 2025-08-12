@@ -35,9 +35,24 @@ export const useAvatarStore = defineStore('avatar', {
       console.log('🔄 Updating avatar URL:', data)
 
       try {
+        // Get auth store to ensure we have the latest token
+        const authStore = useAuthStore()
+
+        // Check if we have a valid token
+        if (!authStore.token) {
+          throw new Error('No authentication token available. Please log in again.')
+        }
+
+        console.log('🔑 Using token from auth store:', authStore.token.substring(0, 20) + '...')
+
         const response = await api.put<AvatarResponse>(
-          `/api/users/${userId}/avatar-url`,
+          `/users/${userId}/avatar-url`,
           data,
+          {
+            headers: {
+              'Authorization': `Bearer ${authStore.token}`
+            }
+          }
         )
 
         console.log('✅ API Response:', response.data)
@@ -47,7 +62,6 @@ export const useAvatarStore = defineStore('avatar', {
         this.rotation = data.rotation
 
         // Update auth store directly
-        const authStore = useAuthStore()
         if (authStore.user) {
           // Direct update for immediate reactivity
           authStore.user.avatarUrl = data.avatarUrl
@@ -79,57 +93,7 @@ export const useAvatarStore = defineStore('avatar', {
       }
     },
 
-    // Legacy multipart upload method (fallback)
-    async uploadAvatar(userId: number, file: File) {
-      this.isLoading = true
-      this.error = null
 
-      console.log('🔄 Legacy upload avatar:', file.name)
-
-      try {
-        const formData = new FormData()
-        formData.append('avatar', file)
-
-        const response = await api.post<AvatarResponse>(
-          `/api/users/${userId}/avatar-upload`,
-          formData,
-          {
-            headers: {
-              'Content-Type': 'multipart/form-data',
-            },
-          }
-        )
-
-        console.log('✅ Legacy upload response:', response.data)
-
-        // Update auth store
-        const authStore = useAuthStore()
-        if (authStore.user && response.data.avatarUrl) {
-          authStore.user.avatarUrl = response.data.avatarUrl
-
-          // Update localStorage
-          const userStr = localStorage.getItem('user')
-          if (userStr && userStr !== 'undefined') {
-            try {
-              const userData = JSON.parse(userStr)
-              userData.avatarUrl = response.data.avatarUrl
-              localStorage.setItem('user', JSON.stringify(userData))
-            } catch (e) {
-              console.error('Failed to update localStorage:', e)
-            }
-          }
-        }
-
-        return response.data
-      } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : 'Failed to upload avatar'
-        this.error = errorMessage
-        console.error('❌ Legacy upload error:', error)
-        throw error
-      } finally {
-        this.isLoading = false
-      }
-    },
 
     // Helper method to sync with auth store
     syncWithAuthStore() {

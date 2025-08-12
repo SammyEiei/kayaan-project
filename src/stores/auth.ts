@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import axios from 'axios'
 import type { AxiosInstance } from 'axios'
-import type { User } from '@/types'
+import type { User } from '../types'
 import { jwtDecode } from 'jwt-decode'
 
 /* ----------  types ---------- */
@@ -35,11 +35,10 @@ function isTokenExpired(token: string): boolean {
 
 /* ----------  axios instance ---------- */
 const apiClient: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080',
+  baseURL: import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080/api',
   withCredentials: false,
   headers: {
-    Accept: 'application/json',
-    'Content-Type': 'application/json',
+    Accept: 'application/json', // ไม่ตั้ง Content-Type เป็น default
   },
 })
 
@@ -53,7 +52,7 @@ function buildFullUrl(path: string | null | undefined): string | undefined {
   }
 
   // Build full URL
-  const baseUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080'
+  const baseUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080/api'
   return `${baseUrl}${path.startsWith('/') ? '' : '/'}${path}`
 }
 
@@ -72,6 +71,16 @@ export const useAuthStore = defineStore('auth', {
     currentUserId: (state) => state.userId,
     isAuthenticated: (state) => !!state.token && !isTokenExpired(state.token),
     currentUserAvatar: (state) => buildFullUrl(state.user?.avatarUrl),
+    // Add debug getter
+    debugToken: (state) => {
+      console.log('🔍 Auth Store Debug - Token:', state.token ? 'EXISTS' : 'NOT FOUND')
+      if (state.token) {
+        console.log('🔑 Token preview:', state.token.substring(0, 20) + '...')
+        console.log('📅 Token length:', state.token.length)
+        console.log('✅ Is valid JWT:', state.token.split('.').length === 3)
+      }
+      return state.token
+    }
   },
 
   actions: {
@@ -259,7 +268,7 @@ export const useAuthStore = defineStore('auth', {
 })
 
 /* ----------  helper: set token & defaults ---------- */
-const applyToken = async (store: any, accessToken: string, userInfo?: any) => {
+const applyToken = async (store: ReturnType<typeof useAuthStore>, accessToken: string, userInfo?: User) => {
   try {
     // Validate JWT token format
     const parts = accessToken.split('.')

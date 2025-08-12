@@ -24,9 +24,9 @@ describe('avatarService', () => {
     it('should request signed upload URL successfully', async () => {
       const file = new File(['test'], 'avatar.jpg', { type: 'image/jpeg' })
       const mockResponse = {
-        signedUrl: 'https://signed.put.url',
-        path: 'users/1/avatar.jpg',
-        expiresIn: 3600
+        uploadUrl: 'https://signed.put.url',
+        publicUrl: 'https://cdn.example.com/avatar.jpg',
+        path: 'users/1/avatar.jpg'
       }
 
       ;(api.post as any).mockResolvedValueOnce({ data: mockResponse })
@@ -50,14 +50,14 @@ describe('avatarService', () => {
     })
   })
 
-  describe('uploadToSignedUrl', () => {
+  describe('uploadFileToSignedUrl', () => {
     it('should upload file to signed URL successfully', async () => {
       const file = new File(['test'], 'avatar.jpg', { type: 'image/jpeg' })
       const signedUrl = 'https://signed.put.url'
 
       ;(plainFetch as any).mockResolvedValueOnce(new Response(null, { status: 200 }))
 
-      await avatarSvc.uploadToSignedUrl(signedUrl, file)
+      await avatarSvc.uploadFileToSignedUrl(signedUrl, file)
 
       expect(plainFetch).toHaveBeenCalledWith(signedUrl, {
         method: 'PUT',
@@ -72,12 +72,12 @@ describe('avatarService', () => {
 
       ;(plainFetch as any).mockResolvedValueOnce(new Response('Upload failed', { status: 500 }))
 
-      await expect(avatarSvc.uploadToSignedUrl(signedUrl, file)).rejects.toThrow('Upload failed: 500 Upload failed')
+      await expect(avatarSvc.uploadFileToSignedUrl(signedUrl, file)).rejects.toThrow('Upload failed: 500 Upload failed')
     })
   })
 
-  describe('saveAvatarPath', () => {
-    it('should save avatar path successfully', async () => {
+  describe('saveAvatarUrl', () => {
+    it('should save avatar URL successfully', async () => {
       const mockResponse = {
         avatarUrl: 'https://cdn.example.com/avatar.jpg',
         path: 'users/1/avatar.jpg'
@@ -85,9 +85,10 @@ describe('avatarService', () => {
 
       ;(api.put as any).mockResolvedValueOnce({ data: mockResponse })
 
-      const result = await avatarSvc.saveAvatarPath(1, 'users/1/avatar.jpg')
+      const result = await avatarSvc.saveAvatarUrl(1, 'https://cdn.example.com/avatar.jpg', 'users/1/avatar.jpg')
 
       expect(api.put).toHaveBeenCalledWith('/api/users/1/avatar-url', {
+        publicUrl: 'https://cdn.example.com/avatar.jpg',
         path: 'users/1/avatar.jpg'
       })
       expect(result).toEqual(mockResponse)
@@ -98,7 +99,7 @@ describe('avatarService', () => {
 
       ;(api.put as any).mockRejectedValueOnce(error)
 
-      await expect(avatarSvc.saveAvatarPath(1, 'users/1/avatar.jpg')).rejects.toThrow('API Error')
+      await expect(avatarSvc.saveAvatarUrl(1, 'https://cdn.example.com/avatar.jpg', 'users/1/avatar.jpg')).rejects.toThrow('API Error')
     })
   })
 
@@ -106,7 +107,8 @@ describe('avatarService', () => {
     it('should complete full upload flow successfully', async () => {
       const file = new File(['test'], 'avatar.jpg', { type: 'image/jpeg' })
       const signedResponse = {
-        signedUrl: 'https://signed.put.url',
+        uploadUrl: 'https://signed.put.url',
+        publicUrl: 'https://cdn.example.com/avatar.jpg',
         path: 'users/1/avatar.jpg'
       }
       const saveResponse = {
@@ -126,94 +128,13 @@ describe('avatarService', () => {
       expect(api.put).toHaveBeenCalledTimes(1)
     })
 
-    it('should handle missing signed URL', async () => {
+    it('should handle upload errors', async () => {
       const file = new File(['test'], 'avatar.jpg', { type: 'image/jpeg' })
-      const signedResponse = {
-        path: 'users/1/avatar.jpg'
-      }
+      const error = new Error('Upload failed')
 
-      ;(api.post as any).mockResolvedValueOnce({ data: signedResponse })
+      ;(api.post as any).mockRejectedValueOnce(error)
 
-      await expect(avatarSvc.uploadAvatar(1, file)).rejects.toThrow('No signed upload URL returned from server')
-    })
-
-    it('should handle uploadUrl instead of signedUrl', async () => {
-      const file = new File(['test'], 'avatar.jpg', { type: 'image/jpeg' })
-      const signedResponse = {
-        uploadUrl: 'https://upload.put.url',
-        path: 'users/1/avatar.jpg'
-      }
-      const saveResponse = {
-        avatarUrl: 'https://cdn.example.com/avatar.jpg',
-        path: 'users/1/avatar.jpg'
-      }
-
-      ;(api.post as any).mockResolvedValueOnce({ data: signedResponse })
-      ;(plainFetch as any).mockResolvedValueOnce(new Response(null, { status: 200 }))
-      ;(api.put as any).mockResolvedValueOnce({ data: saveResponse })
-
-      const result = await avatarSvc.uploadAvatar(1, file)
-
-      expect(result).toEqual(saveResponse)
-      expect(plainFetch).toHaveBeenCalledWith('https://upload.put.url', expect.any(Object))
-    })
-
-    it('should fallback to legacy upload when signed URL endpoint returns 400', async () => {
-      const file = new File(['test'], 'avatar.jpg', { type: 'image/jpeg' })
-      const legacyResponse = {
-        avatarUrl: 'https://cdn.example.com/avatar.jpg',
-        path: 'users/1/avatar.jpg'
-      }
-
-      // Mock signed URL endpoint returning 400
-      ;(api.post as any).mockRejectedValueOnce({
-        response: { status: 400 }
-      })
-      // Mock legacy upload endpoint working
-      ;(api.post as any).mockResolvedValueOnce({ data: legacyResponse })
-
-      const result = await avatarSvc.uploadAvatar(1, file)
-
-      expect(result).toEqual(legacyResponse)
-      expect(api.post).toHaveBeenCalledTimes(2) // Once for signed URL, once for legacy
-    })
-
-    it('should fallback to legacy upload when signed URL endpoint returns 404', async () => {
-      const file = new File(['test'], 'avatar.jpg', { type: 'image/jpeg' })
-      const legacyResponse = {
-        avatarUrl: 'https://cdn.example.com/avatar.jpg',
-        path: 'users/1/avatar.jpg'
-      }
-
-      // Mock signed URL endpoint returning 404
-      ;(api.post as any).mockRejectedValueOnce({
-        response: { status: 404 }
-      })
-      // Mock legacy upload endpoint working
-      ;(api.post as any).mockResolvedValueOnce({ data: legacyResponse })
-
-      const result = await avatarSvc.uploadAvatar(1, file)
-
-      expect(result).toEqual(legacyResponse)
-      expect(api.post).toHaveBeenCalledTimes(2) // Once for signed URL, once for legacy
-    })
-
-    it('should show user-friendly error when both endpoints fail', async () => {
-      const file = new File(['test'], 'avatar.jpg', { type: 'image/jpeg' })
-
-      // Mock signed URL endpoint returning 400
-      ;(api.post as any).mockRejectedValueOnce({
-        response: { status: 400 }
-      })
-      // Mock legacy upload endpoint returning 410 (removed)
-      ;(api.post as any).mockRejectedValueOnce({
-        response: { status: 410 }
-      })
-
-      await expect(avatarSvc.uploadAvatar(1, file)).rejects.toThrow(
-        'Avatar upload is not available. Please contact support or try again later.'
-      )
-      expect(api.post).toHaveBeenCalledTimes(2) // Once for signed URL, once for legacy
+      await expect(avatarSvc.uploadAvatar(1, file)).rejects.toThrow('Upload failed')
     })
   })
 })
