@@ -1,5 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import GroupService from '@/service/GroupService'
+import { useAuthStore } from '@/stores/auth'
 import type {
   StudyGroup,
   GroupMember,
@@ -54,37 +56,24 @@ export const useGroupStore = defineStore('group', () => {
     loading.value = true
     error.value = null
     try {
-      // TODO: Replace with actual API call
-      // const response = await groupService.getUserGroups()
-      // groups.value = response.data
+      const authStore = useAuthStore()
 
-      // Mock data for development
-      groups.value = [
-        {
-          id: '1',
-          name: 'Computer Science Study Group',
-          description: 'Study group for CS students',
-          ownerId: 'user1',
-          inviteLinkToken: 'abc123',
-          inviteCode: 'CS2024',
-          createdAt: '2024-01-15T10:00:00Z',
-          memberCount: 5,
-          isOwner: true,
-          userRole: 'owner',
-        },
-        {
-          id: '2',
-          name: 'Mathematics Club',
-          description: 'Advanced mathematics discussion',
-          ownerId: 'user2',
-          inviteLinkToken: 'def456',
-          inviteCode: 'MATH2024',
-          createdAt: '2024-01-10T14:30:00Z',
-          memberCount: 8,
-          isOwner: false,
-          userRole: 'member',
-        },
-      ]
+      // Use real API call instead of mock
+      const response = await GroupService.getMyGroups()
+
+      // Transform the response to match StudyGroup interface
+      groups.value = response.map((group) => ({
+        id: group.id,
+        name: group.name,
+        description: group.description,
+        ownerId: authStore.currentUserId?.toString() || 'unknown',
+        inviteLinkToken: Math.random().toString(36).substring(7),
+        inviteCode: generateInviteCode(),
+        createdAt: new Date().toISOString(),
+        memberCount: group.membersCount,
+        isOwner: true, // This should be determined by comparing ownerId with current user
+        userRole: 'owner', // This should be determined by the API response
+      }))
     } catch (err) {
       error.value = 'Failed to fetch groups'
       console.error('fetchGroups error:', err)
@@ -97,23 +86,25 @@ export const useGroupStore = defineStore('group', () => {
     loading.value = true
     error.value = null
     try {
-      // TODO: Replace with actual API call
-      // const response = await groupService.createGroup(groupData)
-      // groups.value.push(response.data)
+      const authStore = useAuthStore()
 
-      // Mock creation
+      // Use real API call instead of mock
+      const response = await GroupService.createGroup(groupData)
+
+      // Transform the response to match StudyGroup interface
       const newGroup: StudyGroup = {
-        id: Date.now().toString(),
-        name: groupData.name,
-        description: groupData.description,
-        ownerId: 'current-user',
+        id: response.id,
+        name: response.name,
+        description: response.description,
+        ownerId: authStore.currentUserId?.toString() || 'unknown',
         inviteLinkToken: Math.random().toString(36).substring(7),
         inviteCode: generateInviteCode(),
         createdAt: new Date().toISOString(),
-        memberCount: 1,
+        memberCount: response.membersCount,
         isOwner: true,
         userRole: 'owner',
       }
+
       groups.value.push(newGroup)
       return newGroup
     } catch (err) {
