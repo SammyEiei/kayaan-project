@@ -1,6 +1,8 @@
-import { getAllQuizzes } from './QuizService'
-import { getAllNotes } from './NoteService'
-import { getAllFlashcards } from './FlashcardService'
+import QuizService from './QuizService'
+import NoteService from './NoteService'
+import FlashcardService from './FlashcardService'
+import ContentInfoService, { ContentInfo } from './ContentInfoService'
+import { useAuthStore } from '../stores/auth'
 
 export interface ContentItem {
   id: string
@@ -15,12 +17,52 @@ export interface ContentItem {
 
 export async function getAllContent(): Promise<ContentItem[]> {
   try {
-    // Fetch all content types in parallel
-    const [quizzes, notes, flashcards] = await Promise.all([
-      getAllQuizzes(),
-      getAllNotes(),
-      getAllFlashcards(),
-    ])
+    const authStore = useAuthStore()
+
+    // Try to get content from new ContentInfo service first
+    try {
+      const contentInfoList = await ContentInfoService.getAllActiveContentInfo()
+      return contentInfoList.map((contentInfo): ContentItem => ({
+        id: contentInfo.id,
+        type: contentInfo.contentType.toLowerCase() as 'quiz' | 'note' | 'flashcard',
+        title: contentInfo.title,
+        subject: contentInfo.subject,
+        tags: contentInfo.tags,
+        difficulty: contentInfo.difficulty.toLowerCase(),
+        createdAt: contentInfo.createdAt,
+        category: contentInfo.subject,
+      }))
+    } catch (error) {
+      console.log('ContentInfo service not available, falling back to legacy services')
+    }
+
+    // Fallback to legacy services
+    let quizzes: any[] = []
+    try {
+      if (authStore.user?.username) {
+        quizzes = await QuizService.getAllQuizzesForUser(authStore.user.username)
+      }
+    } catch (error) {
+      console.log('Quiz service not available')
+    }
+
+    let notes: any[] = []
+    try {
+      if (authStore.user?.username) {
+        notes = await NoteService.getAllNotesForUser(authStore.user.username)
+      }
+    } catch (error) {
+      console.log('Note service not available')
+    }
+
+    let flashcards: any[] = []
+    try {
+      if (authStore.user?.username) {
+        flashcards = await FlashcardService.getAllFlashcardsForUser(authStore.user.username)
+      }
+    } catch (error) {
+      console.log('Flashcard service not available')
+    }
 
     // Transform quizzes
     const quizItems: ContentItem[] = quizzes.map((quiz) => ({

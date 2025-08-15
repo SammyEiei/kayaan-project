@@ -1,11 +1,7 @@
-import axios from './AxiosClient'
+import api from './api'
 
-const api = axios.create({
-  baseURL: import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080/api/manual/quiz',
-  headers: { 'Content-Type': 'application/json' },
-})
-
-export interface QuizQuestionDTO {
+// DTOs matching backend QuizRequestDTO
+export interface QuizQuestionRequestDTO {
   questionText: string
   type: 'MULTIPLE_CHOICE' | 'TRUE_FALSE' | 'OPEN_ENDED'
   choices?: string[]
@@ -15,39 +11,108 @@ export interface QuizQuestionDTO {
   tags?: string[]
 }
 
-export interface QuizDTO {
+export interface QuizRequestDTO {
   title: string
-  questions: QuizQuestionDTO[]
+  questions: QuizQuestionRequestDTO[]
 }
 
-export interface QuizResponse {
+// DTOs matching backend QuizResponseDTO
+export interface QuizQuestionResponse {
+  id: number
+  questionText: string
+  type: 'MULTIPLE_CHOICE' | 'TRUE_FALSE' | 'OPEN_ENDED'
+  choices: string[]
+  correctAnswer: string
+  subject: string
+  difficulty: string
+  tags: string[]
+}
+
+export interface QuizResponseDTO {
   id: number
   title: string
   createdByUsername: string
-  questions: {
-    id: number
-    questionText: string
-    type: string
-    choices: string[]
-    correctAnswer: string
-    subject: string
-    difficulty: string
-    tags: string[]
-  }[]
+  category?: string
+  questions: QuizQuestionResponse[]
 }
 
-export function createQuiz(payload: QuizDTO) {
-  return axios.post<QuizResponse>('/api/manual/quiz', payload).then((res) => res.data)
+export class QuizService {
+  private static readonly BASE_URL = '/quiz'
+
+  /**
+   * Create new quiz
+   */
+  static async createQuiz(data: QuizRequestDTO): Promise<QuizResponseDTO> {
+    const response = await api.post(this.BASE_URL, data)
+    return response.data
+  }
+
+  /**
+   * Get all quizzes for a user
+   */
+  static async getAllQuizzesForUser(username: string): Promise<QuizResponseDTO[]> {
+    const response = await api.get(`${this.BASE_URL}/user/${username}`)
+    return response.data
+  }
+
+  /**
+   * Get quizzes by category
+   */
+  static async getQuizzesByCategory(username: string, category: string): Promise<QuizResponseDTO[]> {
+    const response = await api.get(`${this.BASE_URL}/user/${username}/category/${encodeURIComponent(category)}`)
+    return response.data
+  }
+
+  /**
+   * Get quizzes by subject
+   */
+  static async getQuizzesBySubject(username: string, subject: string): Promise<QuizResponseDTO[]> {
+    const response = await api.get(`${this.BASE_URL}/user/${username}/subject/${encodeURIComponent(subject)}`)
+    return response.data
+  }
+
+  /**
+   * Get quiz by ID
+   */
+  static async getQuizById(quizId: number, username: string): Promise<QuizResponseDTO> {
+    const response = await api.get(`${this.BASE_URL}/${quizId}/user/${username}`)
+    return response.data
+  }
+
+  /**
+   * Update quiz
+   */
+  static async updateQuiz(quizId: number, data: QuizRequestDTO, username: string): Promise<QuizResponseDTO> {
+    const response = await api.put(`${this.BASE_URL}/${quizId}/user/${username}`, data)
+    return response.data
+  }
+
+  /**
+   * Delete quiz (soft delete)
+   */
+  static async deleteQuiz(quizId: number, username: string): Promise<void> {
+    await api.delete(`${this.BASE_URL}/${quizId}/user/${username}`)
+  }
+
+  // Legacy methods for backward compatibility
+  static async createQuizLegacy(payload: QuizRequestDTO): Promise<QuizResponseDTO> {
+    return this.createQuiz(payload)
+  }
+
+  static async getAllQuizzes(): Promise<QuizResponseDTO[]> {
+    // This will need username from auth store
+    throw new Error('getAllQuizzes() is deprecated. Use getAllQuizzesForUser(username) instead.')
+  }
+
+  static async getQuizByIdLegacy(id: number): Promise<QuizResponseDTO> {
+    // This will need username from auth store
+    throw new Error('getQuizByIdLegacy() is deprecated. Use getQuizById(id, username) instead.')
+  }
+
+  static async deleteQuizLegacy(id: number): Promise<void> {
+    // This will need username from auth store
+    throw new Error('deleteQuizLegacy() is deprecated. Use deleteQuiz(id, username) instead.')
+  }
 }
 
-export function getAllQuizzes() {
-  return axios.get<QuizResponse[]>('/api/manual/quiz').then((res) => res.data)
-}
-
-export function getQuizById(id: number) {
-  return axios.get<QuizResponse>(`/api/manual/quiz/${id}`).then((res) => res.data)
-}
-
-export function deleteQuiz(id: number) {
-  return axios.delete<void>(`/api/manual/quiz/${id}`)
-}
+export default QuizService
