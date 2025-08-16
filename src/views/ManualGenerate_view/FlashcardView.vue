@@ -347,7 +347,7 @@ const handleSave = async () => {
       cards: validCards,
     }
 
-    await FlashcardService.createFlashcard(flashcardDeck)
+    await FlashcardService.createFlashcardDeck(flashcardDeck)
     successMessage.value = 'Flashcard deck saved successfully!'
 
     setTimeout(() => {

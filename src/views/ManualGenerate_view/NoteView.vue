@@ -205,10 +205,12 @@
 import { reactive, ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import NoteService from '@/service/NoteService'
+import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
 const route = useRoute()
 const emit = defineEmits(['save', 'back'])
+const authStore = useAuthStore()
 
 const isLoading = ref(false)
 const errorMessage = ref('')
@@ -236,7 +238,7 @@ onMounted(async () => {
   if (editId) {
     editingId.value = Number(editId)
     try {
-      const note = await NoteService.getNoteById(editingId.value, 'current-user') // TODO: Get actual username from auth
+      const note = await NoteService.getNoteById(editingId.value, authStore.currentUserName)
       noteData.title = note.title
       noteData.subject = note.subject || ''
       noteData.difficulty = note.difficulty || 'medium'
@@ -358,7 +360,7 @@ const saveNote = async () => {
     }
 
     if (editingId.value) {
-      await NoteService.updateNote(editingId.value, notePayload, 'current-user') // TODO: Get actual username from auth
+      await NoteService.updateNote(editingId.value, notePayload, authStore.currentUserName)
       successMessage.value = 'Note updated successfully!'
     } else {
       await NoteService.createNote(notePayload)
