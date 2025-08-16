@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import FlashcardService, { FlashcardRequestDTO, FlashcardResponseDTO } from '../service/FlashcardService'
+import FlashcardService from '../service/FlashcardService'
+import type { FlashcardRequestDTO, FlashcardResponseDTO } from '../service/FlashcardService'
 import { useAuthStore } from './auth'
 
 export const useFlashcardStore = defineStore('flashcard', () => {

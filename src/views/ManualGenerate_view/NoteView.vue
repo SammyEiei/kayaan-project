@@ -204,7 +204,7 @@
 <script setup lang="ts">
 import { reactive, ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { createNote, updateNote, getNoteById } from '@/service/NoteService'
+import NoteService from '@/service/NoteService'
 
 const router = useRouter()
 const route = useRoute()
@@ -236,7 +236,7 @@ onMounted(async () => {
   if (editId) {
     editingId.value = Number(editId)
     try {
-      const note = await getNoteById(editingId.value)
+      const note = await NoteService.getNoteById(editingId.value, 'current-user') // TODO: Get actual username from auth
       noteData.title = note.title
       noteData.subject = note.subject || ''
       noteData.difficulty = note.difficulty || 'medium'
@@ -358,10 +358,10 @@ const saveNote = async () => {
     }
 
     if (editingId.value) {
-      await updateNote(editingId.value, notePayload)
+      await NoteService.updateNote(editingId.value, notePayload, 'current-user') // TODO: Get actual username from auth
       successMessage.value = 'Note updated successfully!'
     } else {
-      await createNote(notePayload)
+      await NoteService.createNote(notePayload)
       successMessage.value = 'Note created successfully!'
     }
 

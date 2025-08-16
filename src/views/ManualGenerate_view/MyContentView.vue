@@ -232,9 +232,9 @@
 <script setup lang="ts">
 import { ref, computed, h, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { getAllQuizzes, deleteQuiz } from '@/service/QuizService'
-import { getAllNotes, deleteNote } from '@/service/NoteService'
-import { getAllFlashcards, deleteFlashcard } from '@/service/FlashcardService'
+import QuizService from '@/service/QuizService'
+import NoteService from '@/service/NoteService'
+import FlashcardService from '@/service/FlashcardService'
 
 interface ContentItem {
   id: string
@@ -259,40 +259,39 @@ const contentItems = ref<ContentItem[]>([])
 async function loadContentItems() {
   try {
     const [quizzes, notes, flashcards] = await Promise.all([
-      getAllQuizzes(),
-      getAllNotes(),
-      getAllFlashcards(),
+      QuizService.getAllQuizzesForUser('current-user'), // TODO: Get actual username from auth
+      NoteService.getAllNotesForUser('current-user'), // TODO: Get actual username from auth
+      FlashcardService.getAllFlashcardsForUser('current-user'), // TODO: Get actual username from auth
     ])
 
-    const quizItems = quizzes.map((q) => ({
+    const quizItems = quizzes.map((q: any) => ({
       id: q.id.toString(),
       type: 'quiz' as const,
       title: q.title || '',
       subject: q.questions?.[0]?.subject || '',
       tags: q.questions?.flatMap((qq: any) => qq.tags || []) || [],
       difficulty: q.questions?.[0]?.difficulty || 'medium',
-      createdAt: (q as any).createdAt || new Date().toISOString(),
+      createdAt: q.createdAt || new Date().toISOString(),
     }))
 
-    const noteItems = notes.map((n) => ({
+    const noteItems = notes.map((n: any) => ({
       id: n.id.toString(),
       type: 'note' as const,
       title: n.title || '',
-
       subject: n.subject || '',
       tags: n.tags || [],
       difficulty: n.difficulty || 'medium',
-      createdAt: (n as any).createdAt || new Date().toISOString(),
+      createdAt: n.createdAt || new Date().toISOString(),
     }))
 
-    const flashcardItems = flashcards.map((f) => ({
+    const flashcardItems = flashcards.map((f: any) => ({
       id: f.id.toString(),
       type: 'flashcard' as const,
-      title: f.title || '',
+      title: f.frontText || '', // Use frontText as title for flashcards
       subject: f.subject || '',
       tags: f.tags || [],
       difficulty: f.difficulty || 'medium',
-      createdAt: (f as any).createdAt || new Date().toISOString(),
+      createdAt: f.createdAt || new Date().toISOString(),
     }))
 
     contentItems.value = [...quizItems, ...noteItems, ...flashcardItems]
@@ -417,13 +416,13 @@ async function emitDelete(item: ContentItem, type: string) {
   try {
     switch (type) {
       case 'quiz':
-        await deleteQuiz(Number(item.id))
+        await QuizService.deleteQuiz(Number(item.id), 'current-user') // TODO: Get actual username from auth
         break
       case 'note':
-        await deleteNote(Number(item.id))
+        await NoteService.deleteNote(Number(item.id), 'current-user') // TODO: Get actual username from auth
         break
       case 'flashcard':
-        await deleteFlashcard(Number(item.id))
+        await FlashcardService.deleteFlashcard(Number(item.id), 'current-user') // TODO: Get actual username from auth
         break
     }
     await loadContentItems()

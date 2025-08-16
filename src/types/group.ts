@@ -9,7 +9,7 @@ export interface StudyGroup {
   createdAt: string
   memberCount: number
   isOwner: boolean
-  userRole: 'owner' | 'moderator' | 'member'
+  userRole: 'member' | 'admin'
 }
 
 export interface GroupMember {
@@ -17,7 +17,7 @@ export interface GroupMember {
   username: string
   email: string
   avatarUrl?: string
-  role: 'owner' | 'moderator' | 'member'
+  role: 'member' | 'admin'
   status: 'pending' | 'accepted' | 'rejected'
   joinedAt: string
 }
@@ -27,10 +27,9 @@ export interface GroupResource {
   groupId: string
   uploadedBy: string
   uploaderName: string
-  type: 'note' | 'file' | 'link' | 'imported_content'
+  type: 'link' | 'file' | 'all' | 'note' | 'imported_content'
   title: string
-  contentUrl?: string
-  contentText?: string
+  contentText: string
   createdAt: string
   commentCount: number
   reactionCount: number
@@ -41,8 +40,7 @@ export interface ResourceComment {
   resourceId: string
   userId: string
   username: string
-  avatarUrl?: string
-  text: string
+  content: string
   createdAt: string
 }
 
@@ -50,7 +48,7 @@ export interface ResourceReaction {
   id: string
   resourceId: string
   userId: string
-  emoji: string
+  reactionType: 'like' | 'dislike' | 'heart' | 'star'
   createdAt: string
 }
 
@@ -77,15 +75,12 @@ export interface UpdateGroupRequest {
 }
 
 export interface InviteMemberRequest {
-  groupId: string
-  username?: string
-  email?: string
+  email: string
+  role?: 'member' | 'admin'
 }
 
 export interface GenerateInviteCodeRequest {
-  groupId: string
-  codeLength?: number
-  expiresIn?: number // hours
+  expiresInHours?: number
 }
 
 export interface JoinGroupByCodeRequest {
@@ -93,26 +88,25 @@ export interface JoinGroupByCodeRequest {
 }
 
 export interface UpdateMemberRoleRequest {
-  groupId: string
   userId: string
-  role: 'member' | 'moderator'
+  role: 'member' | 'admin'
 }
 
 export interface UploadResourceRequest {
-  groupId: string
-  type: 'note' | 'file' | 'link' | 'imported_content'
   title: string
-  contentText?: string
-  contentUrl?: string
-  file?: File
+  description: string
+  type: 'link' | 'file' | 'note'
+  content?: string
+  fileUrl?: string
+  tags?: string[]
 }
 
 export interface AddCommentRequest {
   resourceId: string
-  text: string
+  content: string
 }
 
 export interface AddReactionRequest {
   resourceId: string
-  emoji: string
+  reactionType: 'like' | 'dislike' | 'heart' | 'star'
 }

@@ -35,7 +35,7 @@ function isTokenExpired(token: string): boolean {
 
 /* ----------  axios instance ---------- */
 const apiClient: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080/api',
+  baseURL: import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080',
   withCredentials: false,
   headers: {
     Accept: 'application/json', // ไม่ตั้ง Content-Type เป็น default
@@ -52,7 +52,7 @@ function buildFullUrl(path: string | null | undefined): string | undefined {
   }
 
   // Build full URL
-  const baseUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080/api'
+  const baseUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080'
   return `${baseUrl}${path.startsWith('/') ? '' : '/'}${path}`
 }
 
@@ -74,6 +74,8 @@ export const useAuthStore = defineStore('auth', {
     // Add debug getter
     debugToken: (state) => {
       console.log('🔍 Auth Store Debug - Token:', state.token ? 'EXISTS' : 'NOT FOUND')
+      console.log('🔍 Auth Store Debug - User:', state.user)
+      console.log('🔍 Auth Store Debug - UserId:', state.userId)
       if (state.token) {
         console.log('🔑 Token preview:', state.token.substring(0, 20) + '...')
         console.log('📅 Token length:', state.token.length)
@@ -211,24 +213,24 @@ export const useAuthStore = defineStore('auth', {
       delete apiClient.defaults.headers['Authorization']
     },
 
-    async reload() {
+    async initialize() {
+      console.log('🔍 Auth store initialization started')
       const stored = localStorage.getItem('access_token')
-      if (!stored) return
+      console.log('🔍 Stored token:', stored ? 'EXISTS' : 'NOT FOUND')
+      console.log('🔍 Token value:', stored?.substring(0, 50) + '...')
 
-      // Check if token is valid JWT format
-      const parts = stored.split('.')
-      if (parts.length !== 3 || parts.some(part => part.trim() === '')) {
-        console.warn('Invalid JWT token format found, logging out')
-        this.logout()
+      if (!stored) {
+        console.log('🔍 No stored token found')
         return
       }
 
       if (isTokenExpired(stored)) {
-        console.warn('Token expired, logging out')
+        console.log('🔍 Token expired, logging out')
         this.logout()
         return
       }
 
+      console.log('🔍 Token is valid, restoring...')
       // restore token & headers
       this.token = stored
       axios.defaults.headers.common['Authorization'] = this.authorizationHeader
@@ -244,6 +246,7 @@ export const useAuthStore = defineStore('auth', {
         const payload = jwtDecode<JwtPayload>(stored)
         this.userId = Number(payload.sub)
         this.roles = payload.roles ?? []
+        console.log('🔍 JWT payload decoded:', { userId: this.userId, roles: this.roles })
       } catch (error) {
         console.error('Failed to decode JWT token:', error)
         this.logout()
@@ -256,13 +259,21 @@ export const useAuthStore = defineStore('auth', {
         try {
           this.user = JSON.parse(userStr)
           if (this.user?.id) this.userId = this.user.id
+          console.log('🔍 User restored from localStorage:', this.user)
         } catch {
-          /* ignore */
+          console.log('🔍 Failed to parse user from localStorage')
         }
       }
 
       // Always fetch fresh user info to get latest avatar
+      console.log('🔍 Fetching fresh user info...')
       await this.fetchUserInfo()
+      console.log('🔍 Auth store initialization completed')
+      console.log('🔍 Final auth state:', {
+        token: !!this.token,
+        userId: this.userId,
+        user: this.user
+      })
     },
   },
 })

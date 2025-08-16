@@ -262,7 +262,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { createFlashcardDeck } from '@/service/FlashcardService'
+import FlashcardService from '@/service/FlashcardService'
 
 interface Flashcard {
   id: string
@@ -347,7 +347,7 @@ const handleSave = async () => {
       cards: validCards,
     }
 
-    await createFlashcardDeck(flashcardDeck)
+    await FlashcardService.createFlashcard(flashcardDeck)
     successMessage.value = 'Flashcard deck saved successfully!'
 
     setTimeout(() => {

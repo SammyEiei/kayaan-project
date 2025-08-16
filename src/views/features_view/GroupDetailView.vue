@@ -8,10 +8,12 @@ import GroupLibrary from '@/components/group/GroupLibrary.vue'
 import InviteMembers from '@/components/group/InviteMembers.vue'
 import LeaveGroupModal from '@/components/group/LeaveGroupModal.vue'
 import DeleteGroupModal from '@/components/group/DeleteGroupModal.vue'
+import { useAuthStore } from '@/stores/auth'
 
 const route = useRoute()
 const router = useRouter()
 const groupStore = useGroupStore()
+const auth = useAuthStore()
 
 const activeTab = ref<'overview' | 'members' | 'library' | 'invite'>('overview')
 const showLeaveModal = ref(false)
@@ -19,11 +21,41 @@ const showDeleteModal = ref(false)
 
 const groupId = computed(() => route.params.id as string)
 const currentGroup = computed(() => groupStore.currentGroup)
-const canManageGroup = computed(() => groupStore.canManageGroup)
+
+// คำนวณบทบาทผู้ชมจากลิสต์สมาชิก
+const viewerRoleLocal = computed<'member' | 'admin'>(() => {
+  const uid = String(auth.currentUserId ?? auth.user?.id)
+  const me = groupStore.currentGroupMembers.find(m => String(m.userId) === uid)
+  if (me?.role) return me.role
+  // fallback: ถ้าเราเป็น owner ให้ถือเป็น admin
+  if (groupStore.currentGroup && String(groupStore.currentGroup.ownerId) === uid) return 'admin'
+  return 'member'
+})
+
+// คำนวณจำนวนสมาชิกจากลิสต์
+const memberCountLocal = computed(
+  () => groupStore.memberCount ?? groupStore.currentGroupMembers.length ?? 0
+)
+
+// const canManageGroup = computed(() => groupStore.canManageGroup)
 
 onMounted(async () => {
+  console.log('🔍 GroupDetailView mounted, groupId:', groupId.value)
+  console.log('🔍 Auth store state:', {
+    token: !!useAuthStore().token,
+    user: useAuthStore().user,
+    currentUserId: useAuthStore().currentUserId
+  })
   if (groupId.value) {
-    await groupStore.fetchGroupDetails(groupId.value)
+    console.log('🔍 Calling fetchGroupDetails...')
+    try {
+      await groupStore.fetchGroupDetails(groupId.value)
+      console.log('🔍 fetchGroupDetails completed successfully')
+      console.log('🔍 Current group:', groupStore.currentGroup)
+      console.log('🔍 Group members:', groupStore.currentGroupMembers)
+    } catch (error) {
+      console.error('🔍 fetchGroupDetails failed:', error)
+    }
   }
 })
 
@@ -45,8 +77,12 @@ const handleDeleteGroup = async () => {
   }
 }
 
-const handleTabChange = (tab: string) => {
-  activeTab.value = tab as any
+const handleBackToGroups = () => {
+  router.push('/study-groups')
+}
+
+const handleBackToDashboard = () => {
+  router.push('/dashboard')
 }
 </script>
 
@@ -64,6 +100,34 @@ const handleTabChange = (tab: string) => {
 
     <main class="relative z-10 p-6">
       <div class="max-w-7xl mx-auto space-y-6">
+        <!-- Back Navigation -->
+        <nav class="flex items-center space-x-2 text-sm text-gray-600">
+          <button
+            @click="handleBackToDashboard"
+            class="flex items-center gap-1 hover:text-blue-600 transition-colors duration-200"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+            </svg>
+            Dashboard
+          </button>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          </svg>
+          <button
+            @click="handleBackToGroups"
+            class="hover:text-blue-600 transition-colors duration-200"
+          >
+            Study Groups
+          </button>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          </svg>
+          <span class="text-gray-900 font-medium">
+            {{ currentGroup?.name || 'Loading...' }}
+          </span>
+        </nav>
+
         <!-- Loading State -->
         <div v-if="groupStore.loading" class="flex items-center justify-center py-20">
           <div class="flex items-center gap-3">
@@ -74,36 +138,78 @@ const handleTabChange = (tab: string) => {
           </div>
         </div>
 
+        <!-- Group Not Found -->
+        <div v-else-if="!currentGroup" class="text-center py-20">
+          <div
+            class="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6"
+          >
+            <svg
+              class="w-12 h-12 text-red-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+              />
+            </svg>
+          </div>
+          <h2 class="text-2xl font-bold text-gray-900 mb-2">Group not found</h2>
+          <p class="text-gray-600 mb-8">
+            The group you're looking for doesn't exist or you don't have access to it.
+          </p>
+          <div class="flex items-center justify-center gap-4">
+            <button
+              @click="handleBackToGroups"
+              class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-colors duration-200"
+            >
+              Back to Groups
+            </button>
+            <button
+              @click="handleBackToDashboard"
+              class="px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-xl font-medium transition-colors duration-200"
+            >
+              Go to Dashboard
+            </button>
+          </div>
+        </div>
+
         <!-- Group Content -->
-        <div v-else-if="currentGroup">
+        <div v-else class="space-y-6">
           <!-- Group Header -->
           <GroupHeader
             :group="currentGroup"
+            :viewer-role="viewerRoleLocal"
+            :member-count="memberCountLocal"
             @leave="showLeaveModal = true"
             @delete="showDeleteModal = true"
           />
 
-          <!-- Navigation Tabs -->
+          <!-- Tabs -->
           <div class="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/50 shadow-xl">
-            <div class="border-b border-gray-200">
-              <nav class="flex space-x-8 px-6">
-                <button
-                  v-for="tab in [
-                    { id: 'overview', label: 'Overview', icon: 'grid' },
-                    { id: 'members', label: 'Members', icon: 'users' },
-                    { id: 'library', label: 'Library', icon: 'book' },
-                    { id: 'invite', label: 'Invite', icon: 'user-plus' },
-                  ]"
-                  :key="tab.id"
-                  @click="handleTabChange(tab.id)"
-                  class="flex items-center gap-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200"
-                  :class="
-                    activeTab === tab.id
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  "
-                >
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <!-- Tab Navigation -->
+            <div class="flex border-b border-gray-200">
+              <button
+                v-for="tab in [
+                  { id: 'overview', label: 'Overview', icon: 'grid' },
+                  { id: 'members', label: 'Members', icon: 'users' },
+                  { id: 'library', label: 'Library', icon: 'book' },
+                  { id: 'invite', label: 'Invite', icon: 'user-plus' },
+                ]"
+                :key="tab.id"
+                @click="activeTab = tab.id as any"
+                class="flex-1 px-6 py-4 text-center font-medium transition-colors duration-200"
+                :class="
+                  activeTab === tab.id
+                    ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
+                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                "
+              >
+                <div class="flex items-center justify-center gap-2">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       v-if="tab.icon === 'grid'"
                       stroke-linecap="round"
@@ -134,127 +240,68 @@ const handleTabChange = (tab: string) => {
                     />
                   </svg>
                   {{ tab.label }}
-                </button>
-              </nav>
+                </div>
+              </button>
             </div>
 
             <!-- Tab Content -->
             <div class="p-6">
               <!-- Overview Tab -->
               <div v-if="activeTab === 'overview'" class="space-y-6">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <!-- Group Stats -->
-                  <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6">
-                    <div class="flex items-center gap-3 mb-4">
-                      <div
-                        class="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center"
-                      >
-                        <svg
-                          class="w-5 h-5 text-white"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                          />
-                        </svg>
+                <div>
+                  <h3 class="text-lg font-semibold text-gray-900 mb-4">Group Overview</h3>
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-blue-50 rounded-xl p-4">
+                      <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                          <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <p class="text-sm text-gray-600">Members</p>
+                          <p class="text-xl font-bold text-gray-900">{{ memberCountLocal || 0 }}</p>
+                        </div>
                       </div>
-                      <h3 class="font-semibold text-gray-800">Members</h3>
                     </div>
-                    <p class="text-3xl font-bold text-gray-900">{{ currentGroup.memberCount }}</p>
-                    <p class="text-sm text-gray-500">Active members</p>
-                  </div>
-
-                  <!-- Resources Stats -->
-                  <div class="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6">
-                    <div class="flex items-center gap-3 mb-4">
-                      <div
-                        class="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl flex items-center justify-center"
-                      >
-                        <svg
-                          class="w-5 h-5 text-white"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                          />
-                        </svg>
+                    <div class="bg-green-50 rounded-xl p-4">
+                      <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                          <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <p class="text-sm text-gray-600">Resources</p>
+                          <p class="text-xl font-bold text-gray-900">{{ groupStore.currentGroupResources.length }}</p>
+                        </div>
                       </div>
-                      <h3 class="font-semibold text-gray-800">Resources</h3>
                     </div>
-                    <p class="text-3xl font-bold text-gray-900">
-                      {{ groupStore.currentGroupResources.length }}
-                    </p>
-                    <p class="text-sm text-gray-500">Shared resources</p>
-                  </div>
-
-                  <!-- Recent Activity -->
-                  <div class="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-6">
-                    <div class="flex items-center gap-3 mb-4">
-                      <div
-                        class="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-600 rounded-xl flex items-center justify-center"
-                      >
-                        <svg
-                          class="w-5 h-5 text-white"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
-                          />
-                        </svg>
+                    <div class="bg-purple-50 rounded-xl p-4">
+                      <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                          <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3a2 2 0 012-2h4a2 2 0 012 2v4m-6 0h6m-6 0l-6 6m6-6l6 6" />
+                          </svg>
+                        </div>
+                        <div>
+                          <p class="text-sm text-gray-600">Created</p>
+                          <p class="text-xl font-bold text-gray-900">{{ new Date(currentGroup.createdAt).toLocaleDateString() }}</p>
+                        </div>
                       </div>
-                      <h3 class="font-semibold text-gray-800">Activity</h3>
                     </div>
-                    <p class="text-3xl font-bold text-gray-900">12</p>
-                    <p class="text-sm text-gray-500">This week</p>
                   </div>
                 </div>
 
-                <!-- Recent Resources -->
-                <div class="bg-white/60 backdrop-blur-sm rounded-xl p-6 border border-white/50">
-                  <h3 class="font-semibold text-gray-800 mb-4">Recent Resources</h3>
-                  <div
-                    v-if="groupStore.currentGroupResources.length === 0"
-                    class="text-center py-8"
-                  >
-                    <div
-                      class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4"
-                    >
-                      <svg
-                        class="w-8 h-8 text-gray-400"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                        />
+                <div>
+                  <h3 class="text-lg font-semibold text-gray-900 mb-4">Recent Resources</h3>
+                  <div v-if="groupStore.currentGroupResources.length === 0" class="text-center py-8">
+                    <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>
                     </div>
                     <p class="text-gray-500">No resources shared yet</p>
-                    <button
-                      @click="activeTab = 'library'"
-                      class="mt-3 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                    >
-                      Share First Resource
-                    </button>
                   </div>
                   <div v-else class="space-y-3">
                     <div
@@ -263,18 +310,8 @@ const handleTabChange = (tab: string) => {
                       class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
                     >
                       <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                        <svg
-                          class="w-4 h-4 text-blue-600"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                          />
+                        <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
                       </div>
                       <div class="flex-1">
@@ -290,47 +327,21 @@ const handleTabChange = (tab: string) => {
               </div>
 
               <!-- Members Tab -->
-              <div v-if="activeTab === 'members'">
+              <div v-if="activeTab === 'members'" class="p-6">
                 <GroupMemberList :groupId="groupId" />
               </div>
 
               <!-- Library Tab -->
-              <div v-if="activeTab === 'library'">
+              <div v-if="activeTab === 'library'" class="p-6">
                 <GroupLibrary :groupId="groupId" />
               </div>
 
-              <!-- Invite Tab -->
-              <div v-if="activeTab === 'invite'">
-                <InviteMembers :groupId="groupId" :group-name="currentGroup.name" />
-              </div>
+                             <!-- Invite Tab -->
+               <div v-if="activeTab === 'invite'" class="p-6">
+                 <InviteMembers :groupId="groupId" :group-name="currentGroup.name" />
+               </div>
             </div>
           </div>
-        </div>
-
-        <!-- Error State -->
-        <div v-else class="text-center py-20">
-          <div
-            class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4"
-          >
-            <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
-              />
-            </svg>
-          </div>
-          <h3 class="text-lg font-medium text-gray-900 mb-2">Group not found</h3>
-          <p class="text-gray-500 mb-4">
-            The group you're looking for doesn't exist or you don't have access to it.
-          </p>
-          <button
-            @click="router.push('/study-groups')"
-            class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-          >
-            Back to Groups
-          </button>
         </div>
       </div>
     </main>
@@ -339,15 +350,22 @@ const handleTabChange = (tab: string) => {
     <LeaveGroupModal
       v-if="showLeaveModal"
       :group="currentGroup"
-      @confirm="handleLeaveGroup"
-      @cancel="showLeaveModal = false"
+      @close="showLeaveModal = false"
+      @leave="handleLeaveGroup"
     />
 
     <DeleteGroupModal
       v-if="showDeleteModal"
       :group="currentGroup"
-      @confirm="handleDeleteGroup"
-      @cancel="showDeleteModal = false"
+      @close="showDeleteModal = false"
+      @delete="handleDeleteGroup"
     />
   </div>
 </template>
+
+<style scoped>
+.backdrop-blur-sm {
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+</style>

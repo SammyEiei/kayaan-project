@@ -251,7 +251,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { createQuiz } from '@/service/QuizService'
+import { useQuizStore } from '@/stores/quiz'
 
 interface Question {
   id: string;
@@ -270,6 +270,7 @@ interface QuizContent {
 }
 
 const router = useRouter()
+const quizStore = useQuizStore()
 
 const props = defineProps<{ editingContent?: QuizContent }>()
 
@@ -371,11 +372,11 @@ async function handleSave() {
     title: title.value,
     questions: questions.value.map(q => ({
       questionText: q.question,
-      type: q.type === 'multiple-choice'
+      type: (q.type === 'multiple-choice'
         ? 'MULTIPLE_CHOICE'
         : q.type === 'true-false'
           ? 'TRUE_FALSE'
-          : 'OPEN_ENDED',
+          : 'OPEN_ENDED') as 'MULTIPLE_CHOICE' | 'TRUE_FALSE' | 'OPEN_ENDED',
       choices: q.type === 'multiple-choice' ? q.options : undefined,
       correctAnswer: q.correctAnswer,
       subject: subject.value,
@@ -384,13 +385,13 @@ async function handleSave() {
     })),
   }
   try {
-    await createQuiz(quizPayload)
+    await quizStore.createQuiz(quizPayload)
     successMessage.value = 'Quiz saved successfully!'
     setTimeout(() => {
       onBack()
     }, 1000)
-  } catch (err) {
-    errorMessage.value = err?.message || 'Failed to save quiz'
+  } catch (err: unknown) {
+    errorMessage.value = err instanceof Error ? err.message : 'Failed to save quiz'
   } finally {
     isSaving.value = false
   }

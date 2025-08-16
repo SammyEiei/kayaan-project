@@ -196,6 +196,12 @@ function changeViewMode(mode: 'month' | 'week' | 'day') {
   viewMode.value = mode
 }
 
+// ฟังก์ชันสำหรับไปยังวันนี้
+function goToToday() {
+  selectedDate.value = new Date()
+  currentDate.value = new Date()
+}
+
 // ฟังก์ชันสำหรับเปิด/ปิดฟอร์มเพิ่มกิจกรรม
 function toggleEventForm() {
   showEventForm.value = !showEventForm.value
@@ -276,10 +282,7 @@ onMounted(() => {
       </div>
       <button
         class="btn-today"
-        @click="
-          selectedDate = new Date()
-          currentDate = new Date()
-        "
+        @click="goToToday"
       >
         Today
       </button>

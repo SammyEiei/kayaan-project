@@ -1,14 +1,12 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useGroupStore } from '@/stores/group'
+import { useAuthStore } from '@/stores/auth'
 import type { GroupMember, UpdateMemberRoleRequest } from '@/types/group'
 
-interface Props {
-  groupId: string
-}
-
-const props = defineProps<Props>()
+// const props = defineProps<{ groupId: string }>()
 const groupStore = useGroupStore()
+const auth = useAuthStore()
 
 const showRoleMenu = ref<string | null>(null)
 const isUpdatingRole = ref(false)
@@ -16,12 +14,42 @@ const isUpdatingRole = ref(false)
 const members = computed(() => groupStore.currentGroupMembers)
 const canManageMembers = computed(() => groupStore.canManageGroup)
 
+// Helper ใช้ข้อมูลจาก authStore
+const meId = computed(() => String(auth.currentUserId ?? auth.user?.id))
+
+const displayName = (member: GroupMember) => {
+  // ถ้าเป็นเราเอง → ใช้ชื่อจาก authStore
+  if (String(member.userId) === meId.value) {
+    return (
+      auth.user?.username ||
+      (auth.user?.firstname && auth.user?.lastname
+        ? `${auth.user.firstname} ${auth.user.lastname}`
+        : auth.user?.firstname || auth.user?.lastname) ||
+      auth.user?.email ||
+      `User #${member.userId}`
+    )
+  }
+  // ถ้า backend enrich มาแล้ว ให้ใช้
+  return ('username' in member && member.username) || `User #${member.userId}`
+}
+
+const displayEmail = (member: GroupMember) => {
+  if (String(member.userId) === meId.value) {
+    return auth.user?.email || 'No email'
+  }
+  return ('email' in member && member.email) || 'No email'
+}
+
+const displayAvatar = (member: GroupMember) => {
+  if ('avatarUrl' in member && member.avatarUrl) return member.avatarUrl
+  if (String(member.userId) === meId.value) return auth.user?.avatarUrl || null
+  return null
+}
+
 const getRoleColor = (role: string) => {
   switch (role) {
-    case 'owner':
+    case 'admin':
       return 'from-yellow-400 to-orange-500'
-    case 'moderator':
-      return 'from-purple-400 to-pink-500'
     default:
       return 'from-blue-400 to-indigo-500'
   }
@@ -29,10 +57,8 @@ const getRoleColor = (role: string) => {
 
 const getRoleLabel = (role: string) => {
   switch (role) {
-    case 'owner':
-      return 'Owner'
-    case 'moderator':
-      return 'Moderator'
+    case 'admin':
+      return 'Admin'
     default:
       return 'Member'
   }
@@ -46,13 +72,17 @@ const formatDate = (dateString: string) => {
   })
 }
 
-const updateMemberRole = async (member: GroupMember, newRole: 'member' | 'moderator') => {
+const getInitial = (name: unknown) => {
+  const s = (typeof name === 'string' && name) || ''
+  return s ? s.charAt(0).toUpperCase() : '?'
+}
+
+const updateMemberRole = async (member: GroupMember, newRole: 'member' | 'admin') => {
   if (member.role === newRole) return
 
   isUpdatingRole.value = true
   try {
     const roleData: UpdateMemberRoleRequest = {
-      groupId: props.groupId,
       userId: member.userId,
       role: newRole,
     }
@@ -113,15 +143,15 @@ const toggleRoleMenu = (memberId: string) => {
             <!-- Avatar -->
             <div class="relative">
               <div
-                class="w-12 h-12 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold shadow-md"
+                class="w-12 h-12 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold shadow-md overflow-hidden"
               >
-                <img
-                  v-if="member.avatarUrl"
-                  :src="member.avatarUrl"
-                  :alt="member.username"
-                  class="w-full h-full object-cover rounded-xl"
-                />
-                <span v-else>{{ member.username.charAt(0).toUpperCase() }}</span>
+                                  <img
+                    v-if="displayAvatar(member)"
+                    :src="displayAvatar(member)!"
+                    :alt="displayName(member)"
+                    class="w-full h-full object-cover"
+                  />
+                <span v-else>{{ getInitial(displayName(member)) }}</span>
               </div>
               <div
                 v-if="member.status === 'pending'"
@@ -131,9 +161,9 @@ const toggleRoleMenu = (memberId: string) => {
             </div>
 
             <!-- Member Info -->
-            <div>
-              <div class="flex items-center gap-2 mb-1">
-                <h4 class="font-semibold text-gray-800">{{ member.username }}</h4>
+            <div class="flex-1">
+              <div class="flex items-center gap-2 mb-2">
+                <h4 class="font-semibold text-gray-800">{{ displayName(member) }}</h4>
                 <span
                   class="px-2 py-1 text-xs font-medium rounded-full text-white"
                   :class="`bg-gradient-to-r ${getRoleColor(member.role)}`"
@@ -147,15 +177,27 @@ const toggleRoleMenu = (memberId: string) => {
                   Pending
                 </span>
               </div>
-              <p class="text-sm text-gray-500">{{ member.email }}</p>
-              <p class="text-xs text-gray-400">Joined {{ formatDate(member.joinedAt) }}</p>
+              <div class="flex items-center gap-4 text-sm text-gray-500">
+                <div class="flex items-center gap-1">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                  <span>{{ displayEmail(member) }}</span>
+                </div>
+                <div class="flex items-center gap-1">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3a2 2 0 012-2h4a2 2 0 012 2v4m-6 0h6m-6 0l-6 6m6-6l6 6" />
+                  </svg>
+                  <span>Joined {{ formatDate(member.joinedAt) }}</span>
+                </div>
+              </div>
             </div>
           </div>
 
           <!-- Actions -->
           <div class="flex items-center gap-2">
             <!-- Role Management -->
-            <div v-if="canManageMembers && member.role !== 'owner'" class="relative">
+            <div v-if="canManageMembers && (member.role as string) !== 'admin'" class="relative">
               <button
                 @click="toggleRoleMenu(member.userId)"
                 class="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200"
@@ -185,13 +227,13 @@ const toggleRoleMenu = (memberId: string) => {
                     Set as Member
                   </button>
                   <button
-                    @click="updateMemberRole(member, 'moderator')"
+                    @click="updateMemberRole(member, 'admin')"
                     class="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 transition-colors"
                     :class="
-                      member.role === 'moderator' ? 'text-blue-600 bg-blue-50' : 'text-gray-700'
+                      member.role === 'admin' ? 'text-blue-600 bg-blue-50' : 'text-gray-700'
                     "
                   >
-                    Set as Moderator
+                    Set as Admin
                   </button>
                   <hr class="my-1" />
                   <button

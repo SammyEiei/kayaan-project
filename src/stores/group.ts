@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import GroupService from '@/service/GroupService'
+import UserService from '@/service/UserService'
 import { useAuthStore } from '@/stores/auth'
 import type {
   StudyGroup,
@@ -48,8 +49,17 @@ export const useGroupStore = defineStore('group', () => {
   const currentGroupResources = computed(() => groupResources.value)
   const currentUserRole = computed(() => currentGroup.value?.userRole || 'member')
   const canManageGroup = computed(
-    () => currentUserRole.value === 'owner' || currentUserRole.value === 'moderator',
+    () => currentUserRole.value === 'admin',
   )
+
+  // Add computed properties for viewer role and member count
+  const viewerRole = computed<'member' | 'admin' | null>(() => {
+    const authStore = useAuthStore()
+    const uid = authStore.currentUserId?.toString()
+    return currentGroupMembers.value.find(m => m.userId === uid)?.role ?? null
+  })
+
+  const memberCount = computed(() => currentGroupMembers.value.length)
 
   // Actions
   const fetchGroups = async () => {
@@ -66,13 +76,13 @@ export const useGroupStore = defineStore('group', () => {
         id: group.id,
         name: group.name,
         description: group.description,
-        ownerId: authStore.currentUserId?.toString() || 'unknown',
+        ownerId: group.ownerId,
         inviteLinkToken: Math.random().toString(36).substring(7),
         inviteCode: generateInviteCode(),
-        createdAt: new Date().toISOString(),
-        memberCount: group.membersCount,
-        isOwner: true, // This should be determined by comparing ownerId with current user
-        userRole: 'owner', // This should be determined by the API response
+        createdAt: group.createdAt,
+        memberCount: group.membersCount ?? 0,
+        isOwner: group.ownerId === authStore.currentUserId?.toString(),
+        userRole: group.ownerId === authStore.currentUserId?.toString() ? 'admin' : 'member',
       }))
     } catch (err) {
       error.value = 'Failed to fetch groups'
@@ -96,16 +106,32 @@ export const useGroupStore = defineStore('group', () => {
         id: response.id,
         name: response.name,
         description: response.description,
-        ownerId: authStore.currentUserId?.toString() || 'unknown',
+        ownerId: response.ownerId,
         inviteLinkToken: Math.random().toString(36).substring(7),
         inviteCode: generateInviteCode(),
-        createdAt: new Date().toISOString(),
-        memberCount: response.membersCount,
+        createdAt: response.createdAt,
+        memberCount: 1, // Creator is the first member
         isOwner: true,
-        userRole: 'owner',
+        userRole: 'admin', // Creator should be admin
       }
 
       groups.value.push(newGroup)
+
+      // Add creator as member with admin role
+      const creatorMember: GroupMember = {
+        userId: authStore.currentUserId?.toString() || 'unknown',
+        username: authStore.currentUserName || 'unknown',
+        email: authStore.user?.email || 'unknown',
+        role: 'admin',
+        status: 'accepted',
+        joinedAt: new Date().toISOString(),
+      }
+
+      // Add to current group members if this is the current group
+      if (currentGroup.value?.id === newGroup.id) {
+        groupMembers.value = [creatorMember]
+      }
+
       return newGroup
     } catch (err) {
       error.value = 'Failed to create group'
@@ -120,47 +146,240 @@ export const useGroupStore = defineStore('group', () => {
     loading.value = true
     error.value = null
     try {
-      // TODO: Replace with actual API calls
-      // const [groupResponse, membersResponse, resourcesResponse] = await Promise.all([
-      //   groupService.getGroup(groupId),
-      //   groupService.getGroupMembers(groupId),
-      //   groupService.getGroupResources(groupId)
-      // ])
+      console.log('🔍 fetchGroupDetails started for groupId:', groupId)
+      const authStore = useAuthStore()
+      console.log('🔍 Auth store state in fetchGroupDetails:', {
+        token: !!authStore.token,
+        userId: authStore.currentUserId,
+        user: authStore.user
+      })
 
-      // Mock data
-      currentGroup.value = groups.value.find((g) => g.id === groupId) || null
-      groupMembers.value = [
-        {
-          userId: 'user1',
-          username: 'john_doe',
-          email: 'john@example.com',
-          role: 'owner',
-          status: 'accepted',
-          joinedAt: '2024-01-15T10:00:00Z',
-        },
-        {
-          userId: 'user2',
-          username: 'jane_smith',
-          email: 'jane@example.com',
-          role: 'member',
-          status: 'accepted',
-          joinedAt: '2024-01-16T09:00:00Z',
-        },
-      ]
-      groupResources.value = [
-        {
-          id: '1',
-          groupId,
-          uploadedBy: 'user1',
-          uploaderName: 'john_doe',
-          type: 'note',
-          title: 'Introduction to Algorithms',
-          contentText: 'This is a comprehensive guide...',
-          createdAt: '2024-01-17T11:00:00Z',
-          commentCount: 3,
-          reactionCount: 5,
-        },
-      ]
+      // Try to use real API call to get group details
+      try {
+        console.log('🔍 Calling GroupService.getGroupDetails and getGroupMembers...')
+        const [groupResponse, membersResponse] = await Promise.all([
+          GroupService.getGroupDetails(groupId),
+          GroupService.getGroupMembers(groupId)
+        ])
+
+        console.log('🔍 API responses received:', {
+          groupResponse,
+          membersResponse
+        })
+
+        // Transform the response to match StudyGroup interface
+        currentGroup.value = {
+          id: groupResponse.id,
+          name: groupResponse.name,
+          description: groupResponse.description,
+          ownerId: groupResponse.ownerId,
+          inviteLinkToken: Math.random().toString(36).substring(7),
+          inviteCode: generateInviteCode(),
+          createdAt: groupResponse.createdAt,
+          memberCount: groupResponse.membersCount ?? 0,
+          isOwner: groupResponse.isOwner || false,
+          userRole: groupResponse.userRole || 'member',
+        }
+
+        console.log('🔍 Current group set:', currentGroup.value)
+
+        // Transform members response
+        try {
+          const authStore = useAuthStore()
+          console.log('🔍 Fetching group details for groupId:', groupId)
+          console.log('🔍 Current user ID:', authStore.currentUserId)
+          console.log('🔍 Auth store token debug:', authStore.debugToken)
+          console.log('🔍 Members response:', membersResponse)
+
+          // Get user details for each member individually
+          const memberPromises = membersResponse.map(async (member) => {
+            console.log('🔍 Processing member:', member)
+            try {
+              // ถ้าเป็น current user ให้ใช้ข้อมูลจาก auth store หรือ /api/users/me
+              if (member.userId === authStore.currentUserId?.toString()) {
+                console.log('🔍 Current user detected, calling /api/users/me')
+                // ลองดึงข้อมูลล่าสุดจาก API
+                try {
+                  const currentUser = await UserService.getCurrentUser()
+                  console.log('🔍 API response for current user:', currentUser)
+                  return {
+                    userId: member.userId,
+                    username: currentUser.username,
+                    email: currentUser.email,
+                    avatarUrl: currentUser.avatarUrl,
+                    role: member.role,
+                    status: 'accepted' as const,
+                    joinedAt: member.joinedAt,
+                  }
+                } catch (apiError) {
+                  console.warn('🔍 API call failed, using auth store fallback:', apiError)
+                  // Fallback ไปใช้ข้อมูลจาก auth store
+                  return {
+                    userId: member.userId,
+                    username: authStore.user?.username || 'Unknown User',
+                    email: authStore.user?.email || '',
+                    avatarUrl: authStore.user?.avatarUrl,
+                    role: member.role,
+                    status: 'accepted' as const,
+                    joinedAt: member.joinedAt,
+                  }
+                }
+              }
+
+              // สำหรับ user อื่นๆ ให้ใช้ข้อมูลพื้นฐาน (เพราะไม่มี endpoint สำหรับดึงข้อมูล user อื่น)
+              console.log('🔍 Other user, using basic info')
+              return {
+                userId: member.userId,
+                username: `User ${member.userId}`,
+                email: '',
+                avatarUrl: undefined,
+                role: member.role,
+                status: 'accepted' as const,
+                joinedAt: member.joinedAt,
+              }
+            } catch (userError) {
+              console.warn(`🔍 Failed to fetch user details for ${member.userId}:`, userError)
+              // Fallback: ใช้ข้อมูลพื้นฐาน
+              return {
+                userId: member.userId,
+                username: `User ${member.userId}`,
+                email: '',
+                avatarUrl: undefined,
+                role: member.role,
+                status: 'accepted' as const,
+                joinedAt: member.joinedAt,
+              }
+            }
+          })
+
+          groupMembers.value = await Promise.all(memberPromises)
+          console.log('🔍 Final group members:', groupMembers.value)
+
+          // ถ้าไม่มี members แต่เป็น owner ให้เพิ่ม creator เป็น admin
+          if (groupMembers.value.length === 0 && currentGroup.value?.isOwner) {
+            console.log('🔍 No members found, adding creator as admin')
+            try {
+              const currentUser = await UserService.getCurrentUser()
+              const creatorMember = {
+                userId: currentUser.id.toString(),
+                username: currentUser.username,
+                email: currentUser.email,
+                avatarUrl: currentUser.avatarUrl,
+                role: 'admin' as const,
+                status: 'accepted' as const,
+                joinedAt: new Date().toISOString(),
+              }
+              groupMembers.value = [creatorMember]
+              console.log('🔍 Added creator as admin:', creatorMember)
+            } catch (apiError) {
+              console.warn('🔍 Failed to get current user, using auth store fallback:', apiError)
+              const creatorMember = {
+                userId: authStore.currentUserId?.toString() || '1',
+                username: authStore.user?.username || 'Sam1',
+                email: authStore.user?.email || 'fxred727@gmail.com',
+                avatarUrl: authStore.user?.avatarUrl,
+                role: 'admin' as const,
+                status: 'accepted' as const,
+                joinedAt: new Date().toISOString(),
+              }
+              groupMembers.value = [creatorMember]
+              console.log('🔍 Added creator as admin (fallback):', creatorMember)
+            }
+          }
+        } catch (userError) {
+          console.warn('🔍 Failed to fetch user details, using fallback:', userError)
+          // Fallback: ใช้ข้อมูลจาก auth store สำหรับ current user
+          const authStore = useAuthStore()
+          groupMembers.value = membersResponse.map(member => {
+            if (member.userId === authStore.currentUserId?.toString()) {
+              return {
+                userId: member.userId,
+                username: authStore.user?.username || 'Unknown User',
+                email: authStore.user?.email || '',
+                avatarUrl: authStore.user?.avatarUrl,
+                role: member.role,
+                status: 'accepted' as const,
+                joinedAt: member.joinedAt,
+              }
+            }
+            return {
+              userId: member.userId,
+              username: `User ${member.userId}`,
+              email: '',
+              avatarUrl: undefined,
+              role: member.role,
+              status: 'accepted' as const,
+              joinedAt: member.joinedAt,
+            }
+          })
+
+          // ถ้าไม่มี members แต่เป็น owner ให้เพิ่ม creator เป็น admin
+          if (groupMembers.value.length === 0 && currentGroup.value?.isOwner) {
+            const creatorMember = {
+              userId: authStore.currentUserId?.toString() || '1',
+              username: authStore.user?.username || 'Sam1',
+              email: authStore.user?.email || 'fxred727@gmail.com',
+              avatarUrl: authStore.user?.avatarUrl,
+              role: 'admin' as const,
+              status: 'accepted' as const,
+              joinedAt: new Date().toISOString(),
+            }
+            groupMembers.value = [creatorMember]
+            console.log('🔍 Added creator as admin (fallback):', creatorMember)
+          }
+        }
+
+        // TODO: Add real API call for resources
+        groupResources.value = [
+          {
+            id: '1',
+            groupId,
+            uploadedBy: 'user1',
+            uploaderName: 'john_doe',
+            type: 'note',
+            title: 'Introduction to Algorithms',
+            contentText: 'This is a comprehensive guide...',
+            createdAt: '2024-01-17T11:00:00Z',
+            commentCount: 3,
+            reactionCount: 5,
+          },
+        ]
+      } catch (apiError) {
+        console.warn('API call failed, using mock data:', apiError)
+        // Fallback to mock data if API fails
+        currentGroup.value = groups.value.find((g) => g.id === groupId) || null
+
+        if (!currentGroup.value) {
+          throw new Error('Group not found')
+        }
+
+        // Mock members data
+        groupMembers.value = [
+          {
+            userId: '1',
+            username: 'sam1',
+            email: 'sam1@example.com',
+            avatarUrl: undefined,
+            role: 'admin',
+            status: 'accepted',
+            joinedAt: new Date().toISOString(),
+          },
+        ]
+        groupResources.value = [
+          {
+            id: '1',
+            groupId,
+            uploadedBy: 'user1',
+            uploaderName: 'john_doe',
+            type: 'note',
+            title: 'Introduction to Algorithms',
+            contentText: 'This is a comprehensive guide...',
+            createdAt: '2024-01-17T11:00:00Z',
+            commentCount: 3,
+            reactionCount: 5,
+          },
+        ]
+      }
     } catch (err) {
       error.value = 'Failed to fetch group details'
       console.error('fetchGroupDetails error:', err)
@@ -421,6 +640,8 @@ export const useGroupStore = defineStore('group', () => {
     currentGroupResources,
     currentUserRole,
     canManageGroup,
+    viewerRole,
+    memberCount,
 
     // Actions
     fetchGroups,

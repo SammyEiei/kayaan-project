@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import NoteService, { NoteRequestDTO, NoteResponseDTO } from '../service/NoteService'
+import NoteService from '../service/NoteService'
+import type { NoteRequestDTO, NoteResponseDTO } from '../service/NoteService'
 import { useAuthStore } from './auth'
 
 export const useNoteStore = defineStore('note', () => {

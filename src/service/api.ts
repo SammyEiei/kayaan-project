@@ -6,7 +6,7 @@ import { useAuthStore } from '../stores/auth'
  * `VITE_BACKEND_URL` env variable to match the rest of the codebase.
  */
 const api = axios.create({
-  baseURL: import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080/api',
+  baseURL: import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080',
   withCredentials: false,
   headers: {
     Accept: 'application/json', // ไม่ตั้ง Content-Type เป็น default

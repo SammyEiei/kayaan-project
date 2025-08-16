@@ -509,7 +509,7 @@ function logout() {
 }
 
 onMounted(async () => {
-  authStore.reload()
+  authStore.initialize()
   // Initialize theme store
   await themeStore.initialize()
 })

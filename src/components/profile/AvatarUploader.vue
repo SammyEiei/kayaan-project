@@ -3,13 +3,13 @@ import { ref, computed } from 'vue'
 import { uploadAvatar } from '@/services/avatarService'
 import { useAuthStore } from '@/stores/auth'
 
-const props = defineProps<{ 
+const props = defineProps<{
   userId: number
-  maxSizeMb?: number 
+  maxSizeMb?: number
 }>()
 
-const emit = defineEmits<{ 
-  (e: 'updated', url: string): void 
+const emit = defineEmits<{
+  (e: 'updated', url: string): void
 }>()
 
 const auth = useAuthStore()
@@ -29,7 +29,7 @@ function validate(file: File) {
   if (!file.type.startsWith('image/')) {
     throw new Error('Only image files are allowed')
   }
-  
+
   if (file.size > maxSize.value) {
     throw new Error(`File too large (>${props.maxSizeMb ?? 5} MB)`)
   }
@@ -48,17 +48,17 @@ async function onDrop(ev: DragEvent) {
   await doUpload(file)
 }
 
-function onDragOver(ev: DragEvent) { 
-  ev.preventDefault() 
+function onDragOver(ev: DragEvent) {
+  ev.preventDefault()
 }
 
 async function doUpload(file: File) {
   errorMsg.value = null
-  
+
   try {
     // Validate file
     validate(file)
-    
+
     // Show preview
     previewUrl.value = URL.createObjectURL(file)
     busy.value = true
@@ -127,7 +127,7 @@ onUnmounted(() => {
           </p>
         </div>
       </div>
-      
+
       <input
         ref="fileInput"
         class="hidden"
@@ -139,9 +139,9 @@ onUnmounted(() => {
 
     <!-- Preview -->
     <div v-if="previewUrl" class="flex items-center gap-4">
-      <img 
-        :src="previewUrl" 
-        class="w-24 h-24 rounded-full object-cover border-2 border-gray-200" 
+      <img
+        :src="previewUrl"
+        class="w-24 h-24 rounded-full object-cover border-2 border-gray-200"
         alt="Preview"
       />
       <div class="flex-1">

@@ -556,7 +556,7 @@ async function saveAvatar(): Promise<void> {
     // Reload token from localStorage if auth store doesn't have it
     if (!authStore.token && localStorageToken) {
       console.log('🔄 Reloading token from localStorage...')
-      await authStore.reload()
+      await authStore.initialize()
     }
 
     // Check if we have a valid token after reload

@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import QuizService, { QuizRequestDTO, QuizResponseDTO } from '../service/QuizService'
+import QuizService from '../service/QuizService'
+import type { QuizRequestDTO, QuizResponseDTO } from '../service/QuizService'
 import { useAuthStore } from './auth'
 
 export const useQuizStore = defineStore('quiz', () => {

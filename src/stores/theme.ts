@@ -2,13 +2,12 @@
 import { defineStore } from 'pinia'
 import { useAuthStore } from '../stores/auth'
 import {
-  getPredefinedThemes,
+  predefinedThemes,
   getUserTheme,
   saveUserTheme,
   createUserPreset,
   deleteUserPreset,
   resetPersonalization,
-  predefinedThemes,
   type Theme,
   type ThemeDto,
 } from '../service/ThemeService'

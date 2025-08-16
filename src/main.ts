@@ -4,6 +4,7 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import { usePomodoroStore } from '@/stores/pomodoro'
 import { useGamificationStore } from '@/stores/gamification'
+import { useAuthStore } from '@/stores/auth'
 
 import App from './App.vue'
 import router from './router'
@@ -21,5 +22,9 @@ const pomodoroStore = usePomodoroStore()
 pomodoroStore.load()
 const gamificationStore = useGamificationStore()
 gamificationStore.load()
+
+// initialize auth store
+const authStore = useAuthStore()
+authStore.initialize()
 
 app.mount('#app')
