@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import type { StudyGroup } from '@/types/group'
 
 interface Props {
@@ -8,9 +9,24 @@ interface Props {
 const props = defineProps<Props>()
 
 const emit = defineEmits<{
-  confirm: []
-  cancel: []
+  close: []
+  leave: []
 }>()
+
+const isLoading = ref(false)
+
+const handleLeave = async () => {
+  isLoading.value = true
+  try {
+    emit('leave')
+  } finally {
+    isLoading.value = false
+  }
+}
+
+const handleClose = () => {
+  emit('close')
+}
 </script>
 
 <template>
@@ -70,16 +86,21 @@ const emit = defineEmits<{
       <!-- Actions -->
       <div class="flex gap-3">
         <button
-          @click="emit('cancel')"
-          class="flex-1 px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-medium transition-colors duration-200"
+          @click="handleClose"
+          :disabled="isLoading"
+          class="flex-1 px-4 py-3 bg-gray-100 hover:bg-gray-200 disabled:bg-gray-50 text-gray-700 rounded-xl font-medium transition-colors duration-200"
         >
           Cancel
         </button>
         <button
-          @click="emit('confirm')"
-          class="flex-1 px-4 py-3 bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white rounded-xl font-medium transition-all duration-200 hover:shadow-lg"
+          @click="handleLeave"
+          :disabled="isLoading"
+          class="flex-1 px-4 py-3 bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 disabled:from-gray-400 disabled:to-gray-500 text-white rounded-xl font-medium transition-all duration-200 hover:shadow-lg flex items-center justify-center gap-2"
         >
-          Leave Group
+          <svg v-if="isLoading" class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          {{ isLoading ? 'Leaving...' : 'Leave Group' }}
         </button>
       </div>
     </div>

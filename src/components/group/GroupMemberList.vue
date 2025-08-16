@@ -96,8 +96,17 @@ const updateMemberRole = async (member: GroupMember, newRole: 'member' | 'admin'
 }
 
 const removeMember = async (memberId: string) => {
-  // TODO: Implement remove member functionality
-  console.log('Remove member:', memberId)
+  if (!confirm(`Are you sure you want to remove this member from the group?`)) {
+    return
+  }
+
+  try {
+    await groupStore.removeMember(memberId)
+    // Member will be automatically removed from the list via store update
+  } catch (error) {
+    console.error('Failed to remove member:', error)
+    // You might want to show an error message to the user here
+  }
 }
 
 const toggleRoleMenu = (memberId: string) => {

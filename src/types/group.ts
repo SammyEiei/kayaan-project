@@ -25,14 +25,16 @@ export interface GroupMember {
 export interface GroupResource {
   id: string
   groupId: string
-  uploadedBy: string
-  uploaderName: string
-  type: 'link' | 'file' | 'all' | 'note' | 'imported_content'
   title: string
-  contentText: string
+  description: string
+  fileUrl: string
+  fileType: string
+  fileSize: number
+  uploaderId: string
+  uploaderName: string
   createdAt: string
-  commentCount: number
-  reactionCount: number
+  comments: ResourceComment[]
+  reactions: ResourceReaction[]
 }
 
 export interface ResourceComment {
@@ -95,10 +97,7 @@ export interface UpdateMemberRoleRequest {
 export interface UploadResourceRequest {
   title: string
   description: string
-  type: 'link' | 'file' | 'note'
-  content?: string
-  fileUrl?: string
-  tags?: string[]
+  file: File
 }
 
 export interface AddCommentRequest {
