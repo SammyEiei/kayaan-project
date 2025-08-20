@@ -188,6 +188,9 @@
             </template>
 
             <template v-if="isLoggedIn">
+              <!-- Notification Bell -->
+              <NotificationBell />
+
               <button
                 class="p-2 rounded-lg transition-colors duration-150"
                 style="color: var(--text-secondary)"
@@ -221,6 +224,9 @@
         <main class="flex-1">
           <RouterView />
         </main>
+
+        <!-- Notification Toast -->
+        <NotificationToast />
 
         <!-- Footer -->
         <footer
@@ -340,6 +346,8 @@
 import { RouterView, useRoute, useRouter } from 'vue-router'
 import { computed, onMounted, h, ref, watch } from 'vue' // 🆕 Add ref, watch
 import PomodoroWidget from '@/components/PomodoroWidget.vue'
+import NotificationBell from '@/components/NotificationBell.vue'
+import NotificationToast from '@/components/NotificationToast.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useThemeStore } from '@/stores/theme'
 

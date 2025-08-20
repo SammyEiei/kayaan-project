@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import GroupService from '@/service/GroupService'
 import UserService from '@/service/UserService'
 import { useAuthStore } from '@/stores/auth'
+import { useNotificationStore } from '@/stores/notification'
 import { mapGroupDto } from '@/utils/mapGroupDto'
 import type {
   StudyGroup,
@@ -394,6 +395,20 @@ export const useGroupStore = defineStore('group', () => {
       }
 
       groupResources.value.push(newResource)
+
+      // Send notification to group members about new resource
+      const notificationStore = useNotificationStore()
+
+      if (currentGroup.value) {
+        notificationStore.addNotification({
+          type: 'info',
+          title: 'New Resource Shared',
+          message: `"${resourceData.title}" has been shared in ${currentGroup.value.name}`,
+          groupId: currentGroup.value.id,
+          resourceId: newResource.id
+        })
+      }
+
       return newResource
     } catch (err) {
       error.value = 'Failed to upload resource'
@@ -443,6 +458,19 @@ export const useGroupStore = defineStore('group', () => {
         createdAt: new Date().toISOString(),
       }
       resourceComments.value.push(newComment)
+
+      // Send notification about new comment
+      const notificationStore = useNotificationStore()
+      if (currentGroup.value) {
+        notificationStore.addNotification({
+          type: 'info',
+          title: 'New Comment',
+          message: `Someone commented on a resource in ${currentGroup.value.name}`,
+          groupId: currentGroup.value.id,
+          resourceId: commentData.resourceId
+        })
+      }
+
       return newComment
     } catch (err) {
       error.value = 'Failed to add comment'
@@ -474,6 +502,110 @@ export const useGroupStore = defineStore('group', () => {
     } catch (err) {
       error.value = 'Failed to add reaction'
       console.error('addReaction error:', err)
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // New methods for content management
+  const createPost = async (postData: CreatePostRequest) => {
+    loading.value = true
+    error.value = null
+    try {
+      // TODO: Replace with actual API call
+      // const response = await groupService.createPost(postData)
+      // return response.data
+
+      // Mock post creation
+      const newPost: GroupPost = {
+        id: Date.now().toString(),
+        groupId: postData.groupId,
+        authorId: 'current-user',
+        authorName: 'Current User',
+        authorAvatar: undefined,
+        content: postData.content,
+        contentType: postData.contentType,
+        attachments: [],
+        tags: postData.tags || [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        likes: 0,
+        comments: [],
+        isEdited: false,
+        isPinned: false
+      }
+
+      // TODO: Add to posts array when implemented
+      return newPost
+    } catch (err) {
+      error.value = 'Failed to create post'
+      console.error('createPost error:', err)
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  const updateGroupSettings = async (groupId: string, settings: UpdateGroupSettingsRequest) => {
+    loading.value = true
+    error.value = null
+    try {
+      // TODO: Replace with actual API call
+      // const response = await groupService.updateGroupSettings(groupId, settings)
+      // return response.data
+
+      // Mock update
+      if (currentGroup.value && currentGroup.value.id === groupId) {
+        currentGroup.value = {
+          ...currentGroup.value,
+          isPrivate: settings.isPrivate,
+          maxMembers: settings.maxMembers
+        }
+      }
+
+      return { success: true }
+    } catch (err) {
+      error.value = 'Failed to update group settings'
+      console.error('updateGroupSettings error:', err)
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  const approveJoinRequest = async (requestId: string, approved: boolean) => {
+    loading.value = true
+    error.value = null
+    try {
+      // TODO: Replace with actual API call
+      // const response = await groupService.approveJoinRequest(requestId, approved)
+      // return response.data
+
+      // Mock approval
+      return { success: true, approved }
+    } catch (err) {
+      error.value = 'Failed to approve join request'
+      console.error('approveJoinRequest error:', err)
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  const revokeInvite = async (inviteId: string) => {
+    loading.value = true
+    error.value = null
+    try {
+      // TODO: Replace with actual API call
+      // const response = await groupService.revokeInvite(inviteId)
+      // return response.data
+
+      // Mock revocation
+      return { success: true }
+    } catch (err) {
+      error.value = 'Failed to revoke invite'
+      console.error('revokeInvite error:', err)
       throw err
     } finally {
       loading.value = false
@@ -517,5 +649,9 @@ export const useGroupStore = defineStore('group', () => {
     deleteResource,
     addComment,
     addReaction,
+    createPost,
+    updateGroupSettings,
+    approveJoinRequest,
+    revokeInvite,
   }
 })

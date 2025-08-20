@@ -251,7 +251,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useQuizStore } from '@/stores/quiz'
+import { useAuthStore } from '@/stores/auth'
+import QuizService from '@/service/QuizService'
 
 interface Question {
   id: string;
@@ -270,7 +271,7 @@ interface QuizContent {
 }
 
 const router = useRouter()
-const quizStore = useQuizStore()
+const authStore = useAuthStore()
 
 const props = defineProps<{ editingContent?: QuizContent }>()
 
@@ -384,13 +385,28 @@ async function handleSave() {
       tags: tags.value.split(',').map(tag => tag.trim()).filter(Boolean),
     })),
   }
+
+  // Debug information
+  console.log('🔍 Quiz Creation Debug:')
+  console.log('📡 Backend URL:', import.meta.env.VITE_BACKEND_URL)
+  console.log('📦 Quiz Payload:', quizPayload)
+  console.log('🔑 Auth Token:', authStore.token ? 'EXISTS' : 'NOT FOUND')
+  console.log('👤 Current User:', authStore.user)
+
   try {
-    await quizStore.createQuiz(quizPayload)
+    // Check if user is authenticated
+    if (!authStore.isAuthenticated || !authStore.user?.username) {
+      throw new Error('Please log in to create a quiz')
+    }
+
+    // Use QuizService directly instead of quizStore
+    await QuizService.createQuiz(quizPayload)
     successMessage.value = 'Quiz saved successfully!'
     setTimeout(() => {
       onBack()
     }, 1000)
   } catch (err: unknown) {
+    console.error('❌ Quiz Creation Error Details:', err)
     errorMessage.value = err instanceof Error ? err.message : 'Failed to save quiz'
   } finally {
     isSaving.value = false

@@ -235,6 +235,7 @@ import { useRouter } from 'vue-router'
 import QuizService from '@/service/QuizService'
 import NoteService from '@/service/NoteService'
 import FlashcardService from '@/service/FlashcardService'
+import { useAuthStore } from '@/stores/auth'
 
 interface ContentItem {
   id: string
@@ -247,6 +248,7 @@ interface ContentItem {
 }
 
 const router = useRouter()
+const authStore = useAuthStore()
 
 // Reactive data
 const searchQuery = ref('')
@@ -258,10 +260,17 @@ const contentItems = ref<ContentItem[]>([])
 
 async function loadContentItems() {
   try {
+    // Check if user is authenticated
+    if (!authStore.isAuthenticated || !authStore.user?.username) {
+      console.warn('User not authenticated, cannot load content')
+      return
+    }
+
+    const username = authStore.user.username
     const [quizzes, notes, flashcards] = await Promise.all([
-      QuizService.getAllQuizzesForUser('current-user'), // TODO: Get actual username from auth
-      NoteService.getAllNotesForUser('current-user'), // TODO: Get actual username from auth
-      FlashcardService.getAllFlashcardsForUser('current-user'), // TODO: Get actual username from auth
+      QuizService.getAllQuizzesForUser(username),
+      NoteService.getAllNotesForUser(username),
+      FlashcardService.getAllFlashcardsForUser(username),
     ])
 
     const quizItems = quizzes.map((q: any) => ({
@@ -414,15 +423,21 @@ async function emitDelete(item: ContentItem, type: string) {
   if (!confirm('Are you sure you want to delete this item?')) return
 
   try {
+    // Check if user is authenticated
+    if (!authStore.isAuthenticated || !authStore.user?.username) {
+      throw new Error('Please log in to delete content')
+    }
+
+    const username = authStore.user.username
     switch (type) {
       case 'quiz':
-        await QuizService.deleteQuiz(Number(item.id), 'current-user') // TODO: Get actual username from auth
+        await QuizService.deleteQuiz(Number(item.id), username)
         break
       case 'note':
-        await NoteService.deleteNote(Number(item.id), 'current-user') // TODO: Get actual username from auth
+        await NoteService.deleteNote(Number(item.id), username)
         break
       case 'flashcard':
-        await FlashcardService.deleteFlashcard(Number(item.id), 'current-user') // TODO: Get actual username from auth
+        await FlashcardService.deleteFlashcard(Number(item.id), username)
         break
     }
     await loadContentItems()

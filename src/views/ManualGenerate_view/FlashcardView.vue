@@ -263,6 +263,7 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import FlashcardService from '@/service/FlashcardService'
+import { useAuthStore } from '@/stores/auth'
 
 interface Flashcard {
   id: string
@@ -271,6 +272,7 @@ interface Flashcard {
 }
 
 const router = useRouter()
+const authStore = useAuthStore()
 const isLoading = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')
@@ -336,13 +338,18 @@ const handleSave = async () => {
   successMessage.value = ''
 
   try {
+    // Check if user is authenticated
+    if (!authStore.isAuthenticated || !authStore.user?.username) {
+      throw new Error('Please log in to save flashcard deck')
+    }
+
     const flashcardDeck = {
       title: title.value,
       subject: subject.value,
       tags: tags.value
         .split(',')
-        .map((tag) => tag.trim())
-        .filter((tag) => tag),
+        .map((tag: string) => tag.trim())
+        .filter((tag: string) => tag),
       difficulty: difficulty.value,
       cards: validCards,
     }

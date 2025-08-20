@@ -346,6 +346,11 @@ const saveNote = async () => {
   successMessage.value = ''
 
   try {
+    // Check if user is authenticated
+    if (!authStore.isAuthenticated || !authStore.user?.username) {
+      throw new Error('Please log in to save notes')
+    }
+
     const tagsArray = noteData.tags
       .split(',')
       .map((tag) => tag.trim())
@@ -360,7 +365,7 @@ const saveNote = async () => {
     }
 
     if (editingId.value) {
-      await NoteService.updateNote(editingId.value, notePayload, authStore.currentUserName)
+      await NoteService.updateNote(editingId.value, notePayload, authStore.user.username)
       successMessage.value = 'Note updated successfully!'
     } else {
       await NoteService.createNote(notePayload)
