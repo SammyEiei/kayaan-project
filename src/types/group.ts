@@ -99,7 +99,7 @@ export interface GroupInvite {
   inviterId: string
   inviterName: string
   expiresAt: string
-  maxUses?: number
+  maxUses: number
   currentUses: number
   isActive: boolean
   createdAt: string
@@ -119,31 +119,145 @@ export interface JoinRequest {
   reviewedBy?: string
 }
 
-// เพิ่ม type ใหม่สำหรับ Group Notification
-export interface GroupNotification {
-  id: string
+// เพิ่ม type ใหม่สำหรับ Permission System
+export interface PermissionCheckResponse {
+  hasPermission: boolean
+  permission: string
   groupId: string
   userId: string
-  type: 'post' | 'comment' | 'member_joined' | 'member_left' | 'resource_uploaded' | 'invite_accepted'
-  title: string
-  message: string
-  data?: Record<string, any>
-  isRead: boolean
-  createdAt: string
+  message?: string
+  timestamp: string
 }
 
-// เพิ่ม type ใหม่สำหรับ Group Search
+export interface GroupPermission {
+  id: string
+  name: string
+  description: string
+  category: 'content' | 'member' | 'security' | 'admin'
+}
+
+export interface GroupRole {
+  id: string
+  name: 'OWNER' | 'ADMIN' | 'MODERATOR' | 'MEMBER'
+  permissions: GroupPermission[]
+}
+
+// เพิ่ม type ใหม่สำหรับ API Response
+export interface ApiResponse<T> {
+  success: boolean
+  message: string
+  data: T
+  timestamp: string
+  errorCode?: string
+}
+
+// เพิ่ม type ใหม่สำหรับ Create Group Request
+export interface CreateGroupRequest {
+  name: string
+  description: string
+  isPrivate: boolean
+  maxMembers?: number
+  tags?: string[]
+}
+
+// เพิ่ม type ใหม่สำหรับ Update Group Request
+export interface UpdateGroupRequest {
+  name?: string
+  description?: string
+  isPrivate?: boolean
+  maxMembers?: number
+  tags?: string[]
+}
+
+// เพิ่ม type ใหม่สำหรับ Invite Member Request
+export interface InviteMemberRequest {
+  email: string
+  role?: 'member' | 'admin'
+  message?: string
+}
+
+// เพิ่ม type ใหม่สำหรับ Generate Invite Code Request
+export interface GenerateInviteCodeRequest {
+  maxUses?: number
+  expiresInDays?: number
+  message?: string
+}
+
+// เพิ่ม type ใหม่สำหรับ Join Group By Code Request
+export interface JoinGroupByCodeRequest {
+  inviteCode: string
+  message?: string
+}
+
+// เพิ่ม type ใหม่สำหรับ Update Member Role Request
+export interface UpdateMemberRoleRequest {
+  userId: string
+  role: 'member' | 'admin'
+}
+
+// เพิ่ม type ใหม่สำหรับ Upload Resource Request
+export interface UploadResourceRequest {
+  title: string
+  description: string
+  file: File
+  tags?: string[]
+  isPublic?: boolean
+}
+
+// เพิ่ม type ใหม่สำหรับ Add Comment Request
+export interface AddCommentRequest {
+  content: string
+  parentCommentId?: string
+}
+
+// เพิ่ม type ใหม่สำหรับ Add Reaction Request
+export interface AddReactionRequest {
+  type: 'like' | 'love' | 'laugh' | 'wow' | 'sad' | 'angry'
+}
+
+// เพิ่ม type ใหม่สำหรับ Create Post Request
+export interface CreatePostRequest {
+  groupId: string
+  content: string
+  contentType: 'text' | 'image' | 'file' | 'mixed'
+  attachments?: File[]
+  tags?: string[]
+}
+
+// เพิ่ม type ใหม่สำหรับ Update Post Request
+export interface UpdatePostRequest {
+  content: string
+  tags?: string[]
+}
+
+// เพิ่ม type ใหม่สำหรับ Add Post Comment Request
+export interface AddPostCommentRequest {
+  content: string
+  parentCommentId?: string
+}
+
+// เพิ่ม type ใหม่สำหรับ Search Group Content Request
+export interface SearchGroupContentRequest {
+  query: string
+  contentType?: 'all' | 'text' | 'image' | 'file' | 'mixed'
+  tags?: string[]
+  authorId?: string
+  dateFrom?: string
+  dateTo?: string
+  sortBy?: 'recent' | 'popular' | 'relevance'
+  page?: number
+  limit?: number
+}
+
+// เพิ่ม type ใหม่สำหรับ Group Search Filters
 export interface GroupSearchFilters {
   query?: string
-  type?: 'all' | 'note' | 'file' | 'link' | 'imported_content'
-  author?: string
-  dateRange?: {
-    start: string
-    end: string
-  }
   tags?: string[]
-  sortBy?: 'recent' | 'popular' | 'name' | 'date'
-  sortOrder?: 'asc' | 'desc'
+  isPrivate?: boolean
+  hasAvailableSpots?: boolean
+  sortBy?: 'recent' | 'popular' | 'name'
+  page?: number
+  limit?: number
 }
 
 // เพิ่ม type ใหม่สำหรับ Group Statistics
@@ -184,95 +298,4 @@ export interface InviteRequest {
   groupId: string
   inviteType: 'username' | 'email' | 'link'
   value: string
-}
-
-// API Response Types
-export interface CreateGroupRequest {
-  name: string
-  description: string
-}
-
-export interface UpdateGroupRequest {
-  name?: string
-  description?: string
-}
-
-export interface InviteMemberRequest {
-  email: string
-  role?: 'member' | 'admin'
-}
-
-export interface GenerateInviteCodeRequest {
-  expiresInHours?: number
-}
-
-export interface JoinGroupByCodeRequest {
-  inviteCode: string
-}
-
-export interface UpdateMemberRoleRequest {
-  userId: string
-  role: 'member' | 'admin'
-}
-
-export interface UploadResourceRequest {
-  title: string
-  description: string
-  file: File
-}
-
-export interface AddCommentRequest {
-  resourceId: string
-  content: string
-}
-
-export interface AddReactionRequest {
-  resourceId: string
-  reactionType: 'like' | 'dislike' | 'heart' | 'star'
-}
-
-// เพิ่ม API Request Types ใหม่
-export interface CreatePostRequest {
-  groupId: string
-  content: string
-  contentType: 'text' | 'image' | 'file' | 'mixed'
-  attachments?: File[]
-  tags?: string[]
-}
-
-export interface UpdatePostRequest {
-  content: string
-  tags?: string[]
-}
-
-export interface AddPostCommentRequest {
-  postId: string
-  content: string
-  parentCommentId?: string
-}
-
-export interface SearchGroupContentRequest {
-  groupId: string
-  filters: GroupSearchFilters
-  page?: number
-  limit?: number
-}
-
-export interface ApproveJoinRequestRequest {
-  requestId: string
-  approved: boolean
-  message?: string
-}
-
-export interface RemoveMemberRequest {
-  userId: string
-  reason?: string
-}
-
-export interface UpdateGroupSettingsRequest {
-  isPrivate: boolean
-  maxMembers?: number
-  allowMemberInvites: boolean
-  requireApproval: boolean
-  autoApproveMembers: boolean
 }
