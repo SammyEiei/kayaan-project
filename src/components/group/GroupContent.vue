@@ -103,8 +103,7 @@ const handleTagInput = (event: Event) => {
 const fetchPosts = async () => {
   loading.value = true
   try {
-    // TODO: Implement fetchPosts in groupStore
-    // posts.value = await groupStore.fetchGroupPosts(props.groupId)
+    posts.value = await groupStore.fetchGroupPosts(props.groupId)
   } catch (error) {
     console.error('Failed to fetch posts:', error)
   } finally {

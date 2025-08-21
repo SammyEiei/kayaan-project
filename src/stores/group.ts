@@ -20,6 +20,14 @@ import type {
   UploadResourceRequest,
   AddCommentRequest,
   AddReactionRequest,
+  CreatePostRequest,
+  UpdatePostRequest,
+  AddPostCommentRequest,
+  SearchGroupContentRequest,
+  GroupSearchFilters,
+  GroupPost,
+  PostComment,
+  UpdateGroupSettingsRequest,
 } from '@/types/group'
 
 export const useGroupStore = defineStore('group', () => {
@@ -42,6 +50,7 @@ export const useGroupStore = defineStore('group', () => {
   const resourceReactions = ref<ResourceReaction[]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)
+  const groupPosts = ref<GroupPost[]>([])
 
   // Getters
   const userGroups = computed(() => groups.value)
@@ -71,6 +80,9 @@ export const useGroupStore = defineStore('group', () => {
           inviteCode: generateInviteCode(),
           memberCount: (groupDto as unknown as Record<string, unknown>).membersCount as number || 0,
           userRole: mapped.isOwner ? 'admin' : 'member',
+          isPrivate: false, // Default value
+          maxMembers: undefined,
+          tags: []
         }
       })
     } catch (err) {
@@ -101,6 +113,9 @@ export const useGroupStore = defineStore('group', () => {
         memberCount: 1, // Creator is the first member
         isOwner: true,
         userRole: 'admin', // Creator should be admin
+        isPrivate: false, // Default value
+        maxMembers: undefined,
+        tags: []
       }
 
       groups.value.push(newGroup)
@@ -152,6 +167,9 @@ export const useGroupStore = defineStore('group', () => {
         memberCount: groupResponse.membersCount || 0,
         isOwner: groupResponse.isOwner || false,
         userRole: groupResponse.userRole || 'member',
+        isPrivate: false, // Default value
+        maxMembers: undefined,
+        tags: []
       }
 
       currentGroup.value = group
@@ -181,6 +199,9 @@ export const useGroupStore = defineStore('group', () => {
         createdAt: resource.createdAt,
         comments: [],
         reactions: [],
+        type: 'file' as const, // Default type
+        isPublic: true, // Default value
+        tags: []
       }))
 
       return group
@@ -351,6 +372,9 @@ export const useGroupStore = defineStore('group', () => {
         memberCount: response.membersCount || 0,
         isOwner: false,
         userRole: 'member',
+        isPrivate: false, // Default value
+        maxMembers: undefined,
+        tags: []
       }
 
       groups.value.push(newGroup)
@@ -392,6 +416,9 @@ export const useGroupStore = defineStore('group', () => {
         createdAt: response.createdAt,
         comments: [],
         reactions: [],
+        type: 'file' as const, // Default type
+        isPublic: true, // Default value
+        tags: []
       }
 
       groupResources.value.push(newResource)
@@ -536,11 +563,258 @@ export const useGroupStore = defineStore('group', () => {
         isPinned: false
       }
 
-      // TODO: Add to posts array when implemented
+      // Add to posts array
+      if (!groupPosts.value) {
+        groupPosts.value = []
+      }
+      groupPosts.value.unshift(newPost)
+
+      // Send notification to group members about new post
+      const notificationStore = useNotificationStore()
+      if (currentGroup.value) {
+        notificationStore.addNotification({
+          type: 'info',
+          title: 'New Post',
+          message: `New post in ${currentGroup.value.name}`,
+          groupId: currentGroup.value.id,
+          resourceId: newPost.id
+        })
+      }
+
       return newPost
     } catch (err) {
       error.value = 'Failed to create post'
       console.error('createPost error:', err)
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  const fetchGroupPosts = async (groupId: string, filters?: GroupSearchFilters) => {
+    loading.value = true
+    error.value = null
+    try {
+      // TODO: Replace with actual API call
+      // const response = await groupService.fetchGroupPosts(groupId, filters)
+      // groupPosts.value = response.data
+
+      // Mock posts for now
+      if (!groupPosts.value) {
+        groupPosts.value = []
+      }
+
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 500))
+
+      return groupPosts.value
+    } catch (err) {
+      error.value = 'Failed to fetch group posts'
+      console.error('fetchGroupPosts error:', err)
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  const updatePost = async (postId: string, updateData: UpdatePostRequest) => {
+    loading.value = true
+    error.value = null
+    try {
+      // TODO: Replace with actual API call
+      // const response = await groupService.updatePost(postId, updateData)
+      // return response.data
+
+      // Update local state
+      if (groupPosts.value) {
+        const postIndex = groupPosts.value.findIndex(p => p.id === postId)
+        if (postIndex !== -1) {
+          groupPosts.value[postIndex] = {
+            ...groupPosts.value[postIndex],
+            content: updateData.content,
+            tags: updateData.tags || groupPosts.value[postIndex].tags,
+            updatedAt: new Date().toISOString(),
+            isEdited: true
+          }
+        }
+      }
+
+      return { success: true }
+    } catch (err) {
+      error.value = 'Failed to update post'
+      console.error('updatePost error:', err)
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  const deletePost = async (postId: string) => {
+    loading.value = true
+    error.value = null
+    try {
+      // TODO: Replace with actual API call
+      // await groupService.deletePost(postId)
+
+      // Remove from local state
+      if (groupPosts.value) {
+        groupPosts.value = groupPosts.value.filter(p => p.id !== postId)
+      }
+
+      return { success: true }
+    } catch (err) {
+      error.value = 'Failed to delete post'
+      console.error('deletePost error:', err)
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  const addPostComment = async (commentData: AddPostCommentRequest) => {
+    loading.value = true
+    error.value = null
+    try {
+      // TODO: Replace with actual API call
+      // const response = await groupService.addPostComment(commentData)
+      // return response.data
+
+      // Create new comment
+      const newComment: PostComment = {
+        id: Date.now().toString(),
+        postId: commentData.postId,
+        authorId: 'current-user',
+        authorName: 'Current User',
+        authorAvatar: undefined,
+        content: commentData.content,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        likes: 0,
+        isEdited: false,
+        replies: []
+      }
+
+      // Add to post comments
+      if (groupPosts.value) {
+        const postIndex = groupPosts.value.findIndex(p => p.id === commentData.postId)
+        if (postIndex !== -1) {
+          if (!groupPosts.value[postIndex].comments) {
+            groupPosts.value[postIndex].comments = []
+          }
+          groupPosts.value[postIndex].comments.push(newComment)
+        }
+      }
+
+      // Send notification about new comment
+      const notificationStore = useNotificationStore()
+      if (currentGroup.value) {
+        notificationStore.addNotification({
+          type: 'info',
+          title: 'New Comment',
+          message: `New comment on a post in ${currentGroup.value.name}`,
+          groupId: currentGroup.value.id,
+          resourceId: commentData.postId
+        })
+      }
+
+      return newComment
+    } catch (err) {
+      error.value = 'Failed to add comment'
+      console.error('addPostComment error:', err)
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  const likePost = async (postId: string) => {
+    try {
+      // TODO: Replace with actual API call
+      // await groupService.likePost(postId)
+
+      // Update local state
+      if (groupPosts.value) {
+        const postIndex = groupPosts.value.findIndex(p => p.id === postId)
+        if (postIndex !== -1) {
+          groupPosts.value[postIndex].likes += 1
+        }
+      }
+
+      return { success: true }
+    } catch (err) {
+      console.error('likePost error:', err)
+      throw err
+    }
+  }
+
+  const searchGroupContent = async (request: SearchGroupContentRequest) => {
+    loading.value = true
+    error.value = null
+    try {
+      // TODO: Replace with actual API call
+      // const response = await groupService.searchGroupContent(request)
+      // return response.data
+
+      // Mock search results
+      let results: (GroupPost | GroupResource)[] = []
+
+      if (groupPosts.value) {
+        results = [...groupPosts.value]
+      }
+
+      if (groupResources.value) {
+        results = [...results, ...groupResources.value]
+      }
+
+      // Apply filters
+      if (request.filters.query) {
+        const query = request.filters.query.toLowerCase()
+        results = results.filter(item => {
+          if ('content' in item) {
+            // GroupPost
+            return item.content.toLowerCase().includes(query) ||
+                   item.tags?.some(tag => tag.toLowerCase().includes(query))
+          } else {
+            // GroupResource
+            return item.title.toLowerCase().includes(query) ||
+                   item.description.toLowerCase().includes(query) ||
+                   item.tags?.some(tag => tag.toLowerCase().includes(query))
+          }
+        })
+      }
+
+      if (request.filters.type && request.filters.type !== 'all') {
+        results = results.filter(item => {
+          if ('contentType' in item) {
+            // GroupPost
+            return item.contentType === request.filters.type
+          } else {
+            // GroupResource
+            return item.type === request.filters.type
+          }
+        })
+      }
+
+      // Sort results
+      if (request.filters.sortBy === 'recent') {
+        results.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      } else if (request.filters.sortBy === 'popular') {
+        results.sort((a, b) => {
+          const aLikes = 'likes' in a ? a.likes : 0
+          const bLikes = 'likes' in b ? b.likes : 0
+          return bLikes - aLikes
+        })
+      }
+
+      return {
+        results,
+        total: results.length,
+        page: request.page || 1,
+        limit: request.limit || 20
+      }
+    } catch (err) {
+      error.value = 'Failed to search group content'
+      console.error('searchGroupContent error:', err)
       throw err
     } finally {
       loading.value = false
@@ -622,6 +896,7 @@ export const useGroupStore = defineStore('group', () => {
     resourceReactions,
     loading,
     error,
+    groupPosts,
 
     // Getters
     userGroups,
@@ -650,6 +925,12 @@ export const useGroupStore = defineStore('group', () => {
     addComment,
     addReaction,
     createPost,
+    fetchGroupPosts,
+    updatePost,
+    deletePost,
+    addPostComment,
+    likePost,
+    searchGroupContent,
     updateGroupSettings,
     approveJoinRequest,
     revokeInvite,

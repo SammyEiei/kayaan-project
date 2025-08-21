@@ -21,6 +21,16 @@ const selectedMember = ref<GroupMember | null>(null)
 const showRemoveMemberModal = ref(false)
 const removeReason = ref('')
 
+// Invite code validation
+const inviteCodeToValidate = ref('')
+const inviteCodeValidation = ref<{ isValid: boolean; message: string } | null>(null)
+const newInviteCode = ref('')
+const inviteExpiry = ref('')
+
+// Pending invites and join requests
+const pendingInvites = ref<GroupInvite[]>([])
+const joinRequests = ref<JoinRequest[]>([])
+
 // Settings state
 const groupSettings = ref({
   isPrivate: false,
@@ -71,10 +81,13 @@ const handleRemoveMember = async () => {
 
   loading.value = true
   try {
-    await groupStore.removeMember(props.groupId, selectedMember.value.userId, removeReason.value)
+    await groupStore.removeMember(selectedMember.value.userId)
     showRemoveMemberModal.value = false
     selectedMember.value = null
     removeReason.value = ''
+
+    // Refresh members list
+    await fetchMembers()
   } catch (error) {
     console.error('Failed to remove member:', error)
   } finally {
@@ -98,7 +111,11 @@ const handleRevokeInvite = async (inviteId: string) => {
   loading.value = true
   try {
     await groupStore.revokeInvite(inviteId)
-    // Refresh invites
+
+    // Refresh invites list
+    await fetchInvites()
+
+    console.log('Invite revoked successfully')
   } catch (error) {
     console.error('Failed to revoke invite:', error)
   } finally {
@@ -111,12 +128,116 @@ const openRemoveMemberModal = (member: GroupMember) => {
   showRemoveMemberModal.value = true
 }
 
+// Helper functions
+const validateInviteCode = (code: string): boolean => {
+  // Basic validation: 6-8 characters, alphanumeric
+  const regex = /^[A-Z0-9]{6,8}$/
+  return regex.test(code)
+}
+
+const checkInviteCodeValidity = (code: string): { isValid: boolean; message: string } => {
+  if (!code.trim()) {
+    return { isValid: false, message: 'Invite code is required' }
+  }
+
+  if (!validateInviteCode(code)) {
+    return { isValid: false, message: 'Invalid invite code format (6-8 alphanumeric characters)' }
+  }
+
+  return { isValid: true, message: 'Invite code is valid' }
+}
+
+const handleInviteCodeValidation = () => {
+  const validation = checkInviteCodeValidity(inviteCodeToValidate.value)
+  inviteCodeValidation.value = validation
+
+  if (validation.isValid) {
+    // TODO: Check against backend for actual validity
+    console.log('Invite code validation passed')
+  }
+}
+
+const generateSecureInviteCode = async () => {
+  try {
+    const response = await groupStore.generateNewInviteCode({
+      expiresInHours: 24 // 24 hours
+    })
+
+    // Update local state
+    if (response.inviteCode) {
+      newInviteCode.value = response.inviteCode
+      inviteExpiry.value = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+    }
+
+    console.log('New invite code generated successfully')
+  } catch (error) {
+    console.error('Failed to generate invite code:', error)
+  }
+}
+
+const fetchMembers = async () => {
+  try {
+    // This will be handled by the parent component or store
+    // For now, we'll use the existing members from props
+  } catch (error) {
+    console.error('Failed to fetch members:', error)
+  }
+}
+
+const fetchInvites = async () => {
+  try {
+    // TODO: Implement fetch invites from store
+    // For now, we'll use mock data
+    pendingInvites.value = [
+      {
+        id: '1',
+        groupId: props.groupId,
+        inviteCode: 'ABC123',
+        inviterId: 'admin',
+        inviterName: 'Admin User',
+        expiresAt: new Date(Date.now() + 22 * 60 * 60 * 1000).toISOString(),
+        maxUses: 5,
+        currentUses: 0,
+        isActive: true,
+        createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
+      }
+    ]
+  } catch (error) {
+    console.error('Failed to fetch invites:', error)
+  }
+}
+
+const fetchJoinRequests = async () => {
+  try {
+    // TODO: Implement fetch join requests from store
+    // For now, we'll use mock data
+    joinRequests.value = [
+      {
+        id: '1',
+        groupId: props.groupId,
+        userId: 'user1',
+        username: 'John Doe',
+        email: 'john@example.com',
+        message: 'I would like to join this study group',
+        status: 'pending',
+        createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString()
+      }
+    ]
+  } catch (error) {
+    console.error('Failed to fetch join requests:', error)
+  }
+}
+
 onMounted(() => {
   // Load current group settings
   if (groupStore.currentGroup) {
     groupSettings.value.isPrivate = groupStore.currentGroup.isPrivate || false
     groupSettings.value.maxMembers = groupStore.currentGroup.maxMembers || 50
   }
+
+  // Fetch initial data
+  fetchInvites()
+  fetchJoinRequests()
 })
 </script>
 
@@ -405,6 +526,161 @@ onMounted(() => {
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
               </svg>
             </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Invite Code Validation Section -->
+    <div class="bg-white rounded-lg border border-gray-200">
+      <div class="p-6 border-b border-gray-200">
+        <h3 class="text-lg font-semibold text-gray-900">Invite Code Validation</h3>
+        <p class="text-sm text-gray-600 mt-1">Validate invite codes before sharing</p>
+      </div>
+
+      <div class="p-6 space-y-4">
+        <div class="flex gap-3">
+          <input
+            v-model="inviteCodeToValidate"
+            type="text"
+            placeholder="Enter invite code to validate..."
+            class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+          <button
+            @click="handleInviteCodeValidation"
+            class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors duration-200"
+          >
+            Validate
+          </button>
+        </div>
+
+        <div v-if="inviteCodeValidation" class="p-3 rounded-lg" :class="inviteCodeValidation.isValid ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'">
+          {{ inviteCodeValidation.message }}
+        </div>
+
+        <div class="flex gap-3">
+          <button
+            @click="generateSecureInviteCode"
+            class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors duration-200"
+          >
+            Generate New Code
+          </button>
+        </div>
+
+        <div v-if="newInviteCode" class="p-4 bg-blue-50 rounded-lg">
+          <h4 class="font-medium text-blue-900 mb-2">New Invite Code Generated</h4>
+          <div class="space-y-2">
+            <div class="flex items-center gap-2">
+              <span class="text-sm text-blue-700">Code:</span>
+              <code class="px-2 py-1 bg-blue-100 text-blue-800 rounded font-mono">{{ newInviteCode }}</code>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-sm text-blue-700">Expires:</span>
+              <span class="text-sm text-blue-600">{{ new Date(inviteExpiry).toLocaleString() }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pending Invites Section -->
+    <div v-if="pendingInvites.length > 0" class="bg-white rounded-lg border border-gray-200">
+      <div class="p-6 border-b border-gray-200">
+        <h3 class="text-lg font-semibold text-gray-900">Pending Invites</h3>
+        <p class="text-sm text-gray-600 mt-1">Manage active invite codes</p>
+      </div>
+
+      <div class="divide-y divide-gray-200">
+        <div
+          v-for="invite in pendingInvites"
+          :key="invite.id"
+          class="p-4 flex items-center justify-between hover:bg-gray-50"
+        >
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+              <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <div>
+              <div class="font-medium text-gray-900">Code: {{ invite.inviteCode }}</div>
+              <div class="text-sm text-gray-500">Invited by {{ invite.inviterName }}</div>
+              <div class="text-xs text-gray-400">Expires: {{ new Date(invite.expiresAt).toLocaleString() }}</div>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <span class="text-sm text-gray-600">
+              {{ invite.currentUses }}/{{ invite.maxUses }} uses
+            </span>
+            <button
+              @click="handleRevokeInvite(invite.id)"
+              class="text-red-600 hover:text-red-800 transition-colors"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Join Requests Section -->
+    <div v-if="joinRequests.length > 0" class="bg-white rounded-lg border border-gray-200">
+      <div class="p-6 border-b border-gray-200">
+        <h3 class="text-lg font-semibold text-gray-900">Join Requests</h3>
+        <p class="text-sm text-gray-600 mt-1">Review and approve pending join requests</p>
+      </div>
+
+      <div class="divide-y divide-gray-200">
+        <div
+          v-for="request in joinRequests"
+          :key="request.id"
+          class="p-4 flex items-center justify-between hover:bg-gray-50"
+        >
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
+              <svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+            </div>
+            <div>
+              <div class="font-medium text-gray-900">{{ request.username }}</div>
+              <div class="text-sm text-gray-500">{{ request.email }}</div>
+              <div v-if="request.message" class="text-sm text-gray-600 mt-1">{{ request.message }}</div>
+              <div class="text-xs text-gray-400">Requested: {{ new Date(request.createdAt).toLocaleString() }}</div>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <span
+              :class="
+                request.status === 'pending'
+                  ? 'bg-yellow-100 text-yellow-800'
+                  : request.status === 'approved'
+                  ? 'bg-green-100 text-green-800'
+                  : 'bg-red-100 text-red-800'
+              "
+              class="px-2 py-1 text-xs rounded-full font-medium"
+            >
+              {{ request.status }}
+            </span>
+
+            <div v-if="request.status === 'pending'" class="flex gap-2">
+              <button
+                @click="handleApproveRequest(request.id, true)"
+                class="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-sm transition-colors duration-200"
+              >
+                Approve
+              </button>
+              <button
+                @click="handleApproveRequest(request.id, false)"
+                class="bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-sm transition-colors duration-200"
+              >
+                Reject
+              </button>
+            </div>
           </div>
         </div>
       </div>
