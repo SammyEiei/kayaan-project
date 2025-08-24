@@ -15,18 +15,7 @@ export interface AIContent {
 export interface GenerationRequest {
   prompt: string
   type: string
-  model: string
-  temperature: number
-  maxTokens: number
-  language: string
   files?: File[]
-}
-
-export interface GenerationSettings {
-  model: string
-  temperature: number
-  maxTokens: number
-  language: string
 }
 
 export interface AIChatSession {
@@ -78,10 +67,12 @@ class AIContentService {
       const formData = new FormData()
       formData.append('prompt', request.prompt)
       formData.append('type', request.type)
-      formData.append('model', request.model)
-      formData.append('temperature', request.temperature.toString())
-      formData.append('maxTokens', request.maxTokens.toString())
-      formData.append('language', request.language)
+
+      // Use default settings instead of user settings
+      formData.append('model', 'gpt-4') // Default model
+      formData.append('temperature', '0.7') // Default temperature
+      formData.append('maxTokens', '1000') // Default max tokens
+      formData.append('language', 'th') // Default language
 
       if (request.files) {
         request.files.forEach((file, index) => {
@@ -176,27 +167,6 @@ class AIContentService {
       return response.data
     } catch (error) {
       console.error('Error sending chat message:', error)
-      throw error
-    }
-  }
-
-  // Update AI settings
-  async updateSettings(settings: GenerationSettings): Promise<void> {
-    try {
-      await apiClient.put(`${this.baseUrl}/settings`, settings)
-    } catch (error) {
-      console.error('Error updating AI settings:', error)
-      throw error
-    }
-  }
-
-  // Get AI settings
-  async getSettings(): Promise<GenerationSettings> {
-    try {
-      const response = await apiClient.get(`${this.baseUrl}/settings`)
-      return response.data
-    } catch (error) {
-      console.error('Error fetching AI settings:', error)
       throw error
     }
   }

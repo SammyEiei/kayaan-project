@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import AISettingsPanel from './ai/AISettingsPanel.vue'
 import AIContentPreview from './ai/AIContentPreview.vue'
 import FileProcessingStatus from './ai/FileProcessingStatus.vue'
 
@@ -14,27 +13,13 @@ interface AIContent {
   createdAt: Date
 }
 
-interface GenerationSettings {
-  model: string
-  temperature: number
-  maxTokens: number
-  language: string
-}
-
-const currentStep = ref<'input' | 'settings' | 'preview' | 'generating'>('input')
+const currentStep = ref<'input' | 'preview' | 'generating'>('input')
 const selectedTemplate = ref<string>('')
 const userPrompt = ref('')
 const uploadedFiles = ref<File[]>([])
 const isGenerating = ref(false)
 const generatedContent = ref<AIContent | null>(null)
 const generationProgress = ref(0)
-
-const settings = ref<GenerationSettings>({
-  model: 'gpt-4',
-  temperature: 0.7,
-  maxTokens: 1000,
-  language: 'th',
-})
 
 const templates = [
   {
@@ -68,12 +53,6 @@ const templates = [
   },
 ]
 
-const availableModels = [
-  { id: 'gpt-4', name: 'GPT-4', description: 'Most accurate and comprehensive' },
-  { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', description: 'Fast and cost-effective' },
-  { id: 'claude-3', name: 'Claude 3', description: 'Great for analysis' },
-]
-
 const canProceed = computed(() => {
   if (currentStep.value === 'input') {
     return userPrompt.value.trim().length > 0 || uploadedFiles.value.length > 0
@@ -103,17 +82,13 @@ const selectTemplate = (templateId: string) => {
 
 const nextStep = () => {
   if (currentStep.value === 'input') {
-    currentStep.value = 'settings'
-  } else if (currentStep.value === 'settings') {
     currentStep.value = 'preview'
   }
 }
 
 const prevStep = () => {
-  if (currentStep.value === 'settings') {
+  if (currentStep.value === 'preview') {
     currentStep.value = 'input'
-  } else if (currentStep.value === 'preview') {
-    currentStep.value = 'settings'
   }
 }
 
@@ -213,28 +188,6 @@ const reset = () => {
           <div class="w-12 h-1 bg-gray-200 rounded-full">
             <div
               class="h-1 bg-purple-600 rounded-full transition-all duration-300"
-              :style="{ width: currentStep === 'input' ? '0%' : '100%' }"
-            ></div>
-          </div>
-          <div
-            class="flex items-center"
-            :class="currentStep === 'settings' ? 'text-purple-600' : 'text-gray-400'"
-          >
-            <div
-              class="w-8 h-8 rounded-full flex items-center justify-center border-2 transition-colors"
-              :class="
-                currentStep === 'settings'
-                  ? 'border-purple-600 bg-purple-600 text-white'
-                  : 'border-gray-300'
-              "
-            >
-              2
-            </div>
-            <span class="ml-2 font-medium">Settings</span>
-          </div>
-          <div class="w-12 h-1 bg-gray-200 rounded-full">
-            <div
-              class="h-1 bg-purple-600 rounded-full transition-all duration-300"
               :style="{ width: currentStep === 'preview' ? '100%' : '0%' }"
             ></div>
           </div>
@@ -250,7 +203,7 @@ const reset = () => {
                   : 'border-gray-300'
               "
             >
-              3
+              2
             </div>
             <span class="ml-2 font-medium">Preview</span>
           </div>
@@ -383,20 +336,10 @@ const reset = () => {
           </div>
         </div>
 
-        <!-- Step 2: Settings -->
-        <AISettingsPanel
-          v-if="currentStep === 'settings'"
-          v-model:settings="settings"
-          :available-models="availableModels"
-          @next="nextStep"
-          @prev="prevStep"
-        />
-
-        <!-- Step 3: Preview -->
+        <!-- Step 2: Preview -->
         <AIContentPreview
           v-if="currentStep === 'preview'"
           :content="generatedContent"
-          :settings="settings"
           @generate="generateContent"
           @save="saveContent"
           @prev="prevStep"

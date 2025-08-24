@@ -4,7 +4,6 @@ import {
   aiContentService,
   type AIContent,
   type GenerationRequest,
-  type GenerationSettings,
 } from '@/service/AIContentService'
 
 export const useAIContentStore = defineStore('aiContent', () => {
@@ -13,12 +12,6 @@ export const useAIContentStore = defineStore('aiContent', () => {
   const currentContent = ref<AIContent | null>(null)
   const isGenerating = ref(false)
   const generationProgress = ref(0)
-  const settings = ref<GenerationSettings>({
-    model: 'gpt-4',
-    temperature: 0.7,
-    maxTokens: 1000,
-    language: 'en',
-  })
 
   // Getters
   const recentContent = computed(() => {
@@ -119,26 +112,6 @@ export const useAIContentStore = defineStore('aiContent', () => {
     }
   }
 
-  const updateSettings = async (newSettings: Partial<GenerationSettings>) => {
-    try {
-      settings.value = { ...settings.value, ...newSettings }
-      await aiContentService.updateSettings(settings.value)
-    } catch (error) {
-      console.error('Error updating settings:', error)
-      throw error
-    }
-  }
-
-  const loadSettings = async () => {
-    try {
-      const loadedSettings = await aiContentService.getSettings()
-      settings.value = loadedSettings
-    } catch (error) {
-      console.error('Error loading settings:', error)
-      // Use default settings if loading fails
-    }
-  }
-
   const setCurrentContent = (content: AIContent | null) => {
     currentContent.value = content
   }
@@ -153,7 +126,6 @@ export const useAIContentStore = defineStore('aiContent', () => {
     currentContent,
     isGenerating,
     generationProgress,
-    settings,
 
     // Getters
     recentContent,
@@ -164,8 +136,6 @@ export const useAIContentStore = defineStore('aiContent', () => {
     saveContent,
     deleteContent,
     loadContentHistory,
-    updateSettings,
-    loadSettings,
     setCurrentContent,
     clearCurrentContent,
   }

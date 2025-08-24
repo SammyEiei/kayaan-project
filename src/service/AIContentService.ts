@@ -14,18 +14,7 @@ export interface AIContent {
 export interface GenerationRequest {
   prompt: string
   type: string
-  model: string
-  temperature: number
-  maxTokens: number
-  language: string
   files?: File[]
-}
-
-export interface GenerationSettings {
-  model: string
-  temperature: number
-  maxTokens: number
-  language: string
 }
 
 export interface AIChatSession {
@@ -51,10 +40,12 @@ class AIContentService {
       const formData = new FormData()
       formData.append('prompt', request.prompt)
       formData.append('type', request.type)
-      formData.append('model', request.model)
-      formData.append('temperature', request.temperature.toString())
-      formData.append('maxTokens', request.maxTokens.toString())
-      formData.append('language', request.language)
+
+      // Use default settings instead of user settings
+      formData.append('model', 'gpt-4') // Default model
+      formData.append('temperature', '0.7') // Default temperature
+      formData.append('maxTokens', '1000') // Default max tokens
+      formData.append('language', 'th') // Default language
 
       if (request.files) {
         request.files.forEach((file, index) => {
@@ -153,27 +144,6 @@ class AIContentService {
     }
   }
 
-  // Update AI settings
-  async updateSettings(settings: GenerationSettings): Promise<void> {
-    try {
-      await this.client.put('/ai/settings', settings)
-    } catch (error) {
-      console.error('Error updating AI settings:', error)
-      throw error
-    }
-  }
-
-  // Get AI settings
-  async getSettings(): Promise<GenerationSettings> {
-    try {
-      const response = await this.client.get('/ai/settings')
-      return response.data
-    } catch (error) {
-      console.error('Error fetching AI settings:', error)
-      throw error
-    }
-  }
-
   // Mock methods for development
   async mockGenerateContent(request: GenerationRequest): Promise<AIContent> {
     // Simulate API delay
@@ -183,7 +153,7 @@ class AIContentService {
       id: Date.now().toString(),
       type: request.type as 'summary' | 'quiz' | 'flashcard' | 'notes',
       title: `Generated ${request.type} content`,
-      content: `This is AI-generated content based on the prompt: "${request.prompt}"\n\nThis content was generated using model ${request.model} with temperature ${request.temperature} and max tokens ${request.maxTokens} in ${request.language === 'en' ? 'English' : request.language}.\n\nYou can edit this content as needed.`,
+      content: `This is AI-generated content based on the prompt: "${request.prompt}"\n\nThis content was generated using our default AI settings for optimal results.\n\nYou can edit this content as needed.`,
       sourcePrompt: request.prompt,
       createdAt: new Date(),
       isShared: false,

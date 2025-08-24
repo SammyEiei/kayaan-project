@@ -11,16 +11,8 @@ interface AIContent {
   createdAt: Date
 }
 
-interface GenerationSettings {
-  model: string
-  temperature: number
-  maxTokens: number
-  language: string
-}
-
 interface Props {
   content: AIContent | null
-  settings: GenerationSettings
 }
 
 interface Emits {
@@ -179,29 +171,7 @@ const cancelEdit = () => {
         </div>
       </div>
 
-      <!-- Settings Info -->
-      <div class="bg-gray-50 rounded-lg p-4">
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-          <div>
-            <span class="text-gray-500">Model:</span>
-            <span class="font-medium text-gray-900 ml-1">{{ settings.model }}</span>
-          </div>
-          <div>
-            <span class="text-gray-500">Temperature:</span>
-            <span class="font-medium text-gray-900 ml-1">{{ settings.temperature }}</span>
-          </div>
-          <div>
-            <span class="text-gray-500">Max Tokens:</span>
-            <span class="font-medium text-gray-900 ml-1">{{ settings.maxTokens }}</span>
-          </div>
-          <div>
-            <span class="text-gray-500">Language:</span>
-            <span class="font-medium text-gray-900 ml-1">{{
-              settings.language === 'en' ? 'English' : settings.language
-            }}</span>
-          </div>
-        </div>
-      </div>
+      <!-- Content Preview -->
     </div>
 
     <!-- Content Preview -->
