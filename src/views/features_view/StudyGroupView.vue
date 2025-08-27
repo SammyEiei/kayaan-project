@@ -44,44 +44,15 @@ const handleBackToDashboard = () => {
 </script>
 
 <template>
-  <div
-    class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 relative overflow-hidden"
-  >
-    <!-- Background Elements -->
-    <div
-      class="absolute top-20 left-20 w-64 h-64 bg-gradient-to-r from-blue-200/10 to-indigo-200/10 rounded-full blur-3xl"
-    ></div>
-    <div
-      class="absolute bottom-20 right-20 w-80 h-80 bg-gradient-to-r from-purple-200/10 to-pink-200/10 rounded-full blur-3xl"
-    ></div>
-
-    <main class="relative z-10 p-6">
+  <div class="min-h-screen bg-slate-50">
+    <main class="p-6">
       <div class="max-w-7xl mx-auto space-y-8">
-        <!-- Back Navigation -->
-        <nav class="flex items-center space-x-2 text-sm text-gray-600">
-          <button
-            @click="handleBackToDashboard"
-            class="flex items-center gap-1 hover:text-blue-600 transition-colors duration-200"
-          >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-            </svg>
-            Dashboard
-          </button>
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-          </svg>
-          <span class="text-gray-900 font-medium">Study Groups</span>
-        </nav>
-
         <!-- Header -->
         <div class="text-center">
-          <h1
-            class="text-4xl font-bold bg-gradient-to-r from-gray-900 to-blue-800 bg-clip-text text-transparent mb-4"
-          >
+          <h1 class="text-3xl font-bold text-gray-900 mb-2">
             Study Groups
           </h1>
-          <p class="text-gray-600 text-lg">Collaborate, share resources, and learn together</p>
+          <p class="text-gray-600">Collaborate, share resources, and learn together</p>
         </div>
 
         <!-- Create Group Form -->

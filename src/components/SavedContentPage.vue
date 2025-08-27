@@ -578,7 +578,7 @@ onMounted(async () => {
                 :class="currentViewMode === 'interactive' ? 'bg-green-600 text-white' : 'bg-slate-200 text-slate-700'"
                 class="px-3 py-1 text-sm rounded-lg transition-colors"
               >
-                Interactive
+                Try me!
               </button>
             </div>
             <button

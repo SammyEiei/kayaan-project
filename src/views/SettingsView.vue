@@ -1,43 +1,20 @@
 /* Custom border width */ .border-3 { border-width: 3px; }
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-    <div class="max-w-7xl mx-auto p-4 lg:p-8 space-y-12">
-      <!-- Simple Header -->
-      <div class="text-center space-y-6">
-        <div
-          class="w-20 h-20 mx-auto bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl shadow-xl flex items-center justify-center"
-        >
-          <svg
-            class="h-10 w-10 text-white"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            viewBox="0 0 24 24"
-          >
-            <path d="M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z" />
-            <path d="M12 14a7 7 0 0 0-7 7h14a7 7 0 0 0-7-7Z" />
-          </svg>
-        </div>
-        <div>
-          <h1 class="text-4xl font-bold text-gray-900 mb-3">Personalization</h1>
-          <p class="text-lg text-gray-600">Customize your profile and preferences</p>
-        </div>
+  <div class="min-h-screen bg-slate-50">
+    <div class="max-w-7xl mx-auto p-6 space-y-8">
+      <!-- Header -->
+      <div class="text-center">
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">Settings</h1>
+        <p class="text-gray-600">Customize your profile and preferences</p>
       </div>
 
       <!-- Current Settings Card -->
-      <div
-        class="bg-white/90 backdrop-blur-sm rounded-3xl border border-gray-200 p-8 shadow-xl hover:shadow-2xl transition-shadow duration-300 max-w-5xl mx-auto"
-      >
-        <div class="flex flex-col lg:flex-row items-center gap-8">
-          <div class="flex items-center gap-6">
+      <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm max-w-4xl mx-auto">
+        <div class="flex flex-col lg:flex-row items-center gap-6">
+          <div class="flex items-center gap-4">
             <div class="relative">
-              <div
-                class="w-24 h-24 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-500 p-0.5 shadow-lg"
-              >
-                <div
-                  class="w-full h-full rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center overflow-hidden"
-                >
-                  <!-- 🆕 Add key binding to force reload -->
+              <div class="w-16 h-16 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-500 p-0.5 shadow-lg">
+                <div class="w-full h-full rounded-xl bg-white flex items-center justify-center overflow-hidden">
                   <img
                     v-if="userAvatarUrl"
                     :src="userAvatarUrl"
@@ -45,7 +22,7 @@
                     :alt="authStore.user?.username || 'User avatar'"
                     class="w-full h-full object-cover"
                   />
-                  <span v-else class="text-2xl font-semibold text-white">{{
+                  <span v-else class="text-xl font-semibold text-gray-700">{{
                     displayName
                       .split(' ')
                       .map((n) => n[0])
@@ -53,25 +30,23 @@
                   }}</span>
                 </div>
               </div>
-              <div
-                class="absolute -bottom-1 -right-1 w-6 h-6 bg-green-400 rounded-full border-3 border-white shadow-md"
-              ></div>
+              <div class="absolute -bottom-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-white"></div>
             </div>
             <div>
-              <h3 class="text-2xl font-semibold text-gray-900 mb-1">
+              <h3 class="text-xl font-semibold text-gray-900 mb-1">
                 {{ authStore.user?.username || 'User' }}
               </h3>
-              <p class="text-gray-600 text-lg">
+              <p class="text-gray-600">
                 {{ currentAvatar ? 'Custom avatar' : 'Default avatar' }}
               </p>
             </div>
           </div>
 
-          <div class="hidden lg:block h-16 w-px bg-gray-200"></div>
+          <div class="hidden lg:block h-12 w-px bg-gray-200"></div>
 
           <div class="text-center lg:text-left">
-            <h4 class="text-xl font-semibold text-gray-900 mb-1">Current Theme</h4>
-            <p class="text-gray-600 text-lg">{{ currentTheme?.name || 'Default Light' }}</p>
+            <h4 class="text-lg font-semibold text-gray-900 mb-1">Current Theme</h4>
+            <p class="text-gray-600">{{ currentTheme?.name || 'Default Light' }}</p>
           </div>
         </div>
       </div>

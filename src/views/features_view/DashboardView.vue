@@ -1,103 +1,56 @@
 <template>
-  <div
-    class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 relative overflow-hidden"
-  >
-    <!-- Background Elements -->
-    <div
-      class="absolute top-20 left-20 w-64 h-64 bg-gradient-to-r from-blue-200/10 to-indigo-200/10 rounded-full blur-3xl"
-    ></div>
-    <div
-      class="absolute bottom-20 right-20 w-80 h-80 bg-gradient-to-r from-purple-200/10 to-pink-200/10 rounded-full blur-3xl"
-    ></div>
-
-    <main class="relative z-10 p-6">
+  <div class="min-h-screen bg-slate-50">
+    <main class="p-6">
       <div class="max-w-7xl mx-auto space-y-8">
-        <!-- Enhanced Header -->
-        <div class="mb-8">
-          <div
-            class="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/50 p-8 shadow-xl"
-          >
-            <div
-              class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6"
-            >
-              <div class="flex items-center gap-4">
-                <div class="relative">
-                  <div
-                    class="w-16 h-16 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg"
-                  >
-                    <img
-                      v-if="userAvatarUrl"
-                      :src="userAvatarUrl"
-                      :key="avatarKey"
-                      :alt="authStore.user?.username || 'User avatar'"
-                      class="w-full h-full object-cover rounded-2xl"
-                    />
-                    <span v-else class="text-2xl font-bold text-white">
-                      {{ username.charAt(0).toUpperCase() }}
-                    </span>
-                  </div>
-                  <div
-                    class="absolute -bottom-1 -right-1 w-5 h-5 bg-green-400 rounded-full border-2 border-white"
-                  ></div>
+        <!-- Welcome Banner -->
+        <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+          <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div class="flex items-center gap-4">
+              <div class="relative">
+                <div class="w-12 h-12 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg">
+                  <img
+                    v-if="userAvatarUrl"
+                    :src="userAvatarUrl"
+                    :key="avatarKey"
+                    :alt="authStore.user?.username || 'User avatar'"
+                    class="w-full h-full object-cover rounded-xl"
+                  />
+                  <span v-else class="text-lg font-bold text-white">
+                    {{ username.charAt(0).toUpperCase() }}
+                  </span>
                 </div>
-                <div>
-                  <h1
-                    class="text-3xl font-bold bg-gradient-to-r from-gray-900 to-blue-800 bg-clip-text text-transparent"
-                  >
-                    Welcome back, {{ username }}!
-                  </h1>
-                  <p class="text-gray-600 mt-1">Ready to continue your learning journey?</p>
-                </div>
+                <div class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-white"></div>
               </div>
-              <div class="flex gap-3">
-                <button
-                  class="px-6 py-3 bg-white/60 hover:bg-white/80 border border-gray-200 rounded-xl font-medium text-gray-700 transition-all duration-200 hover:shadow-md"
-                >
-                  View Profile
-                </button>
-                <button
-                  class="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-medium transition-all duration-200 hover:shadow-lg transform hover:scale-105"
-                >
-                  Start Study Session
-                </button>
+              <div>
+                <h1 class="text-2xl font-bold text-gray-900">
+                  Welcome back, {{ username }}!
+                </h1>
+                <p class="text-gray-600">Ready to continue your learning journey?</p>
               </div>
+            </div>
+            <div class="flex gap-3">
+              <button class="px-4 py-2 bg-white border border-gray-200 rounded-lg font-medium text-gray-700 transition-colors duration-200 hover:bg-gray-50">
+                View Profile
+              </button>
+              <button class="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg font-medium transition-all duration-200">
+                Start Study Session
+              </button>
             </div>
           </div>
         </div>
 
-        <!-- Enhanced Stats Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
           <!-- Study Streak -->
-          <div
-            class="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/50 p-6 shadow-xl hover:shadow-2xl transition-all duration-300 group"
-          >
+          <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
             <div class="flex items-center justify-between mb-4">
-              <div
-                class="w-12 h-12 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300"
-              >
-                <svg
-                  class="w-6 h-6 text-white"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"
-                  />
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z"
-                  />
+              <div class="w-10 h-10 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-lg flex items-center justify-center">
+                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z" />
                 </svg>
               </div>
-              <svg
-                class="w-6 h-6 text-yellow-600"
-                fill="none"
+              <svg class="w-5 h-5 text-yellow-600" fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
               >
@@ -511,7 +464,7 @@ onMounted(() => {
 
 // ดึง username จาก store
 const username = computed(() => {
-  return authStore.user?.username || authStore.user?.name || authStore.user?.email || 'Student'
+  return authStore.user?.username || authStore.user?.email || 'Student'
 })
 
 // Avatar
