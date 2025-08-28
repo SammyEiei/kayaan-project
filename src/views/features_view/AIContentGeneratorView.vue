@@ -1,10 +1,20 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import AIGenerationPage from '@/components/AIGenerationPage.vue'
 import GenerationHistory from '@/components/GenerationHistory.vue'
 import SavedContentPage from '@/components/SavedContentPage.vue'
 
+const route = useRoute()
 const activeTab = ref<'chat' | 'history' | 'saved'>('chat')
+
+// ตรวจสอบ query parameter เมื่อ component โหลด
+onMounted(() => {
+  const tabFromQuery = route.query.tab as string
+  if (tabFromQuery && ['chat', 'history', 'saved'].includes(tabFromQuery)) {
+    activeTab.value = tabFromQuery as 'chat' | 'history' | 'saved'
+  }
+})
 
 const tabs = [
   { id: 'chat', label: 'Generate', icon: 'Sparkles', description: 'Create AI content' },

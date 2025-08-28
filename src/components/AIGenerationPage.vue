@@ -1,60 +1,251 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAIGenerationStore } from '@/stores/aiGeneration'
 import { useAIContentStore } from '@/stores/aiContent'
-import type { CreateGenerationRequestDTO } from '@/service/AIContentService'
+import { ApiTestUtil } from '@/utils/apiTestUtil'
+import { PathTestUtil } from '@/utils/pathTestUtil'
 
-const aiStore = useAIContentStore()
+const aiGenerationStore = useAIGenerationStore()
+const aiContentStore = useAIContentStore()
+const router = useRouter()
 
 // Step management
 const currentStep = ref<'prompt' | 'preview' | 'generating' | 'result'>('prompt')
 
 // Form data
 const promptText = ref('')
-const outputFormat = ref<'summary' | 'quiz' | 'flashcard' | 'note'>('summary')
-const attachedFiles = ref<File[]>([])
+const outputFormat = ref<'quiz' | 'flashcard' | 'note'>('note')
+const attachedFile = ref<File | null>(null)
 const generationProgress = ref(0)
 const generationStatus = ref('Initializing...')
 const estimatedTime = ref<number | null>(null)
 const showPreview = ref(false)
 const previewContent = ref('')
 
+// Preset system state
+const selectedPreset = ref<string | null>(null)
+const showPresetModal = ref(false)
+const customFields = ref<Record<string, string>>({})
+
+// Auto-redirect settings
+const autoRedirectToContent = ref(true) // สามารถเปลี่ยนเป็น false ถ้าไม่ต้องการ auto-redirect
+const redirectTimeoutId = ref<NodeJS.Timeout | null>(null)
+
+// Rate limiting
+const lastRequestTime = ref<number>(0)
+const MIN_REQUEST_INTERVAL = 3000 // 3 seconds between requests
+
 // File upload
 const fileInput = ref<HTMLInputElement>()
 
 const handleFileUpload = (event: Event) => {
   const target = event.target as HTMLInputElement
-  if (target.files) {
-    const newFiles = Array.from(target.files)
-    attachedFiles.value.push(...newFiles)
+  if (target.files && target.files[0]) {
+    attachedFile.value = target.files[0]
+    // Auto-update prompt when file is attached
+    updatePromptBasedOnFileStatus()
   }
 }
 
-const removeFile = (index: number) => {
-  attachedFiles.value.splice(index, 1)
+const removeFile = () => {
+  attachedFile.value = null
+  if (fileInput.value) {
+    fileInput.value.value = ''
+  }
+  // Auto-update prompt when file is removed
+  updatePromptBasedOnFileStatus()
 }
 
-// Default prompts based on content type
-const defaultPrompts = {
-  summary: 'Create a comprehensive summary of the attached content, highlighting key points, main ideas, and important details. Organize the information in a clear, structured format that is easy to understand and review.',
-  quiz: 'Generate a quiz based on the attached content with multiple choice questions, true/false questions, and short answer questions. Include questions that test understanding of key concepts, important details, and critical thinking skills.',
-  flashcard: 'Create flashcards from the attached content covering key terms, concepts, definitions, and important facts. Each flashcard should have a clear question or term on the front and a concise, accurate answer on the back.',
-  note: 'Transform the attached content into well-organized study notes with clear headings, bullet points, and structured information. Include key concepts, definitions, examples, and important details in an easy-to-review format.'
+// Function to update prompt based on file attachment status
+const updatePromptBasedOnFileStatus = () => {
+  const currentPrompts = getCurrentPrompts()
+  promptText.value = currentPrompts[outputFormat.value]
+}
+
+// Default prompts - different versions for with/without file attachment
+const defaultPromptsWithFile = {
+  quiz: 'Generate an educational quiz in English based on the attached content. Create multiple choice questions, true/false questions, and short answer questions. Focus on key concepts, important details, and critical thinking skills from the provided material. Ensure all questions and answers are in clear, academic English suitable for study purposes.',
+  flashcard: 'Create educational flashcards in English from the attached content. Cover key terms, concepts, definitions, and important facts from the provided material. Each flashcard should have a clear question or term in English on the front and a concise, accurate answer in English on the back. Use academic vocabulary appropriate for study and learning.',
+  note: 'Transform the attached content into well-organized study notes in English. Use clear headings, bullet points, and structured information from the provided material. Include key concepts, definitions, examples, and important details in proper academic English. Format the notes for easy review and comprehension in an educational context.'
+}
+
+const defaultPromptsWithoutFile = {
+  quiz: 'Generate an educational quiz in English on a specific topic of your choice. Create multiple choice questions, true/false questions, and short answer questions. Please specify the subject area, academic level, and key topics you want covered. Example: "Create a high school level biology quiz covering photosynthesis, cellular respiration, and plant structure with 10 questions total."',
+  flashcard: 'Create educational flashcards in English on a specific topic of your choice. Please specify the subject area, academic level, and key concepts you want covered. Example: "Create intermediate-level Spanish vocabulary flashcards for common verbs and adjectives used in daily conversation, with 20 cards total."',
+  note: 'Create well-organized study notes in English on a specific topic of your choice. Please specify the subject area, academic level, and key concepts you want covered. Example: "Create comprehensive study notes for high school chemistry covering atomic structure, chemical bonding, and periodic table trends with clear explanations and examples."'
+}
+
+// Icon mapping for presets
+const getPresetIcon = (presetId: string) => {
+  const iconMap: Record<string, string> = {
+    // Study Notes icons
+    'summarize-topic': 'BookOpen',
+    'compare-contrast': 'Scale',
+    'timeline-style': 'Clock',
+    'concept-map': 'Map',
+    // Quiz icons
+    'multiple-choice': 'CheckCircle',
+    'short-answer': 'Edit3',
+    'mixed-format': 'Shuffle',
+    'critical-thinking': 'Brain',
+    // Flashcard icons
+    'definition-based': 'FileText',
+    'qa-style': 'MessageCircle',
+    'examples-based': 'Globe',
+    'visual-memory': 'Eye'
+  }
+  return iconMap[presetId] || 'FileText'
+}
+
+// Prompt Presets for each content type (when no file attached)
+const promptPresets = {
+  note: [
+    {
+      id: 'summarize-topic',
+      title: 'Summarize by Topic',
+      description: 'Structured notes with clear organization',
+      template: 'Create comprehensive study notes in English for [LEVEL] level [SUBJECT] covering [TOPICS]. Include clear headings, bullet points, key definitions, and practical examples. Format for easy review and understanding.',
+      placeholders: ['LEVEL', 'SUBJECT', 'TOPICS'],
+      example: 'university level Biology covering photosynthesis, cellular respiration, and mitosis'
+    },
+    {
+      id: 'compare-contrast',
+      title: 'Compare & Contrast',
+      description: 'Side-by-side comparison with tables',
+      template: 'Create study notes in English that compare and contrast [TOPIC_A] and [TOPIC_B] for [LEVEL] level study. Use tables, bullet points, and clear examples to highlight similarities and differences.',
+      placeholders: ['TOPIC_A', 'TOPIC_B', 'LEVEL'],
+      example: 'mitosis and meiosis for high school level study'
+    },
+    {
+      id: 'timeline-style',
+      title: 'Timeline Style',
+      description: 'Chronological organization with dates',
+      template: 'Create chronological study notes in English about [HISTORICAL_TOPIC] for [LEVEL] level. Include important dates, events in order, key figures, and cause-effect relationships.',
+      placeholders: ['HISTORICAL_TOPIC', 'LEVEL'],
+      example: 'World War II for university level'
+    },
+    {
+      id: 'concept-map',
+      title: 'Concept Mapping',
+      description: 'Interconnected concepts and relationships',
+      template: 'Create study notes in English for [SUBJECT] that show how [MAIN_CONCEPTS] are interconnected. Include concept relationships, hierarchies, and practical applications for [LEVEL] level understanding.',
+      placeholders: ['SUBJECT', 'MAIN_CONCEPTS', 'LEVEL'],
+      example: 'Chemistry showing how atomic structure, bonding, and reactions are interconnected for high school level'
+    }
+  ],
+  quiz: [
+    {
+      id: 'multiple-choice',
+      title: 'Multiple Choice Quiz',
+      description: 'Standard multiple choice format',
+      template: 'Generate [NUMBER] multiple-choice questions in English about [TOPIC] for [LEVEL] level. Each question should have 4 options (A, B, C, D) with only one correct answer. Include the correct answer and brief explanations.',
+      placeholders: ['NUMBER', 'TOPIC', 'LEVEL'],
+      example: '10 questions about cellular biology for university level'
+    },
+    {
+      id: 'short-answer',
+      title: 'Short Answer Quiz',
+      description: 'Open-ended questions requiring brief responses',
+      template: 'Generate [NUMBER] short-answer questions in English about [TOPIC] suitable for [LEVEL] level students. Questions should test understanding, application, and analysis skills. Provide sample answers.',
+      placeholders: ['NUMBER', 'TOPIC', 'LEVEL'],
+      example: '8 questions about environmental science for high school level'
+    },
+    {
+      id: 'mixed-format',
+      title: 'Mixed Format Quiz',
+      description: 'Combination of question types',
+      template: 'Create a mixed-format quiz in English about [TOPIC] for [LEVEL] level with [MC_COUNT] multiple-choice, [TF_COUNT] true/false, and [SA_COUNT] short-answer questions. Include answer key with explanations.',
+      placeholders: ['TOPIC', 'LEVEL', 'MC_COUNT', 'TF_COUNT', 'SA_COUNT'],
+      example: 'Physics for university level with 5 multiple-choice, 3 true/false, and 2 short-answer questions'
+    },
+    {
+      id: 'critical-thinking',
+      title: 'Critical Thinking Quiz',
+      description: 'Higher-order thinking questions',
+      template: 'Generate [NUMBER] critical thinking questions in English about [TOPIC] for [LEVEL] level. Focus on analysis, synthesis, evaluation, and application. Include scenario-based questions and detailed sample responses.',
+      placeholders: ['NUMBER', 'TOPIC', 'LEVEL'],
+      example: '6 questions about ethical dilemmas in business for university level'
+    }
+  ],
+  flashcard: [
+    {
+      id: 'definition-based',
+      title: 'Definition Flashcards',
+      description: 'Term on front, definition on back',
+      template: 'Generate [NUMBER] definition-based flashcards in English for [SUBJECT] at [LEVEL] level. Each card should have a key term on the front and a clear, concise definition with an example on the back. Focus on [TOPIC_AREA].',
+      placeholders: ['NUMBER', 'SUBJECT', 'LEVEL', 'TOPIC_AREA'],
+      example: '20 flashcards for Psychology at university level focusing on cognitive processes'
+    },
+    {
+      id: 'qa-style',
+      title: 'Q&A Flashcards',
+      description: 'Question on front, answer on back',
+      template: 'Create [NUMBER] Q&A flashcards in English about [TOPIC] for [LEVEL] level study. Each card should have a clear question on the front and a comprehensive answer on the back with key points and examples.',
+      placeholders: ['NUMBER', 'TOPIC', 'LEVEL'],
+      example: '15 flashcards about calculus for university level'
+    },
+    {
+      id: 'examples-based',
+      title: 'Example-Based Cards',
+      description: 'Concept with real-world examples',
+      template: 'Generate [NUMBER] example-based flashcards in English for [SUBJECT] concepts at [LEVEL] level. Each card should have a concept or principle on the front and real-world examples with applications on the back.',
+      placeholders: ['NUMBER', 'SUBJECT', 'LEVEL'],
+      example: '12 flashcards for Economics concepts at high school level'
+    },
+    {
+      id: 'visual-memory',
+      title: 'Visual Memory Cards',
+      description: 'Description-based visual learning',
+      template: 'Create [NUMBER] visual memory flashcards in English for [TOPIC] at [LEVEL] level. Each card should have a descriptive prompt on the front and detailed visual descriptions, characteristics, or processes on the back.',
+      placeholders: ['NUMBER', 'TOPIC', 'LEVEL'],
+      example: '10 flashcards for Art History at university level'
+    }
+  ]
+}
+
+// Dynamic prompt selector based on file attachment
+const getCurrentPrompts = () => {
+  return attachedFile.value ? defaultPromptsWithFile : defaultPromptsWithoutFile
 }
 
 // Content type options
 const outputFormats = [
-  { value: 'summary', label: 'Summary', icon: 'FileText', description: 'Comprehensive content summary' },
-  { value: 'quiz', label: 'Quiz', icon: 'HelpCircle', description: 'Interactive quiz questions' },
-  { value: 'flashcard', label: 'Flashcards', icon: 'Cards', description: 'Study flashcards' },
-  { value: 'note', label: 'Study Notes', icon: 'Edit', description: 'Organized study notes' }
+  { value: 'note', label: 'Study Notes', icon: 'Edit', description: 'Organized study notes in English' },
+  { value: 'quiz', label: 'Quiz', icon: 'HelpCircle', description: 'Interactive quiz questions in English' },
+  { value: 'flashcard', label: 'Flashcards', icon: 'Cards', description: 'Study flashcards in English' }
 ]
+
+// Helper function to check if content is primarily in English (optional enhancement)
+const hasEnglishContent = (text: string): boolean => {
+  const totalChars = text.replace(/\s/g, '').length
+  const englishChars = (text.match(/[a-zA-Z]/g) || []).length
+
+  // At least 70% should be English characters for meaningful content
+  return totalChars === 0 || (englishChars / totalChars) > 0.7
+}
 
 // Validation
 const isValid = computed(() => {
-  return promptText.value.trim().length >= 10
+  const trimmedText = promptText.value.trim()
+  return trimmedText.length >= 10 &&
+         trimmedText.length <= 2000 &&
+         hasEnglishContent(trimmedText)
 })
 
 const characterCount = computed(() => promptText.value.length)
+
+// Validation message
+const validationMessage = computed(() => {
+  const trimmedText = promptText.value.trim()
+
+  if (trimmedText.length === 0) return ''
+  if (trimmedText.length < 10) return 'Please enter at least 10 characters'
+  if (trimmedText.length > 2000) return 'Please keep within 2000 characters'
+  if (!hasEnglishContent(trimmedText)) return 'Please write primarily in English for best results'
+
+  return ''
+})
 
 // Navigation
 const handleNext = () => {
@@ -71,36 +262,321 @@ const handleBack = () => {
   }
 }
 
+// Preset management functions
+const getCurrentPresets = () => {
+  return promptPresets[outputFormat.value] || []
+}
+
+const handlePresetSelect = (presetId: string) => {
+  const presets = getCurrentPresets()
+  const preset = presets.find(p => p.id === presetId)
+
+  if (!preset) return
+
+  selectedPreset.value = presetId
+
+  // Reset custom fields
+  customFields.value = {}
+  preset.placeholders.forEach(placeholder => {
+    customFields.value[placeholder] = ''
+  })
+
+  // Show preset modal for customization
+  showPresetModal.value = true
+}
+
+const applyPreset = () => {
+  const presets = getCurrentPresets()
+  const preset = presets.find(p => p.id === selectedPreset.value)
+
+  if (!preset) return
+
+  let finalPrompt = preset.template
+
+  // Replace placeholders with user values
+  preset.placeholders.forEach(placeholder => {
+    const value = customFields.value[placeholder] || `[${placeholder}]`
+    finalPrompt = finalPrompt.replace(new RegExp(`\\[${placeholder}\\]`, 'g'), value)
+  })
+
+  promptText.value = finalPrompt
+  showPresetModal.value = false
+}
+
+const usePresetExample = () => {
+  const presets = getCurrentPresets()
+  const preset = presets.find(p => p.id === selectedPreset.value)
+
+  if (!preset) return
+
+  // Parse example and fill custom fields
+  const example = preset.example
+
+  // Smart parsing based on placeholders
+  if (preset.placeholders.includes('LEVEL')) {
+    const levelMatch = example.match(/(high school|university|college|elementary|middle school|professional)/i)
+    if (levelMatch) customFields.value['LEVEL'] = levelMatch[1]
+  }
+
+  if (preset.placeholders.includes('SUBJECT')) {
+    const subjectMatch = example.match(/(Biology|Chemistry|Physics|History|Math|English|Science)/i)
+    if (subjectMatch) customFields.value['SUBJECT'] = subjectMatch[1]
+  }
+
+  if (preset.placeholders.includes('NUMBER')) {
+    const numberMatch = example.match(/(\d+)/i)
+    if (numberMatch) customFields.value['NUMBER'] = numberMatch[1]
+  }
+
+  // Apply the example
+  applyPreset()
+}
+
+// Helper function for placeholder hints
+const getPlaceholderHint = (placeholder: string): string => {
+  const hints: Record<string, string> = {
+    'LEVEL': 'e.g., high school, university, professional',
+    'SUBJECT': 'e.g., Biology, Chemistry, History, Math',
+    'TOPIC': 'e.g., photosynthesis, World War II, calculus',
+    'TOPICS': 'e.g., cell structure, DNA replication, enzymes',
+    'NUMBER': 'e.g., 10, 15, 20',
+    'TOPIC_A': 'e.g., mitosis',
+    'TOPIC_B': 'e.g., meiosis',
+    'HISTORICAL_TOPIC': 'e.g., World War II, Industrial Revolution',
+    'MAIN_CONCEPTS': 'e.g., atomic structure, chemical bonding, reactions',
+    'TOPIC_AREA': 'e.g., cognitive processes, learning theories',
+    'MC_COUNT': 'e.g., 5, 8, 10',
+    'TF_COUNT': 'e.g., 3, 5, 7',
+    'SA_COUNT': 'e.g., 2, 3, 5'
+  }
+  return hints[placeholder] || `Enter ${placeholder.toLowerCase().replace('_', ' ')}`
+}
+
 // Update prompt when content type changes
-const handleContentTypeChange = (type: 'summary' | 'quiz' | 'flashcard' | 'note') => {
+const handleContentTypeChange = (type: 'quiz' | 'flashcard' | 'note') => {
   outputFormat.value = type
-  promptText.value = defaultPrompts[type]
+  selectedPreset.value = null // Reset preset selection
+
+  if (attachedFile.value) {
+    // If file is attached, use file-based prompt
+    const currentPrompts = getCurrentPrompts()
+    promptText.value = currentPrompts[type]
+  } else {
+    // If no file, use default prompt or keep current
+    const currentPrompts = getCurrentPrompts()
+    promptText.value = currentPrompts[type]
+  }
 }
 
 
 
+// Debug mode
+const DEBUG_MODE = true
+const isDevelopment = import.meta.env.MODE === 'development' || import.meta.env.DEV
+
+// Clear rate limits for development
+const clearRateLimits = async () => {
+  if (isDevelopment) {
+    // Clear backend rate limiter
+    const { rateLimiter } = await import('@/utils/rateLimiter')
+    rateLimiter.clearAllLimits()
+    console.log('🧹 Backend rate limits cleared for development')
+
+    // Clear frontend rate limit tracking
+    lastRequestTime.value = 0
+    console.log('🧹 Frontend rate limit timer reset')
+
+    // Clear any error messages
+    generationStatus.value = ''
+    console.log('🧹 Error messages cleared')
+
+    // Show success message
+    generationStatus.value = '✅ Rate limits cleared successfully!'
+    setTimeout(() => {
+      generationStatus.value = ''
+    }, 3000)
+  }
+}
+
+// Debug API connection
+const debugApi = async () => {
+  console.log('🧪 Debug: Testing API connection...')
+  const result = await ApiTestUtil.runFullTest()
+  console.log('🧪 Debug results:', result)
+
+  if (result.overall.success) {
+    alert('✅ API connection test passed!')
+  } else {
+    alert(`❌ API connection test failed:\n${result.overall.message}\n\nCheck console for details.`)
+  }
+}
+
+// Debug path detection
+const debugPaths = async () => {
+  console.log('🔍 Debug: Detecting backend structure...')
+  const result = await PathTestUtil.detectBackendStructure()
+  console.log('🔍 Backend structure results:', result)
+
+  const summary = `Backend Detection Results:
+✅ Working paths: ${result.workingPaths.length}
+❌ Failed paths: ${result.failedPaths.length}
+
+Recommendation: ${result.recommendation}
+
+Working paths:
+${result.workingPaths.map(p => `• ${p.path} (${p.status})`).join('\n')}
+
+Check console for full details.`
+
+  alert(summary)
+}
+
+// Debug URL structure
+const debugUrls = () => {
+  console.log('🔍 Debug: URL Structure Analysis')
+
+  // Import AxiosClient to check its config
+  import('@/service/AxiosClient').then(({ default: AxiosClient }) => {
+    const baseURL = AxiosClient.defaults.baseURL
+    const testPaths = [
+      '/ai/generation/request',
+      '/ai/generation/requests',
+      '/users/me'
+    ]
+
+    console.log('🔧 AxiosClient BaseURL:', baseURL)
+    console.log('🌐 Full URLs will be:')
+    testPaths.forEach(path => {
+      const fullUrl = `${baseURL}${path}`
+      console.log(`  • ${path} → ${fullUrl}`)
+    })
+
+    const summary = `URL Structure:
+Base URL: ${baseURL}
+
+Full URLs:
+${testPaths.map(path => `• ${path} → ${baseURL}${path}`).join('\n')}
+
+This shows exact URLs that will be sent to backend.`
+
+    alert(summary)
+  })
+}
+
+// Navigate to AI Content Generator View
+const navigateToAIContentGenerator = async () => {
+  console.log('🧭 Navigating to AI Content Generator View...')
+  // Cancel auto-redirect if it's pending
+  if (redirectTimeoutId.value) {
+    clearTimeout(redirectTimeoutId.value)
+    redirectTimeoutId.value = null
+  }
+
+  // Refresh saved content before navigating
+  try {
+    console.log('🔄 Refreshing saved content before navigation...')
+    await aiContentStore.loadSavedContent()
+    console.log('✅ Saved content refreshed before navigation')
+  } catch (error) {
+    console.warn('⚠️ Failed to refresh saved content before navigation:', error)
+  }
+
+  // Navigate to "My Content" tab to see the generated content
+  router.push({
+    name: 'ai-content-generator',
+    query: { tab: 'saved' }  // ไปหน้า "My Content" เพื่อดู AI generated content
+  })
+}
+
+// Cancel auto-redirect
+const cancelAutoRedirect = () => {
+  if (redirectTimeoutId.value) {
+    clearTimeout(redirectTimeoutId.value)
+    redirectTimeoutId.value = null
+    console.log('🚫 Auto-redirect cancelled')
+  }
+}
+
 // Generation
 const handleGenerate = async () => {
   if (!isValid.value) return
+
+  // Check if already generating to prevent duplicate requests
+  if (currentStep.value === 'generating') {
+    console.warn('⚠️ Generation already in progress, ignoring duplicate request')
+    return
+  }
+
+  // Check rate limiting
+  const now = Date.now()
+  const timeSinceLastRequest = now - lastRequestTime.value
+
+  if (timeSinceLastRequest < MIN_REQUEST_INTERVAL) {
+    const remainingTime = Math.ceil((MIN_REQUEST_INTERVAL - timeSinceLastRequest) / 1000)
+    console.warn(`⚠️ Rate limit: Please wait ${remainingTime} more seconds`)
+    generationStatus.value = `🚫 Please wait ${remainingTime} more seconds before making another request.`
+
+    setTimeout(() => {
+      generationStatus.value = ''
+    }, 3000)
+    return
+  }
+
+  // Update last request time
+  lastRequestTime.value = now
+
+  if (DEBUG_MODE) {
+    console.log('🔍 DEBUG: Starting generation...')
+    console.log('🔍 DEBUG: Prompt:', promptText.value)
+    console.log('🔍 DEBUG: Format:', outputFormat.value)
+    console.log('🔍 DEBUG: File:', attachedFile.value?.name || 'none')
+    console.log('🔍 DEBUG: Valid:', isValid.value)
+  }
 
   currentStep.value = 'generating'
   generationProgress.value = 0
   generationStatus.value = 'Initializing...'
 
   try {
-    const requestData: CreateGenerationRequestDTO = {
+    // ✅ แก้ไข structure ให้ตรงกับ Backend API
+    const requestData = {
       promptText: promptText.value.trim(),
       outputFormat: outputFormat.value,
-      additionalContext: undefined,
       maxRetries: 3,
-      useTemplate: false,
-      templateId: undefined,
+      useTemplate: false
     }
 
-    const requestId = await aiStore.createGenerationRequest(requestData)
-    await aiStore.startGeneration(requestId)
+    console.log('🎯 Starting generation with data:', {
+      requestData,
+      file: attachedFile.value ? attachedFile.value.name : 'none'
+    })
 
-    // Simulate generation progress
+    // สร้าง generation request
+    console.log('📝 Creating generation request...')
+    const requestId = await aiGenerationStore.createGenerationRequest(
+      requestData,                    // ส่ง object โดยตรง
+      attachedFile.value || undefined // ส่งไฟล์แยก
+    )
+
+    console.log('✅ Request created with ID:', requestId)
+
+    // ✅ เพิ่มการตรวจสอบ requestId ที่ดีขึ้น
+    if (requestId === null || requestId === undefined) {
+      throw new Error('Failed to get request ID from server')
+    }
+
+    if (typeof requestId !== 'number' || requestId <= 0) {
+      throw new Error(`Invalid request ID: ${requestId}`)
+    }
+
+    // เริ่ม generation
+    console.log('🚀 Starting generation for ID:', requestId)
+    generationStatus.value = 'Starting generation...'
+    await aiGenerationStore.startGeneration(requestId)
+
+    console.log('📊 Generation started, monitoring progress...')
+
+    // Simulate generation progress (replace with real WebSocket later)
     const progressInterval = setInterval(() => {
       if (generationProgress.value < 90) {
         generationProgress.value += Math.random() * 10
@@ -121,33 +597,149 @@ const handleGenerate = async () => {
       generationStatus.value = 'Complete!'
       setTimeout(() => {
         currentStep.value = 'result'
+
+        // Auto-redirect to AI Content Generator View if enabled
+        if (autoRedirectToContent.value) {
+          redirectTimeoutId.value = setTimeout(async () => {
+            console.log('🚀 Auto-redirecting to AI Content Generator View...')
+
+            // Refresh saved content before redirecting
+            try {
+              console.log('🔄 Refreshing saved content...')
+              await aiContentStore.loadSavedContent()
+              console.log('✅ Saved content refreshed')
+            } catch (error) {
+              console.warn('⚠️ Failed to refresh saved content:', error)
+            }
+
+            navigateToAIContentGenerator()
+          }, 2000) // รอ 2 วินาทีเพื่อให้เห็นข้อความ success ก่อน
+        }
       }, 1000)
     }, 8000)
 
   } catch (error) {
-    console.error('Generation failed:', error)
-    currentStep.value = 'prompt'
+    console.error('💥 Generation failed:', error)
+
+    // Enhanced error handling for different error types
+    let errorMessage = 'Unknown error occurred'
+    let showRetryHint = false
+
+        if (error instanceof Error) {
+      const errorText = error.message.toLowerCase()
+
+      // Handle specific error types from AIContentService
+      if (error.message.startsWith('RATE_LIMIT_EXCEEDED:')) {
+        errorMessage = '🚫 Rate limit exceeded. Please wait before making another request.'
+        showRetryHint = true
+        console.warn('⚠️ Rate limit hit - user should wait before retrying')
+      } else if (error.message.startsWith('GENERATION_FAILED:')) {
+        errorMessage = '❌ Generation request failed. Please try again.'
+        console.warn('⚠️ Generation request failed')
+      } else if (errorText.includes('rate limit') || errorText.includes('rate') || errorText.includes('limit')) {
+        errorMessage = '🚫 Rate limit exceeded. Please wait a moment before trying again.'
+        showRetryHint = true
+        console.warn('⚠️ Rate limit hit - user should wait before retrying')
+      } else if (errorText.includes('network') || errorText.includes('connection')) {
+        errorMessage = '🌐 Network error. Please check your connection and try again.'
+      } else if (errorText.includes('authentication') || errorText.includes('unauthorized')) {
+        errorMessage = '🔐 Authentication error. Please login again.'
+      } else {
+        // Extract clean message (remove prefix if present)
+        const cleanMessage = error.message.replace(/^(Backend error: |GENERATION_FAILED: |RATE_LIMIT_EXCEEDED: )/i, '')
+        errorMessage = cleanMessage
+      }
+    } else if (typeof error === 'string') {
+      errorMessage = error
+    }
+
+    generationStatus.value = `Generation failed: ${errorMessage}`
+
+    // For rate limit errors, reset after longer time to discourage rapid retries
+    const resetTimeout = showRetryHint ? 10000 : 5000
+    setTimeout(() => {
+      currentStep.value = 'prompt'
+      generationStatus.value = ''
+    }, resetTimeout)
   }
 }
 
 const resetGeneration = () => {
   currentStep.value = 'prompt'
   promptText.value = ''
-  attachedFiles.value = []
+  attachedFile.value = null
+  if (fileInput.value) {
+    fileInput.value.value = ''
+  }
   generationProgress.value = 0
   generationStatus.value = ''
   showPreview.value = false
   previewContent.value = ''
+
+  // Cancel any pending auto-redirect
+  if (redirectTimeoutId.value) {
+    clearTimeout(redirectTimeoutId.value)
+    redirectTimeoutId.value = null
+  }
 }
 
 onMounted(() => {
-  // Set default prompt
-  promptText.value = defaultPrompts.summary
+  // Set default prompt based on file attachment status
+  const currentPrompts = getCurrentPrompts()
+  promptText.value = currentPrompts.note
 })
 </script>
 
 <template>
   <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                    <!--
+    Development Mode Controls (Commented out - not shown)
+    <div v-if="isDevelopment" class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+      <h3 class="text-sm font-medium text-blue-900 mb-2">⚙️ Development Mode Controls</h3>
+
+      Auto-redirect setting
+      <div class="mb-3 flex items-center gap-2">
+        <input
+          id="auto-redirect"
+          v-model="autoRedirectToContent"
+          type="checkbox"
+          class="w-4 h-4 text-purple-600 bg-blue-50 border-blue-200 rounded focus:ring-purple-500 focus:ring-2"
+        >
+        <label for="auto-redirect" class="text-sm text-blue-800">
+          Auto-redirect to content view after generation
+        </label>
+      </div>
+
+      Main Controls
+      <div class="flex gap-2 flex-wrap">
+        <button
+          @click="clearRateLimits"
+          class="px-3 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+        >
+          🗑️ Clear Rate Limits
+        </button>
+        <button
+          @click="debugApi"
+          class="px-3 py-1 text-xs bg-yellow-600 text-white rounded hover:bg-yellow-700 transition-colors"
+        >
+          Test API Connection
+        </button>
+        <button
+          @click="debugPaths"
+          class="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+        >
+          Detect Backend
+        </button>
+        <button
+          @click="debugUrls"
+          class="px-3 py-1 text-xs bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
+        >
+          Check URLs
+        </button>
+      </div>
+    </div>
+    -->
+
     <!-- Progress Steps -->
     <div class="mb-8">
       <div class="flex items-center justify-between">
@@ -192,19 +784,40 @@ onMounted(() => {
     </div>
 
     <!-- Error Alert -->
-    <div v-if="aiStore.error" class="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+    <div v-if="aiGenerationStore.error" class="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
       <div class="flex items-center gap-3">
         <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
         </svg>
         <div>
           <h3 class="text-sm font-medium text-red-800">Error</h3>
-          <p class="text-sm text-red-700 mt-1">{{ aiStore.error }}</p>
+          <p class="text-sm text-red-700 mt-1">{{ aiGenerationStore.error }}</p>
         </div>
-        <button @click="aiStore.clearError" class="ml-auto text-red-400 hover:text-red-600">
+        <button @click="aiGenerationStore.clearError" class="ml-auto text-red-400 hover:text-red-600">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
           </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Development Mode Controls -->
+    <div v-if="isDevelopment" class="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <div>
+            <h3 class="text-sm font-medium text-yellow-800">Development Mode</h3>
+            <p class="text-xs text-yellow-700 mt-1">Rate limiting is disabled. Clear limits if needed.</p>
+          </div>
+        </div>
+        <button
+          @click="clearRateLimits"
+          class="px-3 py-1 text-xs font-medium text-yellow-800 bg-yellow-100 border border-yellow-300 rounded-md hover:bg-yellow-200 transition-colors"
+        >
+          🧹 Clear Rate Limits
         </button>
       </div>
     </div>
@@ -221,7 +834,7 @@ onMounted(() => {
             <button
               v-for="format in outputFormats"
               :key="format.value"
-              @click="handleContentTypeChange(format.value as 'summary' | 'quiz' | 'flashcard' | 'note')"
+              @click="handleContentTypeChange(format.value as 'quiz' | 'flashcard' | 'note')"
               class="p-4 border-2 rounded-lg text-left transition-all duration-200 hover:shadow-sm"
               :class="
                 outputFormat === format.value
@@ -247,12 +860,11 @@ onMounted(() => {
 
         <!-- File Upload -->
         <div class="mb-6">
-          <label class="block text-sm font-medium text-slate-700 mb-3">Attach Files (Optional)</label>
+          <label class="block text-sm font-medium text-slate-700 mb-3">Attach File (Optional)</label>
           <div class="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
             <input
               ref="fileInput"
               type="file"
-              multiple
               accept=".pdf,.doc,.docx,.txt,.md"
               @change="handleFileUpload"
               class="hidden"
@@ -264,31 +876,28 @@ onMounted(() => {
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
               </svg>
-              Choose Files
+              Choose File
             </button>
-            <p class="text-sm text-slate-500 mt-2">Support: PDF, DOC, DOCX, TXT, MD (Max 10MB each) - Optional</p>
+            <p class="text-sm text-slate-500 mt-2">Support: PDF, DOC, DOCX, TXT, MD (Max 10MB) - Optional. Content will be processed to generate English study materials.</p>
           </div>
 
-          <!-- Attached Files List -->
-          <div v-if="attachedFiles.length > 0" class="mt-4 space-y-2">
-            <h4 class="text-sm font-medium text-slate-700">Attached Files:</h4>
-            <div
-              v-for="(file, index) in attachedFiles"
-              :key="index"
-              class="flex items-center justify-between p-3 bg-slate-50 rounded-lg"
-            >
+          <!-- Attached File -->
+          <div v-if="attachedFile" class="mt-4">
+            <h4 class="text-sm font-medium text-slate-700 mb-2">Attached File:</h4>
+            <div class="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
               <div class="flex items-center gap-3">
                 <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
                 <div>
-                  <p class="text-sm font-medium text-slate-900">{{ file.name }}</p>
-                  <p class="text-xs text-slate-500">{{ (file.size / 1024 / 1024).toFixed(2) }} MB</p>
+                  <p class="text-sm font-medium text-slate-900">{{ attachedFile.name }}</p>
+                  <p class="text-xs text-slate-500">{{ (attachedFile.size / 1024 / 1024).toFixed(2) }} MB</p>
                 </div>
               </div>
               <button
-                @click="removeFile(index)"
+                @click="removeFile()"
                 class="text-red-500 hover:text-red-700 transition-colors"
+                title="Remove file"
               >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -298,31 +907,157 @@ onMounted(() => {
           </div>
         </div>
 
+                <!-- Prompt Presets (only show when no file attached) -->
+        <div v-if="!attachedFile" class="mb-6">
+          <label class="flex items-center gap-2 text-sm font-medium text-slate-700 mb-3">
+            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            Quick Start Templates
+            <span class="text-xs text-slate-500 ml-2">(Choose a template to get started faster)</span>
+          </label>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <button
+              v-for="preset in getCurrentPresets()"
+              :key="preset.id"
+              @click="handlePresetSelect(preset.id)"
+              class="p-4 border-2 border-dashed border-slate-300 rounded-lg text-left hover:border-blue-400 hover:bg-blue-50 transition-all duration-200 group"
+            >
+              <div class="flex items-start gap-3">
+                <div class="w-10 h-10 bg-slate-100 group-hover:bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <!-- BookOpen Icon -->
+                  <svg v-if="getPresetIcon(preset.id) === 'BookOpen'" class="w-5 h-5 text-slate-600 group-hover:text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253z" />
+                  </svg>
+                  <!-- Scale Icon -->
+                  <svg v-else-if="getPresetIcon(preset.id) === 'Scale'" class="w-5 h-5 text-slate-600 group-hover:text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
+                  </svg>
+                  <!-- Clock Icon -->
+                  <svg v-else-if="getPresetIcon(preset.id) === 'Clock'" class="w-5 h-5 text-slate-600 group-hover:text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <!-- Map Icon -->
+                  <svg v-else-if="getPresetIcon(preset.id) === 'Map'" class="w-5 h-5 text-slate-600 group-hover:text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                  </svg>
+                  <!-- CheckCircle Icon -->
+                  <svg v-else-if="getPresetIcon(preset.id) === 'CheckCircle'" class="w-5 h-5 text-slate-600 group-hover:text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <!-- Edit3 Icon -->
+                  <svg v-else-if="getPresetIcon(preset.id) === 'Edit3'" class="w-5 h-5 text-slate-600 group-hover:text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                  <!-- Shuffle Icon -->
+                  <svg v-else-if="getPresetIcon(preset.id) === 'Shuffle'" class="w-5 h-5 text-slate-600 group-hover:text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4l11.733 16h4.267m-4.267 0L16 16m-1.733 4L16 16m0 0L4 4h4.267M16 16L4 4m0 0L16 16M4 4l11.733 16" />
+                  </svg>
+                  <!-- Brain Icon (using Lightbulb as alternative) -->
+                  <svg v-else-if="getPresetIcon(preset.id) === 'Brain'" class="w-5 h-5 text-slate-600 group-hover:text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  </svg>
+                  <!-- FileText Icon -->
+                  <svg v-else-if="getPresetIcon(preset.id) === 'FileText'" class="w-5 h-5 text-slate-600 group-hover:text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <!-- MessageCircle Icon -->
+                  <svg v-else-if="getPresetIcon(preset.id) === 'MessageCircle'" class="w-5 h-5 text-slate-600 group-hover:text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                  <!-- Globe Icon -->
+                  <svg v-else-if="getPresetIcon(preset.id) === 'Globe'" class="w-5 h-5 text-slate-600 group-hover:text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <!-- Eye Icon -->
+                  <svg v-else-if="getPresetIcon(preset.id) === 'Eye'" class="w-5 h-5 text-slate-600 group-hover:text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                  <!-- Default FileText Icon -->
+                  <svg v-else class="w-5 h-5 text-slate-600 group-hover:text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <div class="flex-1">
+                  <h4 class="font-medium text-slate-900 group-hover:text-blue-900 mb-1">
+                    {{ preset.title }}
+                  </h4>
+                  <p class="text-xs text-slate-600 group-hover:text-blue-800 mb-2">{{ preset.description }}</p>
+                  <p class="text-xs text-slate-500 italic">Example: {{ preset.example }}</p>
+                </div>
+              </div>
+            </button>
+          </div>
+
+          <div class="mt-3 text-center">
+            <span class="text-xs text-slate-500">Or write your own custom prompt below ↓</span>
+          </div>
+        </div>
+
         <!-- Prompt Input -->
         <div class="mb-6">
-          <label class="block text-sm font-medium text-slate-700 mb-2">Generation Prompt</label>
+          <label class="block text-sm font-medium text-slate-700 mb-2">
+            {{ attachedFile ? 'File Processing Instructions' : 'Custom Prompt' }}
+            <span v-if="!attachedFile" class="text-xs text-blue-600 ml-2">(Or use a template above)</span>
+            <span v-else class="text-xs text-green-600 ml-2">(Describe how to process your attached file)</span>
+          </label>
           <textarea
             v-model="promptText"
             rows="6"
             class="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-            placeholder="Describe what you want to generate. Be specific about the content, style, and requirements..."
+                        :placeholder="attachedFile ?
+              'Describe how you want to process your attached file. Be specific about the output format and academic requirements. The AI will analyze your file and generate content accordingly.' :
+              'Describe what educational content you want to generate in English. Be specific about the subject, academic level, and key topics. Example: Create high school biology quiz on photosynthesis with 10 multiple choice questions.'"
             :class="{ 'border-red-300 focus:ring-red-500': promptText.length > 0 && !isValid }"
           ></textarea>
-          <div class="flex justify-between items-center mt-2 text-sm">
-            <span class="text-slate-500">
-              Minimum 10 characters, maximum 2000 characters
-            </span>
+          <div class="flex justify-between items-start mt-2 text-sm">
+            <div class="flex-1">
+              <span class="text-slate-500">
+                Minimum 10 characters, maximum 2000 characters. Please write in English for best results.
+              </span>
+              <div v-if="validationMessage" class="text-red-500 text-xs mt-1">
+                {{ validationMessage }}
+              </div>
+            </div>
             <span
               :class="
                 characterCount > 2000
                   ? 'text-red-500'
-                  : characterCount >= 10
+                  : isValid
                   ? 'text-green-500'
                   : 'text-slate-400'
               "
+              class="ml-4 whitespace-nowrap"
             >
               {{ characterCount }}/2000
             </span>
+          </div>
+        </div>
+
+        <!-- Dynamic Help Section -->
+        <div v-if="!attachedFile" class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+          <div class="flex items-start gap-3">
+            <svg class="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div>
+              <h4 class="text-sm font-medium text-blue-900 mb-1">No File Attached</h4>
+              <p class="text-sm text-blue-800">Since you haven't attached a file, please specify the subject, academic level, and key topics you want covered in your prompt. Be as specific as possible for better results.</p>
+            </div>
+          </div>
+        </div>
+
+        <div v-else class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+          <div class="flex items-start gap-3">
+            <svg class="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div>
+              <h4 class="text-sm font-medium text-green-900 mb-1">File Attached: {{ attachedFile.name }}</h4>
+              <p class="text-sm text-green-800">Your file will be analyzed and processed. Please describe how you want the AI to transform this content into study materials (e.g., difficulty level, specific focus areas, question types).</p>
+            </div>
           </div>
         </div>
       </div>
@@ -353,8 +1088,8 @@ onMounted(() => {
               <p class="font-medium">{{ outputFormats.find(f => f.value === outputFormat)?.label }}</p>
             </div>
             <div>
-              <span class="text-slate-500">Files Attached:</span>
-              <p class="font-medium">{{ attachedFiles.length }} file(s)</p>
+              <span class="text-slate-500">File Attached:</span>
+              <p class="font-medium">{{ attachedFile ? '1 file' : 'No file' }}</p>
             </div>
           </div>
         </div>
@@ -367,29 +1102,23 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- Files Preview -->
-        <div v-if="attachedFiles.length > 0" class="mb-6">
-          <h3 class="font-medium text-slate-900 mb-3">Attached Files</h3>
-          <div class="space-y-2">
-            <div
-              v-for="(file, index) in attachedFiles"
-              :key="index"
-              class="flex items-center gap-3 p-3 bg-slate-50 rounded-lg"
-            >
-              <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              <div>
-                <p class="text-sm font-medium text-slate-900">{{ file.name }}</p>
-                <p class="text-xs text-slate-500">{{ (file.size / 1024 / 1024).toFixed(2) }} MB</p>
-              </div>
+        <!-- File Preview -->
+        <div v-if="attachedFile" class="mb-6">
+          <h3 class="font-medium text-slate-900 mb-3">Attached File</h3>
+          <div class="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
+            <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <div>
+              <p class="text-sm font-medium text-slate-900">{{ attachedFile.name }}</p>
+              <p class="text-xs text-slate-500">{{ (attachedFile.size / 1024 / 1024).toFixed(2) }} MB</p>
             </div>
           </div>
         </div>
         <div v-else class="mb-6">
-          <h3 class="font-medium text-slate-900 mb-3">Attached Files</h3>
+          <h3 class="font-medium text-slate-900 mb-3">Attached File</h3>
           <div class="p-4 bg-slate-50 border border-slate-200 rounded-lg text-center">
-            <p class="text-slate-500">No files attached</p>
+            <p class="text-slate-500">No file attached</p>
           </div>
         </div>
       </div>
@@ -404,10 +1133,10 @@ onMounted(() => {
         </button>
         <button
           @click="handleGenerate"
-          :disabled="!isValid"
+          :disabled="!isValid || currentStep === 'generating'"
           class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
-          Generate Content
+          {{ currentStep === 'generating' ? 'Generating...' : 'Generate Content' }}
         </button>
       </div>
     </div>
@@ -416,6 +1145,23 @@ onMounted(() => {
     <div v-if="currentStep === 'generating'" class="space-y-6">
       <div class="bg-white rounded-lg border border-slate-200 p-6 text-center">
         <h2 class="text-xl font-semibold text-slate-900 mb-6">Generating Your Content</h2>
+
+        <!-- Rate Limit Warning (if applicable) -->
+        <div v-if="generationStatus.includes('Rate limit') || generationStatus.includes('rate limit')" class="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+          <div class="flex items-center justify-center gap-2">
+            <svg class="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.732 15.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+            <div class="text-center">
+              <p class="text-orange-800 text-sm font-medium">
+                Rate Limit Exceeded
+              </p>
+              <p class="text-orange-700 text-xs mt-1">
+                The server is temporarily limiting requests. Please wait a moment before trying again.
+              </p>
+            </div>
+          </div>
+        </div>
 
         <!-- Progress Bar -->
         <div class="mb-6">
@@ -457,8 +1203,34 @@ onMounted(() => {
           <p class="text-green-800">Your {{ outputFormats.find(f => f.value === outputFormat)?.label.toLowerCase() }} has been created and is ready for use.</p>
         </div>
 
+        <!-- Auto-redirect info (only show if auto-redirect is enabled) -->
+        <div v-if="autoRedirectToContent && redirectTimeoutId" class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p class="text-blue-800 text-sm">
+                Auto-redirecting to content view in 2 seconds...
+              </p>
+            </div>
+            <button
+              @click="cancelAutoRedirect"
+              class="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+
         <!-- Action Buttons -->
-        <div class="flex gap-3">
+        <div class="flex gap-3 flex-wrap">
+          <button
+            @click="navigateToAIContentGenerator"
+            class="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+          >
+            View Generated Content
+          </button>
           <button
             @click="handleGenerate"
             class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -476,6 +1248,109 @@ onMounted(() => {
           >
             Start New
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Preset Customization Modal -->
+    <div v-if="showPresetModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[70]">
+      <div class="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-hidden">
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between p-6 border-b border-slate-200">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+              <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 011-1h1a2 2 0 100-4H7a1 1 0 01-1-1V7a1 1 0 011-1h3a1 1 0 001-1V4z" />
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-lg font-semibold text-slate-900">Customize Template</h3>
+              <p class="text-sm text-slate-500">
+                {{ getCurrentPresets().find(p => p.id === selectedPreset)?.title }}
+              </p>
+            </div>
+          </div>
+          <button
+            @click="showPresetModal = false"
+            class="text-slate-400 hover:text-slate-600 transition-colors"
+          >
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Modal Content -->
+        <div class="p-6 overflow-y-auto max-h-[60vh]">
+          <div v-if="selectedPreset" class="space-y-6">
+            <!-- Template Preview -->
+            <div class="bg-slate-50 p-4 rounded-lg">
+              <h4 class="font-medium text-slate-900 mb-2">Template Preview:</h4>
+              <p class="text-sm text-slate-700 leading-relaxed">
+                {{ getCurrentPresets().find(p => p.id === selectedPreset)?.template }}
+              </p>
+            </div>
+
+            <!-- Custom Fields -->
+            <div class="space-y-4">
+              <h4 class="font-medium text-slate-900">Fill in the details:</h4>
+
+              <div
+                v-for="placeholder in getCurrentPresets().find(p => p.id === selectedPreset)?.placeholders || []"
+                :key="placeholder"
+                class="space-y-2"
+              >
+                <label class="block text-sm font-medium text-slate-700">
+                  {{ placeholder.replace('_', ' ').toLowerCase() }}
+                  <span class="text-red-500">*</span>
+                </label>
+                <input
+                  v-model="customFields[placeholder]"
+                  type="text"
+                  :placeholder="getPlaceholderHint(placeholder)"
+                  class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+
+            <!-- Example Section -->
+            <div class="bg-blue-50 p-4 rounded-lg">
+              <h4 class="font-medium text-blue-900 mb-2">Example:</h4>
+              <p class="text-sm text-blue-800">
+                {{ getCurrentPresets().find(p => p.id === selectedPreset)?.example }}
+              </p>
+              <button
+                @click="usePresetExample"
+                class="mt-2 text-xs text-blue-600 hover:text-blue-800 underline"
+              >
+                Use this example
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="flex items-center justify-between p-6 border-t border-slate-200">
+          <button
+            @click="showPresetModal = false"
+            class="px-4 py-2 text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+          >
+            Cancel
+          </button>
+          <div class="flex gap-3">
+            <button
+              @click="usePresetExample"
+              class="px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors"
+            >
+              Use Example
+            </button>
+            <button
+              @click="applyPreset"
+              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Apply Template
+            </button>
+          </div>
         </div>
       </div>
     </div>

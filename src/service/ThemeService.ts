@@ -395,7 +395,7 @@ export async function getUserTheme(userId: number): Promise<{ current: Theme; pr
       }
     }
 
-    const response = await apiClient.get<{ current: ThemeDto; presets: ThemeDto[] }>(`/api/users/${userId}/theme`)
+    const response = await apiClient.get<{ current: ThemeDto; presets: ThemeDto[] }>(`/users/${userId}/theme`)
     return {
       current: dtoToTheme(response.data.current),
       presets: response.data.presets.map(dtoToTheme),
@@ -430,7 +430,7 @@ export async function saveUserTheme(userId: number, theme: Theme): Promise<void>
     }
 
     const themeDto = themeToDto(theme)
-    await apiClient.put(`/api/users/${userId}/theme`, themeDto)
+    await apiClient.put(`/users/${userId}/theme`, themeDto)
   } catch (error: unknown) {
     // Check if it's a 403/401 error (authentication/authorization issue)
     const axiosError = error as { response?: { status?: number } }
@@ -454,7 +454,7 @@ export async function createUserPreset(userId: number, theme: Theme): Promise<Th
     }
 
     const themeDto = themeToDto(theme)
-    const response = await apiClient.post<ThemeDto[]>(`/api/users/${userId}/presets`, themeDto)
+    const response = await apiClient.post<ThemeDto[]>(`/users/${userId}/presets`, themeDto)
     return response.data.map(dtoToTheme)
   } catch (error: unknown) {
     // Check if it's a 403/401 error (authentication/authorization issue)
@@ -478,7 +478,7 @@ export async function deleteUserPreset(userId: number, presetId: number): Promis
       return []
     }
 
-    const response = await apiClient.delete<ThemeDto[]>(`/api/users/${userId}/presets/${presetId}`)
+    const response = await apiClient.delete<ThemeDto[]>(`/users/${userId}/presets/${presetId}`)
     return response.data.map(dtoToTheme)
   } catch (error: unknown) {
     // Check if it's a 403/401 error (authentication/authorization issue)
@@ -502,7 +502,7 @@ export async function resetPersonalization(userId: number): Promise<void> {
       return
     }
 
-    await apiClient.post(`/api/users/${userId}/reset-personalization`)
+    await apiClient.post(`/users/${userId}/reset-personalization`)
   } catch (error: unknown) {
     // Check if it's a 403/401 error (authentication/authorization issue)
     const axiosError = error as { response?: { status?: number } }

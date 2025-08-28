@@ -14,8 +14,21 @@ const lineHeight = ref(1.6)
 const theme = ref<'light' | 'dark' | 'sepia'>('light')
 const showTableOfContents = ref(true)
 
-// Parse content to extract sections
+// Try to parse JSON content first, then fallback to markdown
 const parseContent = (content: string) => {
+  try {
+    // Try to parse as JSON
+    const jsonData = JSON.parse(content)
+
+    // If it's a note object with structured data
+    if (jsonData.topic || jsonData.content) {
+      return parseJsonNote(jsonData)
+    }
+  } catch {
+    // Not JSON, continue with regular parsing
+  }
+
+  // Regular markdown parsing
   const lines = content.split('\n')
   const sections: { level: number; title: string; content: string[] }[] = []
   let currentSection: { level: number; title: string; content: string[] } | null = null
@@ -41,6 +54,84 @@ const parseContent = (content: string) => {
   // Add last section
   if (currentSection) {
     sections.push(currentSection)
+  }
+
+  return sections
+}
+
+// Parse JSON note content
+const parseJsonNote = (jsonData: Record<string, unknown>) => {
+  const sections: { level: number; title: string; content: string[] }[] = []
+
+  // Check if new API format (with metadata) or current API format
+  const isNewFormat = !!(jsonData.metadata && jsonData.content)
+
+  if (isNewFormat) {
+    // New API format
+    const contentData = jsonData.content as Record<string, unknown>
+
+    // Main topic section
+    if (contentData.topic && typeof contentData.topic === 'string') {
+      sections.push({
+        level: 1,
+        title: contentData.topic,
+        content: []
+      })
+    }
+
+    // Content sections
+    if (contentData.sections && Array.isArray(contentData.sections)) {
+      contentData.sections.forEach((item: Record<string, unknown>) => {
+        if (item.title && typeof item.title === 'string') {
+          const contentLines: string[] = []
+          if (Array.isArray(item.content)) {
+            item.content.forEach((line: unknown) => {
+              if (typeof line === 'string') {
+                contentLines.push(line)
+              }
+            })
+          }
+
+          sections.push({
+            level: 2,
+            title: item.title,
+            content: contentLines
+          })
+        }
+      })
+    }
+  } else {
+    // Current API format: { title, content: [{ feature, description }] }
+
+    // Main title section
+    if (jsonData.title && typeof jsonData.title === 'string') {
+      sections.push({
+        level: 1,
+        title: jsonData.title,
+        content: []
+      })
+    }
+
+    // Content sections (features)
+    if (jsonData.content && Array.isArray(jsonData.content)) {
+      jsonData.content.forEach((item: Record<string, unknown>) => {
+        const title = (item.feature || item.title) as string
+        const description = item.description as string
+
+        if (title) {
+          const contentLines: string[] = []
+          if (description) {
+            contentLines.push(description)
+          }
+
+          sections.push({
+            level: 2,
+            title: title,
+            content: contentLines
+          })
+        }
+      })
+    }
   }
 
   return sections

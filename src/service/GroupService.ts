@@ -89,58 +89,58 @@ export default {
   },
 
   getAllGroups() {
-    return api.get<StudyGroupDTO[]>('/api/groups').then((res) => res.data)
+    return api.get<StudyGroupDTO[]>('/groups').then((res) => res.data)
   },
 
   getGroupDetails(groupId: string) {
-    return api.get<GroupDetailsDTO>(`/api/groups/${groupId}`).then((res) => res.data)
+    return api.get<GroupDetailsDTO>(`/groups/${groupId}`).then((res) => res.data)
   },
 
   updateGroup(groupId: string, payload: Partial<CreateGroupPayload>) {
-    return api.put<StudyGroupDTO>(`/api/groups/${groupId}`, payload).then((res) => res.data)
+    return api.put<StudyGroupDTO>(`/groups/${groupId}`, payload).then((res) => res.data)
   },
 
   deleteGroup(groupId: string) {
-    return api.delete<void>(`/api/groups/${groupId}`)
+    return api.delete<void>(`/groups/${groupId}`)
   },
 
   // Member Management
   getGroupMembers(groupId: string) {
-    return api.get<GroupMemberDTO[]>(`/api/groups/${groupId}/members`).then((res) => res.data)
+    return api.get<GroupMemberDTO[]>(`/groups/${groupId}/members`).then((res) => res.data)
   },
 
   inviteMember(groupId: string, payload: InviteMemberPayload) {
-    return api.post<void>(`/api/groups/${groupId}/invite`, payload)
+    return api.post<void>(`/groups/${groupId}/invite`, payload)
   },
 
   updateMemberRole(groupId: string, payload: UpdateMemberRoleRequest) {
-    return api.put<void>(`/api/groups/${groupId}/members/${payload.userId}/role`, { role: payload.role })
+    return api.put<void>(`/groups/${groupId}/members/${payload.userId}/role`, { role: payload.role })
   },
 
   removeMember(groupId: string, userId: string) {
-    return api.delete<void>(`/api/groups/${groupId}/members/${userId}`)
+    return api.delete<void>(`/groups/${groupId}/members/${userId}`)
   },
 
   leaveGroup(groupId: string) {
-    return api.post<void>(`/api/groups/${groupId}/leave`)
+    return api.post<void>(`/groups/${groupId}/leave`)
   },
 
   // Invite Management
   generateInviteCode(groupId: string) {
-    return api.post<GenerateInviteCodeResponse>(`/api/groups/${groupId}/invite-code`).then((res) => res.data)
+    return api.post<GenerateInviteCodeResponse>(`/groups/${groupId}/invite-code`).then((res) => res.data)
   },
 
   joinByCode(payload: JoinGroupByCodePayload) {
-    return api.post<StudyGroupDTO>('/api/groups/join', payload).then((res) => res.data)
+    return api.post<StudyGroupDTO>('/groups/join', payload).then((res) => res.data)
   },
 
   joinByToken(token: string) {
-    return api.post<StudyGroupDTO>('/api/groups/join', { token }).then((res) => res.data)
+    return api.post<StudyGroupDTO>('/groups/join', { token }).then((res) => res.data)
   },
 
   // Resource Management
   getGroupResources(groupId: string) {
-    return api.get<GroupResourceDTO[]>(`/api/groups/${groupId}/resources`).then((res) => res.data)
+    return api.get<GroupResourceDTO[]>(`/groups/${groupId}/resources`).then((res) => res.data)
   },
 
   uploadResource(groupId: string, payload: CreateResourcePayload) {
@@ -149,7 +149,7 @@ export default {
     formData.append('description', payload.description)
     formData.append('file', payload.file)
 
-    return api.post<GroupResourceDTO>(`/api/groups/${groupId}/resources`, formData, {
+    return api.post<GroupResourceDTO>(`/groups/${groupId}/resources`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -157,6 +157,6 @@ export default {
   },
 
   deleteResource(groupId: string, resourceId: string) {
-    return api.delete<void>(`/api/groups/${groupId}/resources/${resourceId}`)
+    return api.delete<void>(`/groups/${groupId}/resources/${resourceId}`)
   },
 }

@@ -3,13 +3,16 @@ import { ref, computed } from 'vue'
 import {
   aiContentService,
   type AIContent,
+  type CreateGenerationRequest,
   type CreateGenerationRequestDTO,
   type GenerationStatusDTO,
-  type AIPromptTemplate,
   type AIGeneratedContent,
+  type SaveContentRequest,
   type SaveContentDTO,
   type AIDraft,
 } from '@/service/AIContentService'
+import { rateLimiter } from '@/utils/rateLimiter'
+import { aiGenerationWebSocket } from '@/service/aiGenerationWebSocket'
 
 export const useAIContentStore = defineStore('aiContent', () => {
   // State
@@ -22,6 +25,10 @@ export const useAIContentStore = defineStore('aiContent', () => {
   const generationProgress = ref(0)
   const error = ref<string | null>(null)
   const loading = ref(false)
+
+  // Ensure arrays are always initialized
+  const getGenerationRequests = computed(() => generationRequests.value || [])
+  const getSavedContent = computed(() => savedContent.value || [])
 
   // Getters
   const recentRequests = computed(() => {
@@ -61,11 +68,19 @@ export const useAIContentStore = defineStore('aiContent', () => {
 
 
   // Actions
-  const createGenerationRequest = async (data: CreateGenerationRequestDTO): Promise<number> => {
+  const createGenerationRequest = async (data: CreateGenerationRequest): Promise<number> => {
     loading.value = true
     error.value = null
 
     try {
+      // Check rate limiting
+      const userId = 'current-user' // TODO: Get from auth store
+      if (!rateLimiter.canMakeRequest('generationRequests', userId)) {
+        const remaining = rateLimiter.getRemainingRequests('generationRequests', userId)
+        const resetTime = rateLimiter.getTimeUntilReset('generationRequests', userId)
+        throw new Error(`Rate limit exceeded. ${remaining} requests remaining. Reset in ${rateLimiter.formatTimeRemaining(resetTime)}`)
+      }
+
       const requestId = await aiContentService.createGenerationRequest(data)
 
       // Add to requests list
@@ -74,12 +89,17 @@ export const useAIContentStore = defineStore('aiContent', () => {
         status: 'pending',
         progress: 0,
         retryCount: 0,
-        maxRetries: data.maxRetries || 3,
+        maxRetries: data.request?.maxRetries || 3,
         createdAt: new Date().toISOString(),
       }
 
       generationRequests.value.unshift(newRequest)
       currentRequest.value = newRequest
+
+      // Subscribe to WebSocket updates
+      if (aiGenerationWebSocket.isConnected()) {
+        aiGenerationWebSocket.subscribeToGeneration(requestId)
+      }
 
       return requestId
     } catch (err) {
@@ -88,6 +108,17 @@ export const useAIContentStore = defineStore('aiContent', () => {
     } finally {
       loading.value = false
     }
+  }
+
+  // Legacy method for backward compatibility
+  const _createGenerationRequestLegacy = async (data: CreateGenerationRequestDTO): Promise<number> => {
+    return createGenerationRequest({
+      request: {
+        promptText: data.promptText,
+        outputFormat: data.outputFormat as 'flashcard' | 'quiz' | 'note',
+        maxRetries: data.maxRetries || 3
+      }
+    })
   }
 
   const startGeneration = async (requestId: number): Promise<void> => {
@@ -117,22 +148,35 @@ export const useAIContentStore = defineStore('aiContent', () => {
       try {
         const status = await aiContentService.getGenerationStatus(requestId)
 
+        // Convert status to lowercase for consistency with fallback values
+        const mappedStatus: GenerationStatusDTO = {
+          requestId: status.requestId,
+          status: status.status.toLowerCase() as 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled',
+          progress: status.progress || 0,
+          errorMessage: status.errorMessage,
+          retryCount: status.retryCount || 0,
+          maxRetries: status.maxRetries || 3,
+          createdAt: status.createdAt || new Date().toISOString(),
+          startedAt: status.startedAt,
+          completedAt: status.completedAt
+        }
+
         // Update request in list
         const requestIndex = generationRequests.value.findIndex(r => r.requestId === requestId)
         if (requestIndex !== -1) {
-          generationRequests.value[requestIndex] = status
+          generationRequests.value[requestIndex] = mappedStatus
         }
 
         // Update current request
         if (currentRequest.value?.requestId === requestId) {
-          currentRequest.value = status
+          currentRequest.value = mappedStatus
         }
 
         // Update progress
         generationProgress.value = status.progress
 
         // Stop polling if completed or failed
-        if (status.status === 'completed' || status.status === 'failed' || status.status === 'cancelled') {
+        if (mappedStatus.status === 'completed' || mappedStatus.status === 'failed' || mappedStatus.status === 'cancelled') {
           clearInterval(pollInterval)
           isGenerating.value = false
           generationProgress.value = 0
@@ -185,11 +229,20 @@ export const useAIContentStore = defineStore('aiContent', () => {
 
   const saveContent = async (data: SaveContentDTO): Promise<number> => {
     try {
-      const contentId = await aiContentService.saveContent(data)
+      // Convert SaveContentDTO to SaveContentRequest format
+      const saveRequest: SaveContentRequest = {
+        generationRequestId: data.requestId,
+        contentTitle: data.title,
+        contentType: data.outputFormat as 'flashcard' | 'quiz' | 'note',
+        contentData: data.content,
+        saveToSupabase: true
+      }
+
+      const response = await aiContentService.saveContent(saveRequest)
 
       // Add to saved content list
       const newContent: AIGeneratedContent = {
-        id: contentId,
+        id: response.contentId,
         title: data.title,
         content: data.content,
         outputFormat: data.outputFormat,
@@ -199,7 +252,7 @@ export const useAIContentStore = defineStore('aiContent', () => {
       }
 
       savedContent.value.unshift(newContent)
-      return contentId
+      return response.contentId
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to save content'
       throw err
@@ -277,8 +330,18 @@ export const useAIContentStore = defineStore('aiContent', () => {
   const loadGenerationRequests = async (): Promise<void> => {
     loading.value = true
     try {
-      const requests = await aiContentService.getGenerationRequests()
-      generationRequests.value = requests
+      const response = await aiContentService.getGenerationRequests()
+      // Extract content array from response and map to GenerationStatusDTO format
+      generationRequests.value = response.content.map(item => ({
+        requestId: item.id,
+        status: item.status.toLowerCase() as 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled',
+        progress: item.progress,
+        retryCount: 0,
+        maxRetries: 3,
+        createdAt: item.createdAt,
+        startedAt: item.createdAt,
+        completedAt: item.updatedAt
+      }))
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to load generation requests'
       throw err
@@ -290,8 +353,17 @@ export const useAIContentStore = defineStore('aiContent', () => {
   const loadSavedContent = async (): Promise<void> => {
     loading.value = true
     try {
-      const content = await aiContentService.getSavedContent()
-      savedContent.value = content
+      const response = await aiContentService.getSavedContent()
+            // Extract content array from response
+      savedContent.value = response.content.map(item => ({
+        id: item.id,
+        title: item.contentTitle,
+        content: item.contentData || '', // ใช้ content data จาก response
+        outputFormat: item.contentType as 'flashcard' | 'quiz' | 'note' | 'summary',
+        requestId: 0, // Not available in this response
+        createdAt: item.createdAt,
+        updatedAt: item.createdAt
+      }))
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to load saved content'
       throw err
@@ -339,6 +411,8 @@ export const useAIContentStore = defineStore('aiContent', () => {
     recentRequests,
     requestsByStatus,
     contentByFormat,
+    getGenerationRequests,
+    getSavedContent,
 
     // Actions
     createGenerationRequest,

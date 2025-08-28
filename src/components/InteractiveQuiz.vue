@@ -1,13 +1,20 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
+import { convertToMixedQuiz, type SimpleQuestion } from '@/utils/quizParser'
 
 interface QuizQuestion {
   id: number
-  type: 'multiple-choice' | 'true-false' | 'short-answer'
+  type: 'multiple-choice' | 'true-false' | 'short-answer' | 'open-ended'
   question: string
-  options?: string[]
-  correctAnswer: string | string[]
+  options?: Array<{
+    id: string
+    text: string
+    correct: boolean
+  }>
+  correctAnswer: string | string[] | boolean
   explanation?: string
+  points?: number
+  keywords?: string[]
 }
 
 interface Props {
@@ -26,6 +33,21 @@ const quizStarted = ref(false)
 // Parse content to extract questions
 const parseQuizContent = (content: string) => {
   console.log('Parsing content:', content)
+
+  try {
+    // Try to parse as JSON first
+    const jsonData = JSON.parse(content)
+
+    // If it's a structured quiz object
+    if (jsonData.questions && Array.isArray(jsonData.questions)) {
+      return parseJsonQuiz(jsonData)
+    }
+  } catch {
+    // Not JSON, continue with text parsing
+    console.log('Not JSON, parsing as text')
+  }
+
+  // Original text parsing logic
   const lines = content.split('\n')
   const parsedQuestions: QuizQuestion[] = []
   let currentQuestion: Partial<QuizQuestion> = {}
@@ -58,9 +80,12 @@ const parseQuizContent = (content: string) => {
       }
 
       // Check if it's True/False question
-      if (questionText.includes('True/False')) {
+      if (questionText.includes('true/false')) {
         currentQuestion.type = 'true-false'
-        currentQuestion.options = ['True', 'False']
+        currentQuestion.options = [
+          { id: 'true', text: 'true', correct: false },
+          { id: 'false', text: 'false', correct: false }
+        ]
         console.log('Set type to true-false for:', questionText)
       }
       // Check if it's Short Answer question
@@ -72,11 +97,20 @@ const parseQuizContent = (content: string) => {
       console.log('New question:', currentQuestion)
     } else if (line.match(/^[A-D]\)/)) {
       // Multiple choice option
-      currentQuestion.options?.push(line.replace(/^[A-D]\)\s*/, ''))
-      console.log('Added option:', line.replace(/^[A-D]\)\s*/, ''))
+      const optionText = line.replace(/^[A-D]\)\s*/, '')
+      const optionId = line.match(/^([A-D])\)/)?.[1] || 'A'
+      currentQuestion.options?.push({
+        id: optionId,
+        text: optionText,
+        correct: false
+      })
+      console.log('Added option:', optionText)
     } else if (line.includes('True/False')) {
       currentQuestion.type = 'true-false'
-      currentQuestion.options = ['True', 'False']
+      currentQuestion.options = [
+        { id: 'true', text: 'True', correct: false },
+        { id: 'false', text: 'False', correct: false }
+      ]
       console.log('Set type to true-false')
     } else if (line.includes('Explain') || line.includes('Describe')) {
       currentQuestion.type = 'short-answer'
@@ -106,6 +140,89 @@ const parseQuizContent = (content: string) => {
 
   console.log('Final parsed questions:', parsedQuestions)
   return parsedQuestions
+}
+
+// Parse JSON quiz content with Quiz Parser support
+const parseJsonQuiz = (jsonData: Record<string, unknown>): QuizQuestion[] => {
+  console.log('Parsing JSON quiz data:', jsonData)
+
+  // Check if this is already a converted quiz format from Quiz Parser
+  if (jsonData.questions && Array.isArray(jsonData.questions)) {
+    return jsonData.questions.map((q: Record<string, unknown>) => ({
+      id: q.id as number || 0,
+      type: q.type as QuizQuestion['type'] || 'multiple-choice',
+      question: q.question as string || '',
+      options: q.options as QuizQuestion['options'],
+      correctAnswer: q.correctAnswer as QuizQuestion['correctAnswer'] || '',
+      explanation: q.explanation as string,
+      points: q.points as number,
+      keywords: q.keywords as string[]
+    }))
+  }
+
+  // Check if this is simple format that needs conversion
+  if (jsonData.simpleQuestions && Array.isArray(jsonData.simpleQuestions)) {
+    console.log('Converting simple questions to mixed quiz format')
+    const simpleQuestions = jsonData.simpleQuestions as SimpleQuestion[]
+    const convertedQuiz = convertToMixedQuiz(simpleQuestions, {
+      questionTypes: ['multiple-choice', 'true-false', 'open-ended'],
+      distributionMode: 'round-robin',
+      language: 'th'
+    })
+
+    return convertedQuiz.map(q => ({
+      id: q.id,
+      type: q.type === 'open-ended' ? 'short-answer' : q.type,
+      question: q.question,
+      options: q.type === 'multiple-choice' ? q.options :
+               q.type === 'true-false' ? [
+                 { id: 'true', text: 'จริง', correct: q.correctAnswer === true },
+                 { id: 'false', text: 'เท็จ', correct: q.correctAnswer === false }
+               ] : undefined,
+      correctAnswer: q.correctAnswer,
+      explanation: q.explanation,
+      points: q.points,
+      keywords: q.type === 'open-ended' ? q.keywords : undefined
+    } as QuizQuestion))
+  }
+
+  // Fallback: try to detect simple Q&A format and convert using Quiz Parser
+  if (jsonData.content && Array.isArray(jsonData.content)) {
+    console.log('Detecting simple Q&A format, converting with Quiz Parser')
+    const simpleQuestions: SimpleQuestion[] = jsonData.content.map((item: Record<string, unknown>) => ({
+      question: item.question as string || '',
+      answer: item.answer as string || '',
+      context: item.context as string,
+      difficulty: item.difficulty as 'easy' | 'medium' | 'hard'
+    }))
+
+    if (simpleQuestions.length > 0) {
+      const convertedQuiz = convertToMixedQuiz(simpleQuestions, {
+        questionTypes: ['multiple-choice', 'true-false', 'open-ended'],
+        distributionMode: 'round-robin',
+        language: 'th',
+        generateExplanations: true
+      })
+
+      return convertedQuiz.map(q => ({
+        id: q.id,
+        type: q.type === 'open-ended' ? 'short-answer' : q.type,
+        question: q.question,
+        options: q.type === 'multiple-choice' ? q.options :
+                 q.type === 'true-false' ? [
+                   { id: 'true', text: 'จริง', correct: q.correctAnswer === true },
+                   { id: 'false', text: 'เท็จ', correct: q.correctAnswer === false }
+                 ] : undefined,
+        correctAnswer: q.correctAnswer,
+        explanation: q.explanation,
+        points: q.points,
+        keywords: q.type === 'open-ended' ? q.keywords : undefined
+      } as QuizQuestion))
+    }
+  }
+
+  console.log('No compatible format found, returning empty array')
+  return []
 }
 
 // Computed properties
@@ -138,6 +255,25 @@ const score = computed(() => {
   return totalQuestions.value > 0 ? Math.round((correctAnswers.value / totalQuestions.value) * 100) : 0
 })
 
+// Check if current question has a valid answer
+const isAnswerProvided = computed(() => {
+  const answer = userAnswers.value[currentQuestion.value.id]
+
+  // For different question types, check if answer is provided
+  if (currentQuestion.value.type === 'short-answer' || currentQuestion.value.type === 'open-ended') {
+    // For text answers, check if there's actual content (not just whitespace)
+    return answer && typeof answer === 'string' && answer.trim().length > 0
+  } else {
+    // For multiple choice, true/false, etc.
+    return answer !== undefined && answer !== null && answer !== ''
+  }
+})
+
+// Development mode check
+const isDevelopmentMode = computed(() => {
+  return import.meta.env.DEV
+})
+
 // Methods
 const startQuiz = () => {
   quizStarted.value = true
@@ -148,6 +284,11 @@ const startQuiz = () => {
 
 const selectAnswer = (answer: string) => {
   userAnswers.value[currentQuestion.value.id] = answer
+}
+
+const handleAnswerInput = () => {
+  // Force reactivity update
+  console.log('Answer input changed:', userAnswers.value[currentQuestion.value.id])
 }
 
 const nextQuestion = () => {
@@ -182,13 +323,13 @@ const isAnswerCorrect = (questionId: number, answer: string | string[]) => {
   if (Array.isArray(answer)) {
     if (Array.isArray(question.correctAnswer)) {
       return answer.length === question.correctAnswer.length &&
-             answer.every(ans => question.correctAnswer.includes(ans))
+             answer.every(ans => (question.correctAnswer as string[]).includes(ans))
     }
     return false
   }
 
   if (Array.isArray(question.correctAnswer)) {
-    return question.correctAnswer.includes(answer)
+    return question.correctAnswer.includes(answer as string)
   }
   return question.correctAnswer === answer
 }
@@ -203,6 +344,19 @@ const parseAndSetQuestions = () => {
   questions.value = parseQuizContent(props.content)
   console.log('Final questions count:', questions.value.length)
   console.log('Questions:', questions.value)
+
+  // Debug individual questions
+  questions.value.forEach((q, index) => {
+    console.log(`Question ${index + 1}:`, {
+      id: q.id,
+      type: q.type,
+      question: q.question,
+      optionsCount: Array.isArray(q.options) ? q.options.length : 0,
+      optionsType: Array.isArray(q.options) && q.options.length > 0 ? typeof q.options[0] : 'none',
+      optionsPreview: Array.isArray(q.options) ? q.options.slice(0, 2) : 'none',
+      correctAnswer: q.correctAnswer
+    })
+  })
 
   // Reset quiz state when content changes
   quizStarted.value = false
@@ -259,38 +413,54 @@ watch(() => props.content, () => {
           {{ currentQuestion.question }}
         </h3>
 
+                <!-- Debug info for question type (development only) -->
+        <!-- <div v-if="isDevelopmentMode" class="mb-4 p-2 bg-gray-100 rounded text-xs text-gray-600">
+          Debug: Question Type = <strong>{{ currentQuestion.type }}</strong>,
+          ID = {{ currentQuestion.id }}
+        </div> -->
+
         <!-- Multiple Choice -->
         <div v-if="currentQuestion.type === 'multiple-choice'" class="space-y-3">
+          <div v-if="!currentQuestion.options || currentQuestion.options.length === 0"
+               class="text-red-600 bg-red-50 p-4 rounded-lg">
+            ⚠️ No options available for this question. Please check the content format.
+            <br>
+            <small>Question ID: {{ currentQuestion.id }}, Type: {{ currentQuestion.type }}</small>
+          </div>
           <button
+            v-else
             v-for="(option, index) in currentQuestion.options"
             :key="index"
-            @click="selectAnswer(option)"
+            @click="selectAnswer(typeof option === 'string' ? option : option.text)"
             :class="
-              isAnswerSelected(option)
+              isAnswerSelected(typeof option === 'string' ? option : option.text)
                 ? 'bg-blue-100 border-blue-500 text-blue-900'
                 : 'bg-white border-slate-300 hover:bg-slate-50'
             "
             class="w-full p-4 text-left border-2 rounded-lg transition-colors"
           >
             <span class="font-medium mr-3">{{ String.fromCharCode(65 + index) }}.</span>
-            {{ option }}
+            {{ typeof option === 'string' ? option : option.text }}
           </button>
         </div>
 
         <!-- True/False -->
         <div v-else-if="currentQuestion.type === 'true-false'" class="space-y-3">
           <button
-            v-for="option in currentQuestion.options || ['True', 'False']"
-            :key="option"
-            @click="selectAnswer(option)"
+            v-for="option in currentQuestion.options || [
+              { id: 'true', text: 'true', correct: false },
+              { id: 'false', text: 'false', correct: false }
+            ]"
+            :key="typeof option === 'string' ? option : option.id"
+            @click="selectAnswer(typeof option === 'string' ? option : option.text)"
             :class="
-              isAnswerSelected(option)
+              isAnswerSelected(typeof option === 'string' ? option : option.text)
                 ? 'bg-blue-100 border-blue-500 text-blue-900'
                 : 'bg-white border-slate-300 hover:bg-slate-50'
             "
             class="w-full p-4 text-left border-2 rounded-lg transition-colors"
           >
-            {{ option }}
+            {{ typeof option === 'string' ? option : option.text }}
           </button>
         </div>
 
@@ -301,6 +471,51 @@ watch(() => props.content, () => {
             rows="4"
             class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
             placeholder="Type your answer here..."
+            @input="handleAnswerInput"
+          ></textarea>
+
+                    <!-- Debug info (for development) -->
+          <div v-if="isDevelopmentMode" class="text-xs text-gray-500">
+            Debug: Answer length = {{ userAnswers[currentQuestion.id]?.length || 0 }},
+            Is provided = {{ isAnswerProvided }}
+          </div>
+        </div>
+
+        <!-- Open Ended (similar to short answer but longer) -->
+        <div v-else-if="currentQuestion.type === 'open-ended'" class="space-y-3">
+          <textarea
+            v-model="userAnswers[currentQuestion.id]"
+            rows="6"
+            class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+            placeholder="Provide your detailed answer here..."
+            @input="handleAnswerInput"
+          ></textarea>
+
+                    <!-- Debug info (for development) -->
+          <div v-if="isDevelopmentMode" class="text-xs text-gray-500">
+            Debug: Answer length = {{ userAnswers[currentQuestion.id]?.length || 0 }},
+            Is provided = {{ isAnswerProvided }}
+          </div>
+        </div>
+
+        <!-- Fallback for unsupported question types -->
+        <div v-else class="space-y-3">
+          <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <p class="text-yellow-800 text-sm">
+              <strong>Unsupported question type:</strong> {{ currentQuestion.type }}
+            </p>
+            <p class="text-yellow-700 text-xs mt-1">
+              This question type is not yet supported in the interactive quiz.
+            </p>
+          </div>
+
+          <!-- Allow manual text input as fallback -->
+          <textarea
+            v-model="userAnswers[currentQuestion.id]"
+            rows="4"
+            class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+            placeholder="Please provide your answer here..."
+            @input="handleAnswerInput"
           ></textarea>
         </div>
       </div>
@@ -316,7 +531,7 @@ watch(() => props.content, () => {
         </button>
         <button
           @click="nextQuestion"
-          :disabled="!userAnswers[currentQuestion.id]"
+          :disabled="!isAnswerProvided"
           class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {{ isLastQuestion ? 'Finish Quiz' : 'Next' }}

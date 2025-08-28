@@ -1,8 +1,12 @@
 import axios from "axios";
 import { useAuthStore } from '../stores/auth'
 
+// เก็บ VITE_BACKEND_URL เอาไว้แล้วเช็คว่ามี /api อยู่แล้วหรือไม่
+const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080'
+const baseURL = backendUrl.endsWith('/api') ? backendUrl : `${backendUrl}/api`
+
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080/api',
+  baseURL,
   withCredentials: false,
   headers: {
     Accept: 'application/json', // ไม่ตั้ง Content-Type เป็น default
@@ -33,6 +37,8 @@ function isValidJwtToken(token: string): boolean {
 apiClient.interceptors.request.use((config) => {
   console.log('🚀 AxiosClient Request:', config.method?.toUpperCase(), config.url)
   console.log('🔧 Full URL:', (config.baseURL || '') + (config.url || ''))
+  console.log('🔧 Base URL from config:', config.baseURL)
+  console.log('🔧 Relative URL:', config.url)
 
   // Try to get token from auth store first
   let token: string | null = null
@@ -40,7 +46,8 @@ apiClient.interceptors.request.use((config) => {
     const auth = useAuthStore()
     token = auth.token
     console.log('🔍 Auth store token:', token ? 'EXISTS' : 'NOT FOUND')
-  } catch (error) {
+    console.log('🔍 Auth store isAuthenticated:', auth.isAuthenticated)
+  } catch {
     console.log('❌ Could not access auth store, falling back to localStorage')
     // Fallback to localStorage if auth store is not available
     token = localStorage.getItem('access_token')
@@ -50,12 +57,16 @@ apiClient.interceptors.request.use((config) => {
     config.headers = config.headers ?? {}
     config.headers.Authorization = `Bearer ${token}`
     console.log('✅ Authorization header added (valid JWT)')
-    // console.log('🔑 Token preview:', token.substring(0, 20) + '...')
-    console.log('🔑 Full Token:', token);
+    console.log('🔑 Token preview:', token.substring(0, 30) + '...')
+    // console.log('🔑 Full Token:', token);
   } else {
     // Remove Authorization header if token is invalid
     delete config.headers.Authorization
     console.log('❌ No valid auth token found')
+    console.log('❌ Token value check:', token ? 'EXISTS but INVALID' : 'NULL/UNDEFINED')
+    if (token) {
+      console.log('❌ Token format check:', token.split('.').length === 3 ? 'Valid JWT format' : 'Invalid JWT format')
+    }
   }
 
   // สำคัญ: ถ้าเป็น FormData ให้ลบ Content-Type ออก

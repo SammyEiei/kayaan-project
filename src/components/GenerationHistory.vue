@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAIContentStore } from '@/stores/aiContent'
 import type { GenerationStatusDTO } from '@/service/AIContentService'
 
 const aiStore = useAIContentStore()
+const router = useRouter()
 
 // UI state
 const selectedStatus = ref<string>('all')
@@ -23,7 +25,7 @@ const statusOptions = [
 
 // Computed properties
 const filteredRequests = computed(() => {
-  let filtered = aiStore.generationRequests
+  let filtered = aiStore.getGenerationRequests
 
   // Filter by status
   if (selectedStatus.value !== 'all') {
@@ -84,10 +86,30 @@ const handleRetry = async (requestId: number) => {
   }
 }
 
-const handleViewDetails = (request: GenerationStatusDTO) => {
+const handleViewDetails = async (request: GenerationStatusDTO) => {
   aiStore.setCurrentRequest(request)
-  // Navigate to details page or show modal
-  console.log('View details for request:', request.requestId)
+
+  // ถ้า request เสร็จแล้ว ให้ไปหน้า AI Content Generator และเปิด tab "My Content"
+  if (request.status === 'completed') {
+    try {
+      // Load saved content เพื่อให้แน่ใจว่าข้อมูลล่าสุด
+      await aiStore.loadSavedContent()
+      // Navigate ไปหน้า AI Content Generator และใช้ query parameter เพื่อเปิด saved tab
+      router.push({ name: 'ai-content-generator', query: { tab: 'saved' } })
+    } catch (error) {
+      console.error('Failed to load saved content:', error)
+      // ถึงแม้จะ error ก็ยังไปหน้า AI Content Generator ได้
+      router.push({ name: 'ai-content-generator', query: { tab: 'saved' } })
+    }
+  } else {
+    // ถ้า request ยังไม่เสร็จ แสดง status details
+    console.log('Request status:', request.status)
+    console.log('Progress:', request.progress + '%')
+    console.log('Request details:', request)
+
+    // TODO: อาจจะเพิ่ม modal หรือ toast notification ในอนาคต
+    alert(`Request ${request.requestId} is ${request.status} (${request.progress}% complete)`)
+  }
 }
 
 const getStatusIcon = (status: string) => {
@@ -129,7 +151,7 @@ onMounted(async () => {
           </div>
           <div class="ml-3">
             <p class="text-sm font-medium text-slate-600">Total Requests</p>
-            <p class="text-lg font-semibold text-slate-900">{{ aiStore.generationRequests.length }}</p>
+            <p class="text-lg font-semibold text-slate-900">{{ aiStore.getGenerationRequests.length }}</p>
           </div>
         </div>
       </div>
@@ -144,7 +166,7 @@ onMounted(async () => {
           <div class="ml-3">
             <p class="text-sm font-medium text-slate-600">Completed</p>
             <p class="text-lg font-semibold text-slate-900">
-              {{ aiStore.generationRequests.filter(r => r.status === 'completed').length }}
+              {{ aiStore.getGenerationRequests.filter(r => r.status === 'completed').length }}
             </p>
           </div>
         </div>
@@ -160,7 +182,7 @@ onMounted(async () => {
           <div class="ml-3">
             <p class="text-sm font-medium text-slate-600">Pending</p>
             <p class="text-lg font-semibold text-slate-900">
-              {{ aiStore.generationRequests.filter(r => r.status === 'pending').length }}
+              {{ aiStore.getGenerationRequests.filter(r => r.status === 'pending').length }}
             </p>
           </div>
         </div>
@@ -176,7 +198,7 @@ onMounted(async () => {
           <div class="ml-3">
             <p class="text-sm font-medium text-slate-600">Processing</p>
             <p class="text-lg font-semibold text-slate-900">
-              {{ aiStore.generationRequests.filter(r => r.status === 'processing').length }}
+              {{ aiStore.getGenerationRequests.filter(r => r.status === 'processing').length }}
             </p>
           </div>
         </div>
@@ -192,7 +214,7 @@ onMounted(async () => {
           <div class="ml-3">
             <p class="text-sm font-medium text-slate-600">Failed</p>
             <p class="text-lg font-semibold text-slate-900">
-              {{ aiStore.generationRequests.filter(r => r.status === 'failed').length }}
+              {{ aiStore.getGenerationRequests.filter(r => r.status === 'failed').length }}
             </p>
           </div>
         </div>

@@ -27,6 +27,36 @@ const studySession = ref(false)
 
 // Parse content to extract flashcards
 const parseFlashcards = (content: string) => {
+  try {
+    // Try to parse as JSON first
+    const jsonData = JSON.parse(content)
+
+    // Check if new API format (with metadata) or current API format
+    const isNewFormat = !!(jsonData.metadata && jsonData.content)
+
+    if (isNewFormat) {
+      // New API format: structured flashcard object
+      const contentData = jsonData.content as Record<string, unknown>
+      if (contentData.cards && Array.isArray(contentData.cards)) {
+        return parseJsonFlashcards({ cards: contentData.cards })
+      }
+    } else {
+      // Current API format: { flashcards: [{ question, answer }] }
+      if (jsonData.flashcards && Array.isArray(jsonData.flashcards)) {
+        return parseJsonFlashcards({ cards: jsonData.flashcards })
+      }
+
+      // Legacy format: { cards: [...] }
+      if (jsonData.cards && Array.isArray(jsonData.cards)) {
+        return parseJsonFlashcards(jsonData)
+      }
+    }
+  } catch {
+    // Not JSON, continue with text parsing
+    console.log('Not JSON, parsing as text')
+  }
+
+  // Original text parsing logic
   const lines = content.split('\n')
   const parsedCards: Flashcard[] = []
   let currentCard: Partial<Flashcard> = {}
@@ -66,6 +96,39 @@ const parseFlashcards = (content: string) => {
       back: currentCard.back,
       category: currentCard.category
     } as Flashcard)
+  }
+
+  return parsedCards
+}
+
+// Parse JSON flashcard content
+const parseJsonFlashcards = (jsonData: Record<string, unknown>): Flashcard[] => {
+  const parsedCards: Flashcard[] = []
+
+  if (jsonData.cards && Array.isArray(jsonData.cards)) {
+    jsonData.cards.forEach((card: Record<string, unknown>, index: number) => {
+      const flashcard: Flashcard = {
+        id: card.id || index + 1,
+        front: '',
+        back: '',
+        category: card.category
+      }
+
+      // Handle different card formats
+      if (card.front && card.back) {
+        // Standard front/back format
+        flashcard.front = typeof card.front === 'string' ? card.front : card.front.text || ''
+        flashcard.back = typeof card.back === 'string' ? card.back : card.back.text || ''
+      } else if (card.question && card.answer) {
+        // Question/answer format
+        flashcard.front = card.question
+        flashcard.back = card.answer
+      }
+
+      if (flashcard.front && flashcard.back) {
+        parsedCards.push(flashcard)
+      }
+    })
   }
 
   return parsedCards
