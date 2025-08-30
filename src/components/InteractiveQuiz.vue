@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { convertToMixedQuiz, type SimpleQuestion } from '@/utils/quizParser'
+import {
+  convertToSpecificQuizType,
+  convertToCustomMixedQuiz,
+  parseMixedQuizCounts,
+  type SimpleQuestion
+} from '@/utils/quizParser'
 
 interface QuizQuestion {
   id: number
@@ -144,7 +149,14 @@ const parseQuizContent = (content: string) => {
 
 // Parse JSON quiz content with Quiz Parser support
 const parseJsonQuiz = (jsonData: Record<string, unknown>): QuizQuestion[] => {
-  console.log('Parsing JSON quiz data:', jsonData)
+  console.log('🔥 === PARSING JSON QUIZ DATA ===')
+  console.log('📋 Full JSON Data:', JSON.stringify(jsonData, null, 2))
+  console.log('🔍 Available top-level keys:', Object.keys(jsonData))
+  console.log('📊 Data structure analysis:')
+  Object.keys(jsonData).forEach(key => {
+    const value = jsonData[key]
+    console.log(`  - ${key}: ${typeof value} ${Array.isArray(value) ? `(array length: ${value.length})` : ''}`)
+  })
 
   // Check if this is already a converted quiz format from Quiz Parser
   if (jsonData.questions && Array.isArray(jsonData.questions)) {
@@ -160,15 +172,86 @@ const parseJsonQuiz = (jsonData: Record<string, unknown>): QuizQuestion[] => {
     }))
   }
 
-  // Check if this is simple format that needs conversion
+    // Check if this is simple format that needs conversion
   if (jsonData.simpleQuestions && Array.isArray(jsonData.simpleQuestions)) {
-    console.log('Converting simple questions to mixed quiz format')
+    console.log('Converting simple questions using smart template detection')
     const simpleQuestions = jsonData.simpleQuestions as SimpleQuestion[]
-    const convertedQuiz = convertToMixedQuiz(simpleQuestions, {
-      questionTypes: ['multiple-choice', 'true-false', 'open-ended'],
-      distributionMode: 'round-robin',
-      language: 'th'
-    })
+
+        // ตรวจสอบ template type จาก metadata หรือ prompt
+    const templateId = jsonData.templateId as string || 'unknown'
+    const originalPrompt = jsonData.originalPrompt as string || jsonData.sourcePrompt as string || ''
+
+    console.log('🔍 DETECTION DEBUG:')
+    console.log('- Available fields:', Object.keys(jsonData))
+    console.log('- templateId:', templateId)
+    console.log('- originalPrompt:', originalPrompt)
+    console.log('- sourcePrompt:', jsonData.sourcePrompt)
+    console.log('- simpleQuestions count:', simpleQuestions.length)
+
+    // 🚨 FORCE MULTIPLE CHOICE FOR ALL CASES (TEMPORARY DEBUG)
+    // ถ้ายังเจอปัญหา แสดงว่าต้อง force single type ก่อน
+    let quizType: 'single' | 'mixed' = 'single'
+    let recommendedType: 'multiple-choice' | 'true-false' | 'open-ended' = 'multiple-choice'
+
+    console.log('🚀 FORCING SINGLE MULTIPLE-CHOICE TYPE (DEBUG MODE)')
+
+    // Check from prompt content for multiple choice indicators
+    const lowerPrompt = originalPrompt.toLowerCase()
+
+    // Only allow mixed if explicitly mentioned
+    if (lowerPrompt.includes('mixed-format') || lowerPrompt.includes('combination quiz') ||
+        (lowerPrompt.includes('multiple-choice') && lowerPrompt.includes('true-false') && lowerPrompt.includes('short-answer'))) {
+      quizType = 'mixed'
+      console.log('✅ Detected: Explicit Mixed Format Quiz')
+    } else {
+      // Default to single multiple choice for EVERYTHING else
+      quizType = 'single'
+      recommendedType = 'multiple-choice'
+      console.log('✅ FORCED: Single Multiple Choice (Safe Mode)')
+    }
+
+        let convertedQuiz
+
+                if (quizType === 'single') {
+      // 🚀 NEW: Use improved convertToSpecificQuizType with DIRECT implementation
+      console.log('🚀 USING IMPROVED convertToSpecificQuizType (DIRECT IMPLEMENTATION)')
+
+      convertedQuiz = convertToSpecificQuizType(simpleQuestions, recommendedType, {
+        language: 'th'
+      })
+
+      console.log(`✅ IMPROVED CONVERSION: Generated ${convertedQuiz.length} questions of type: ${recommendedType}`)
+
+      // 🔍 VALIDATE RESULT
+      const actualTypes = [...new Set(convertedQuiz.map(q => q.type))]
+      console.log(`🔍 VALIDATION: Expected [${recommendedType}], Got [${actualTypes.join(', ')}]`)
+
+      if (actualTypes.length === 1 && actualTypes[0] === recommendedType) {
+        console.log('✅ VALIDATION PASSED: Direct implementation successful!')
+      } else {
+        console.error('❌ VALIDATION FAILED: Direct implementation still has issues!')
+        console.error('❌ This should not happen with the new direct conversion')
+      }
+
+    } else {
+      // Mixed format - try to parse counts from prompt
+      const counts = parseMixedQuizCounts(originalPrompt)
+      console.log('📊 Parsed mixed quiz counts:', counts)
+
+      if (counts['multiple-choice'] + counts['true-false'] + counts['open-ended'] > 0) {
+        convertedQuiz = convertToCustomMixedQuiz(simpleQuestions, counts, {
+          language: 'th'
+        })
+        console.log('✅ MIXED TYPE: Using custom mixed quiz with specific counts')
+      } else {
+        // This should never happen in our current logic, but keeping as safety
+        console.warn('⚠️ UNEXPECTED: Mixed type detected but no counts parsed - forcing single MC')
+        convertedQuiz = convertToSpecificQuizType(simpleQuestions, 'multiple-choice', {
+          language: 'th'
+        })
+        console.log('✅ SAFETY FALLBACK: Forced single multiple choice')
+      }
+    }
 
     return convertedQuiz.map(q => ({
       id: q.id,
@@ -188,7 +271,8 @@ const parseJsonQuiz = (jsonData: Record<string, unknown>): QuizQuestion[] => {
 
   // Fallback: try to detect simple Q&A format and convert using Quiz Parser
   if (jsonData.content && Array.isArray(jsonData.content)) {
-    console.log('Detecting simple Q&A format, converting with Quiz Parser')
+    console.log('🚨 FALLBACK PATH: Detecting simple Q&A format')
+    console.log('🔍 This path may be causing the round-robin problem!')
     const simpleQuestions: SimpleQuestion[] = jsonData.content.map((item: Record<string, unknown>) => ({
       question: item.question as string || '',
       answer: item.answer as string || '',
@@ -196,13 +280,75 @@ const parseJsonQuiz = (jsonData: Record<string, unknown>): QuizQuestion[] => {
       difficulty: item.difficulty as 'easy' | 'medium' | 'hard'
     }))
 
-    if (simpleQuestions.length > 0) {
-      const convertedQuiz = convertToMixedQuiz(simpleQuestions, {
-        questionTypes: ['multiple-choice', 'true-false', 'open-ended'],
-        distributionMode: 'round-robin',
-        language: 'th',
-        generateExplanations: true
-      })
+        if (simpleQuestions.length > 0) {
+      // Enhanced template detection for fallback
+      const templateId = jsonData.templateId as string || 'unknown'
+      const originalPrompt = jsonData.originalPrompt as string || jsonData.sourcePrompt as string || ''
+
+      console.log('Fallback conversion input:', { templateId, originalPrompt })
+
+      // Smart detection for fallback
+      let quizType: 'single' | 'mixed' = 'single'
+      let recommendedType: 'multiple-choice' | 'true-false' | 'open-ended' = 'multiple-choice'
+
+      const lowerPrompt = originalPrompt.toLowerCase()
+
+      // Detect multiple choice from prompt
+      if (lowerPrompt.includes('multiple-choice') || lowerPrompt.includes('multiple choice')) {
+        if (!lowerPrompt.includes('true') && !lowerPrompt.includes('false') &&
+            !lowerPrompt.includes('short-answer') && !lowerPrompt.includes('open-ended')) {
+          quizType = 'single'
+          recommendedType = 'multiple-choice'
+          console.log('✅ Fallback: Detected Pure Multiple Choice Quiz')
+        }
+      }
+
+      // Detect short answer from prompt
+      if (lowerPrompt.includes('short-answer') || lowerPrompt.includes('short answer') ||
+          lowerPrompt.includes('open-ended') || lowerPrompt.includes('explain') ||
+          lowerPrompt.includes('describe')) {
+        if (!lowerPrompt.includes('multiple') && !lowerPrompt.includes('true')) {
+          quizType = 'single'
+          recommendedType = 'open-ended'
+          console.log('✅ Fallback: Detected Pure Short Answer Quiz')
+        }
+      }
+
+      // Check for mixed format indicators
+      if (lowerPrompt.includes('mixed') || lowerPrompt.includes('combination') ||
+          (lowerPrompt.includes('multiple') && lowerPrompt.includes('true')) ||
+          (lowerPrompt.includes('multiple') && lowerPrompt.includes('short'))) {
+        quizType = 'mixed'
+        console.log('✅ Fallback: Detected Mixed Format Quiz')
+      }
+
+      let convertedQuiz
+
+      if (quizType === 'single') {
+        // ใช้ประเภทเดียวเท่านั้น
+        convertedQuiz = convertToSpecificQuizType(simpleQuestions, recommendedType, {
+          language: 'th',
+          generateExplanations: true
+        })
+        console.log(`✅ Fallback: Generated ${convertedQuiz.length} ${recommendedType} questions`)
+      } else {
+        // Mixed format
+        const counts = parseMixedQuizCounts(originalPrompt)
+        if (counts['multiple-choice'] + counts['true-false'] + counts['open-ended'] > 0) {
+          convertedQuiz = convertToCustomMixedQuiz(simpleQuestions, counts, {
+            language: 'th',
+            generateExplanations: true
+          })
+          console.log('✅ Fallback: Using custom mixed quiz with parsed counts')
+        } else {
+          // Default to pure multiple choice as safest option
+          convertedQuiz = convertToSpecificQuizType(simpleQuestions, 'multiple-choice', {
+            language: 'th',
+            generateExplanations: true
+          })
+          console.log('✅ Fallback: Using pure multiple choice as safe default')
+        }
+      }
 
       return convertedQuiz.map(q => ({
         id: q.id,

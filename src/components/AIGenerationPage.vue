@@ -19,7 +19,31 @@ const outputFormat = ref<'quiz' | 'flashcard' | 'note'>('note')
 const attachedFile = ref<File | null>(null)
 const generationProgress = ref(0)
 const generationStatus = ref('Initializing...')
-const estimatedTime = ref<number | null>(null)
+
+// Kayaan Animation State
+const currentGenerationMessage = ref('<svg class="w-5 h-5 inline text-blue-500" fill="currentColor" viewBox="0 0 20 20"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z"></path></svg> Kayaan is thinking...')
+const currentFunFact = ref('Kayaan uses AI to create personalized content just for you')
+const animationTimer = ref<NodeJS.Timeout | null>(null)
+
+// Generation Messages
+const generationMessages = [
+  '<svg class="w-5 h-5 inline text-blue-500" fill="currentColor" viewBox="0 0 20 20"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z"></path></svg> Kayaan is thinking...',
+  '<svg class="w-5 h-5 inline text-green-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path><path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 102 0V3h2v1a1 1 0 102 0V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path></svg> Preparing content...',
+  '<svg class="w-5 h-5 inline text-purple-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd"></path></svg> Creating amazing content...',
+  '<svg class="w-5 h-5 inline text-orange-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"></path></svg> Fine-tuning details...',
+  '<svg class="w-5 h-5 inline text-indigo-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"></path></svg> Quality checking...',
+  '<svg class="w-5 h-5 inline text-pink-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"></path></svg> Almost ready!'
+]
+
+// Fun Facts
+const funFacts = [
+  'Kayaan uses AI to create personalized content just for you',
+  'Generated content can be customized to your preferences',
+  'AI continuously learns and improves over time',
+  'Kayaan supports creating various types of educational content',
+  'You can save and share your content with others',
+  'Learning with AI makes studying faster and more effective!'
+]
 const showPreview = ref(false)
 const previewContent = ref('')
 
@@ -35,6 +59,31 @@ const redirectTimeoutId = ref<NodeJS.Timeout | null>(null)
 // Rate limiting
 const lastRequestTime = ref<number>(0)
 const MIN_REQUEST_INTERVAL = 3000 // 3 seconds between requests
+
+// Animation Functions
+const startKayaanAnimation = () => {
+  let messageIndex = 0
+  let factIndex = 0
+
+  animationTimer.value = setInterval(() => {
+    // Update message every 3 seconds
+    currentGenerationMessage.value = generationMessages[messageIndex]
+    messageIndex = (messageIndex + 1) % generationMessages.length
+
+    // Update fun fact every 5 seconds
+    if (Math.random() > 0.4) {
+      currentFunFact.value = funFacts[factIndex]
+      factIndex = (factIndex + 1) % funFacts.length
+    }
+  }, 3000)
+}
+
+const stopKayaanAnimation = () => {
+  if (animationTimer.value) {
+    clearInterval(animationTimer.value)
+    animationTimer.value = null
+  }
+}
 
 // File upload
 const fileInput = ref<HTMLInputElement>()
@@ -325,7 +374,26 @@ const usePresetExample = () => {
 
   if (preset.placeholders.includes('NUMBER')) {
     const numberMatch = example.match(/(\d+)/i)
-    if (numberMatch) customFields.value['NUMBER'] = numberMatch[1]
+    if (numberMatch) {
+      const num = parseInt(numberMatch[1])
+      customFields.value['NUMBER'] = validateNumberInput(num.toString())
+    }
+  }
+
+  // Parse MC_COUNT, TF_COUNT, SA_COUNT for mixed format
+  if (preset.placeholders.includes('MC_COUNT')) {
+    const mcMatch = example.match(/(\d+)\s*multiple[-\s]choice/i)
+    if (mcMatch) customFields.value['MC_COUNT'] = validateNumberInput(mcMatch[1])
+  }
+
+  if (preset.placeholders.includes('TF_COUNT')) {
+    const tfMatch = example.match(/(\d+)\s*true[-/\s]false/i)
+    if (tfMatch) customFields.value['TF_COUNT'] = validateNumberInput(tfMatch[1])
+  }
+
+  if (preset.placeholders.includes('SA_COUNT')) {
+    const saMatch = example.match(/(\d+)\s*(?:short[-\s]answer|open[-\s]ended)/i)
+    if (saMatch) customFields.value['SA_COUNT'] = validateNumberInput(saMatch[1])
   }
 
   // Apply the example
@@ -339,17 +407,58 @@ const getPlaceholderHint = (placeholder: string): string => {
     'SUBJECT': 'e.g., Biology, Chemistry, History, Math',
     'TOPIC': 'e.g., photosynthesis, World War II, calculus',
     'TOPICS': 'e.g., cell structure, DNA replication, enzymes',
-    'NUMBER': 'e.g., 10, 15, 20',
+    'NUMBER': 'Number of questions/cards (1-10)',
     'TOPIC_A': 'e.g., mitosis',
     'TOPIC_B': 'e.g., meiosis',
     'HISTORICAL_TOPIC': 'e.g., World War II, Industrial Revolution',
     'MAIN_CONCEPTS': 'e.g., atomic structure, chemical bonding, reactions',
     'TOPIC_AREA': 'e.g., cognitive processes, learning theories',
-    'MC_COUNT': 'e.g., 5, 8, 10',
-    'TF_COUNT': 'e.g., 3, 5, 7',
-    'SA_COUNT': 'e.g., 2, 3, 5'
+    'MC_COUNT': 'Multiple choice questions (1-10)',
+    'TF_COUNT': 'True/false questions (1-10)',
+    'SA_COUNT': 'Short answer questions (1-10)'
   }
   return hints[placeholder] || `Enter ${placeholder.toLowerCase().replace('_', ' ')}`
+}
+
+// Helper function to get field label with description
+const getFieldLabel = (placeholder: string): string => {
+  const labels: Record<string, string> = {
+    'NUMBER': 'Number of Questions/Cards',
+    'MC_COUNT': 'Multiple Choice Questions',
+    'TF_COUNT': 'True/False Questions',
+    'SA_COUNT': 'Short Answer Questions',
+    'LEVEL': 'Academic Level',
+    'SUBJECT': 'Subject',
+    'TOPIC': 'Topic',
+    'TOPICS': 'Topics',
+    'TOPIC_A': 'First Topic',
+    'TOPIC_B': 'Second Topic',
+    'HISTORICAL_TOPIC': 'Historical Topic',
+    'MAIN_CONCEPTS': 'Main Concepts',
+    'TOPIC_AREA': 'Topic Area'
+  }
+  return labels[placeholder] || placeholder.replace('_', ' ').toLowerCase()
+}
+
+// Helper function to check if field is number type
+const isNumberField = (placeholder: string): boolean => {
+  return ['NUMBER', 'MC_COUNT', 'TF_COUNT', 'SA_COUNT'].includes(placeholder)
+}
+
+// Validation for number fields
+const validateNumberInput = (value: string): string => {
+  if (!value) return ''
+
+  // Remove non-digit characters
+  const numericValue = value.replace(/\D/g, '')
+
+  // Convert to number and limit to 1-10
+  const num = parseInt(numericValue)
+  if (isNaN(num)) return ''
+  if (num < 1) return '1'
+  if (num > 10) return '10'
+
+  return num.toString()
 }
 
 // Update prompt when content type changes
@@ -374,32 +483,9 @@ const handleContentTypeChange = (type: 'quiz' | 'flashcard' | 'note') => {
 const DEBUG_MODE = true
 const isDevelopment = import.meta.env.MODE === 'development' || import.meta.env.DEV
 
-// Clear rate limits for development
-const clearRateLimits = async () => {
-  if (isDevelopment) {
-    // Clear backend rate limiter
-    const { rateLimiter } = await import('@/utils/rateLimiter')
-    rateLimiter.clearAllLimits()
-    console.log('🧹 Backend rate limits cleared for development')
-
-    // Clear frontend rate limit tracking
-    lastRequestTime.value = 0
-    console.log('🧹 Frontend rate limit timer reset')
-
-    // Clear any error messages
-    generationStatus.value = ''
-    console.log('🧹 Error messages cleared')
-
-    // Show success message
-    generationStatus.value = '✅ Rate limits cleared successfully!'
-    setTimeout(() => {
-      generationStatus.value = ''
-    }, 3000)
-  }
-}
-
 // Debug API connection
-const debugApi = async () => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const debugApi = async (): Promise<void> => {
   console.log('🧪 Debug: Testing API connection...')
   const result = await ApiTestUtil.runFullTest()
   console.log('🧪 Debug results:', result)
@@ -412,7 +498,8 @@ const debugApi = async () => {
 }
 
 // Debug path detection
-const debugPaths = async () => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const debugPaths = async (): Promise<void> => {
   console.log('🔍 Debug: Detecting backend structure...')
   const result = await PathTestUtil.detectBackendStructure()
   console.log('🔍 Backend structure results:', result)
@@ -432,7 +519,8 @@ Check console for full details.`
 }
 
 // Debug URL structure
-const debugUrls = () => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const debugUrls = (): void => {
   console.log('🔍 Debug: URL Structure Analysis')
 
   // Import AxiosClient to check its config
@@ -534,6 +622,7 @@ const handleGenerate = async () => {
   }
 
   currentStep.value = 'generating'
+  startKayaanAnimation()
   generationProgress.value = 0
   generationStatus.value = 'Initializing...'
 
@@ -597,6 +686,7 @@ const handleGenerate = async () => {
       generationStatus.value = 'Complete!'
       setTimeout(() => {
         currentStep.value = 'result'
+    stopKayaanAnimation()
 
         // Auto-redirect to AI Content Generator View if enabled
         if (autoRedirectToContent.value) {
@@ -665,6 +755,7 @@ const handleGenerate = async () => {
 }
 
 const resetGeneration = () => {
+  stopKayaanAnimation()
   currentStep.value = 'prompt'
   promptText.value = ''
   attachedFile.value = null
@@ -712,12 +803,7 @@ onMounted(() => {
 
       Main Controls
       <div class="flex gap-2 flex-wrap">
-        <button
-          @click="clearRateLimits"
-          class="px-3 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
-        >
-          🗑️ Clear Rate Limits
-        </button>
+
         <button
           @click="debugApi"
           class="px-3 py-1 text-xs bg-yellow-600 text-white rounded hover:bg-yellow-700 transition-colors"
@@ -784,7 +870,7 @@ onMounted(() => {
     </div>
 
     <!-- Error Alert -->
-    <div v-if="aiGenerationStore.error" class="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+    <!-- <div v-if="aiGenerationStore.error" class="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
       <div class="flex items-center gap-3">
         <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
@@ -799,10 +885,10 @@ onMounted(() => {
           </svg>
         </button>
       </div>
-    </div>
+    </div> -->
 
     <!-- Development Mode Controls -->
-    <div v-if="isDevelopment" class="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+    <!-- <div v-if="isDevelopment" class="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-3">
           <svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -813,14 +899,9 @@ onMounted(() => {
             <p class="text-xs text-yellow-700 mt-1">Rate limiting is disabled. Clear limits if needed.</p>
           </div>
         </div>
-        <button
-          @click="clearRateLimits"
-          class="px-3 py-1 text-xs font-medium text-yellow-800 bg-yellow-100 border border-yellow-300 rounded-md hover:bg-yellow-200 transition-colors"
-        >
-          🧹 Clear Rate Limits
-        </button>
+
       </div>
-    </div>
+    </div> -->
 
     <!-- Step 1: Prompt Configuration -->
     <div v-if="currentStep === 'prompt'" class="space-y-6">
@@ -828,30 +909,37 @@ onMounted(() => {
         <h2 class="text-xl font-semibold text-slate-900 mb-4">Step 1: Configure Your Content</h2>
 
         <!-- Content Type Selection -->
-        <div class="mb-6">
-          <label class="block text-sm font-medium text-slate-700 mb-3">Content Type</label>
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div class="mb-8">
+          <label class="block text-sm font-medium text-slate-700 mb-4">Content Type</label>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <button
               v-for="format in outputFormats"
               :key="format.value"
               @click="handleContentTypeChange(format.value as 'quiz' | 'flashcard' | 'note')"
-              class="p-4 border-2 rounded-lg text-left transition-all duration-200 hover:shadow-sm"
+              class="group p-6 border-2 rounded-xl text-left transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5"
               :class="
                 outputFormat === format.value
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-slate-200 hover:border-blue-300'
+                  ? 'border-blue-500 bg-blue-50 shadow-md'
+                  : 'border-slate-200 hover:border-blue-300 bg-white'
               "
             >
-              <div class="flex items-center gap-3">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path v-if="format.icon === 'FileText'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  <path v-else-if="format.icon === 'HelpCircle'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  <path v-else-if="format.icon === 'Cards'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                  <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
+              <div class="flex flex-col items-center text-center space-y-3">
+                <div class="p-3 rounded-lg"
+                     :class="outputFormat === format.value ? 'bg-blue-100' : 'bg-slate-100 group-hover:bg-blue-50'"
+                >
+                  <svg class="w-8 h-8"
+                       :class="outputFormat === format.value ? 'text-blue-600' : 'text-slate-600 group-hover:text-blue-500'"
+                       fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                  >
+                    <path v-if="format.icon === 'FileText'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    <path v-else-if="format.icon === 'HelpCircle'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <path v-else-if="format.icon === 'Cards'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                    <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                </div>
                 <div>
-                  <h3 class="font-medium text-slate-900">{{ format.label }}</h3>
-                  <p class="text-sm text-slate-500">{{ format.description }}</p>
+                  <h3 class="font-semibold text-slate-900 mb-1">{{ format.label }}</h3>
+                  <p class="text-sm text-slate-500 leading-relaxed">{{ format.description }}</p>
                 </div>
               </div>
             </button>
@@ -1146,6 +1234,69 @@ onMounted(() => {
       <div class="bg-white rounded-lg border border-slate-200 p-6 text-center">
         <h2 class="text-xl font-semibold text-slate-900 mb-6">Generating Your Content</h2>
 
+        <!-- Kayaan Cute Loading Animation -->
+        <div class="relative mb-8">
+          <!-- Main Kayaan Character -->
+          <div class="flex justify-center mb-6">
+            <div class="relative">
+              <!-- Kayaan Avatar with Pulse -->
+              <div class="w-24 h-24 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center shadow-lg animate-pulse">
+                <div class="w-20 h-20 bg-white rounded-full flex items-center justify-center">
+                  <!-- Kayaan Face -->
+                  <div class="relative">
+                    <!-- Eyes -->
+                    <div class="flex gap-2 mb-1">
+                      <div class="w-2 h-2 bg-slate-700 rounded-full animate-blink"></div>
+                      <div class="w-2 h-2 bg-slate-700 rounded-full animate-blink"></div>
+                    </div>
+                    <!-- Smile -->
+                    <div class="w-4 h-2 border-b-2 border-slate-700 rounded-full"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Floating Particles Around Kayaan -->
+              <div class="absolute inset-0">
+                <div class="absolute top-2 right-2 w-2 h-2 bg-yellow-400 rounded-full animate-float-1"></div>
+                <div class="absolute top-8 left-1 w-1.5 h-1.5 bg-pink-400 rounded-full animate-float-2"></div>
+                <div class="absolute bottom-4 right-6 w-1 h-1 bg-green-400 rounded-full animate-float-3"></div>
+                <div class="absolute bottom-2 left-4 w-1.5 h-1.5 bg-blue-300 rounded-full animate-float-1"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dynamic Generation Messages -->
+          <div class="text-center space-y-3">
+            <h3 class="text-lg font-semibold text-slate-800 animate-fade-in" v-html="currentGenerationMessage">
+            </h3>
+
+            <!-- Progress Dots -->
+            <div class="flex justify-center gap-1">
+              <div class="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style="animation-delay: 0s"></div>
+              <div class="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+              <div class="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="w-full max-w-md mx-auto">
+              <div class="bg-slate-200 rounded-full h-2 overflow-hidden">
+                <div
+                  class="bg-gradient-to-r from-blue-500 to-purple-500 h-full rounded-full transition-all duration-500 ease-out"
+                  :style="{ width: generationProgress + '%' }"
+                ></div>
+              </div>
+              <p class="text-xs text-slate-500 mt-1">{{ Math.round(generationProgress) }}% Complete</p>
+            </div>
+
+            <!-- Fun Facts -->
+            <div class="mt-4 p-3 bg-slate-50 rounded-lg max-w-md mx-auto">
+              <p class="text-xs text-slate-600">
+                <svg class="w-4 h-4 inline text-yellow-500 mr-1" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg> <span class="font-medium">{{ currentFunFact }}</span>
+              </p>
+            </div>
+          </div>
+        </div>
+
         <!-- Rate Limit Warning (if applicable) -->
         <div v-if="generationStatus.includes('Rate limit') || generationStatus.includes('rate limit')" class="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
           <div class="flex items-center justify-center gap-2">
@@ -1163,20 +1314,7 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- Progress Bar -->
-        <div class="mb-6">
-          <div class="w-full bg-slate-200 rounded-full h-3 mb-4">
-            <div
-              class="bg-blue-600 h-3 rounded-full transition-all duration-500"
-              :style="{ width: `${generationProgress}%` }"
-            ></div>
-          </div>
-          <p class="text-lg font-medium text-slate-900">{{ Math.round(generationProgress) }}% Complete</p>
-          <p class="text-slate-600 mt-2">{{ generationStatus }}</p>
-          <p v-if="estimatedTime" class="text-sm text-slate-500 mt-1">
-            Estimated time remaining: {{ estimatedTime }} seconds
-          </p>
-        </div>
+
 
         <!-- Cancel Button -->
         <button
@@ -1301,10 +1439,40 @@ onMounted(() => {
                 class="space-y-2"
               >
                 <label class="block text-sm font-medium text-slate-700">
-                  {{ placeholder.replace('_', ' ').toLowerCase() }}
+                  {{ getFieldLabel(placeholder) }}
                   <span class="text-red-500">*</span>
+                  <span v-if="isNumberField(placeholder)" class="text-xs text-slate-500 ml-2">
+                    (Enter whole number 1-10)
+                  </span>
                 </label>
+
+                <!-- Number Input Fields -->
+                <div v-if="isNumberField(placeholder)" class="relative">
+                  <input
+                    v-model="customFields[placeholder]"
+                    type="text"
+                    inputmode="numeric"
+                    pattern="[1-9]|10"
+                    maxlength="2"
+                    :placeholder="getPlaceholderHint(placeholder)"
+                    @input="customFields[placeholder] = validateNumberInput(customFields[placeholder])"
+                    @blur="customFields[placeholder] = customFields[placeholder] || '5'"
+                    class="w-full px-3 py-2 pr-12 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                    <span class="text-slate-400 text-sm">questions</span>
+                  </div>
+                  <div class="mt-1 text-xs text-slate-500">
+                    How many {{ placeholder === 'NUMBER' ? 'questions or cards' :
+                                 placeholder === 'MC_COUNT' ? 'multiple choice questions' :
+                                 placeholder === 'TF_COUNT' ? 'true/false questions' :
+                                 'short answer questions' }} to generate
+                  </div>
+                </div>
+
+                <!-- Text Input Fields -->
                 <input
+                  v-else
                   v-model="customFields[placeholder]"
                   type="text"
                   :placeholder="getPlaceholderHint(placeholder)"
@@ -1358,9 +1526,85 @@ onMounted(() => {
 </template>
 
 <style scoped>
-/* Custom styles */
-.transition-colors {
-  transition: all 0.2s ease-in-out;
+/* Kayaan Animation Styles */
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0.3; }
+}
+
+@keyframes float-1 {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.7; }
+  25% { transform: translate(10px, -15px) scale(1.1); opacity: 1; }
+  50% { transform: translate(-5px, -25px) scale(0.9); opacity: 0.8; }
+  75% { transform: translate(-10px, -10px) scale(1.05); opacity: 0.9; }
+}
+
+@keyframes float-2 {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.6; }
+  33% { transform: translate(-15px, -10px) scale(1.2); opacity: 1; }
+  66% { transform: translate(5px, -20px) scale(0.8); opacity: 0.7; }
+}
+
+@keyframes float-3 {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.5; }
+  40% { transform: translate(8px, -18px) scale(1.15); opacity: 0.9; }
+  80% { transform: translate(-12px, -8px) scale(0.85); opacity: 0.6; }
+}
+
+@keyframes fade-in {
+  0% { opacity: 0; transform: translateY(10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.animate-blink {
+  animation: blink 2s infinite;
+}
+
+.animate-float-1 {
+  animation: float-1 4s ease-in-out infinite;
+}
+
+.animate-float-2 {
+  animation: float-2 5s ease-in-out infinite;
+}
+
+.animate-float-3 {
+  animation: float-3 3.5s ease-in-out infinite;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.8s ease-out;
+}
+
+/* Additional enhancements */
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
+}
+
+.animate-bounce {
+  animation: bounce 1s infinite;
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(-25%);
+    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+  }
+  50% {
+    transform: none;
+    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+  }
 }
 
 /* Custom range slider */

@@ -17,6 +17,7 @@ const viewMode = ref<'grid' | 'list'>('grid')
 const showDeleteModal = ref(false)
 const showDetailModal = ref(false)
 const contentToDelete = ref<AIGeneratedContent | null>(null)
+const isDeleting = ref(false)
 const selectedContent = ref<AIGeneratedContent | null>(null)
 const currentViewMode = ref<'detail' | 'interactive'>('detail')
 
@@ -81,14 +82,6 @@ const handleViewModeChange = (mode: 'grid' | 'list') => {
   viewMode.value = mode
 }
 
-const handleDownload = async (content: AIGeneratedContent) => {
-  try {
-    await aiStore.downloadContent(content.id)
-  } catch (error) {
-    console.error('Failed to download content:', error)
-  }
-}
-
 const handleDelete = async (content: AIGeneratedContent) => {
   contentToDelete.value = content
   showDeleteModal.value = true
@@ -98,11 +91,52 @@ const confirmDelete = async () => {
   if (!contentToDelete.value) return
 
   try {
+    isDeleting.value = true
+
+    // Call delete API
     await aiStore.deleteContent(contentToDelete.value.id)
+
+    // Close modal and reset state
     showDeleteModal.value = false
     contentToDelete.value = null
-  } catch (error) {
-    console.error('Failed to delete content:', error)
+
+    // Show success notification
+    console.log('✅ Content deleted successfully')
+
+    // Refresh content list to ensure UI is up to date
+    await aiStore.loadSavedContent()
+
+  } catch (error: unknown) {
+    console.error('❌ Failed to delete content:', error)
+
+        // Handle different error cases based on API documentation
+    let errorMessage = 'Failed to delete content'
+
+    if (error && typeof error === 'object') {
+      const err = error as { response?: { status?: number; data?: { message?: string } }; message?: string } // Type assertion for axios error
+
+      if (err.response?.status === 403) {
+        errorMessage = 'Authentication required. Please login again.'
+      } else if (err.response?.status === 400) {
+        const responseData = err.response.data
+        if (responseData?.message?.includes('Content not found')) {
+          errorMessage = 'Content not found. It may have already been deleted.'
+        } else if (responseData?.message?.includes('Access denied')) {
+          errorMessage = 'Access denied. You can only delete your own content.'
+        } else {
+          errorMessage = responseData?.message || 'Failed to delete content'
+        }
+      } else if (err.message) {
+        errorMessage = err.message
+      }
+    }
+
+    // You can integrate with toast notification system here
+    // For now, we'll use console.error and could add alert
+    alert(errorMessage)
+
+  } finally {
+    isDeleting.value = false
   }
 }
 
@@ -186,14 +220,14 @@ const generateContentPreview = (content: AIGeneratedContent): string => {
         const topic = (contentData.topic as string) || (metadata.title as string) || content.title
         const sections = Array.isArray(contentData.sections) ? contentData.sections : []
         const difficulty = (metadata.difficulty as string) || 'beginner'
-        const readTime = (metadata.estimatedReadTime as string) || '5 นาที'
-        return `📝 ${topic} • ${sections.length} หัวข้อ • ระดับ ${difficulty} • อ่าน ${readTime}`
+        const readTime = (metadata.estimatedReadTime as string) || '5 minutes'
+        return `📝 ${topic} • ${sections.length} Topic • level ${difficulty} • read ${readTime}`
       } else {
         // Current API format: { title, content: [{ feature, description }] }
         const title = (parsedContent.title as string) || content.title || 'Study Notes'
         const contentArray = Array.isArray(parsedContent.content) ? parsedContent.content : []
-        const readTime = `${Math.max(1, Math.ceil(contentArray.length * 2))} นาที`
-        return `📝 ${title} • ${contentArray.length} หัวข้อ • อ่าน ${readTime}`
+        const readTime = `${Math.max(1, Math.ceil(contentArray.length * 2))} minutes`
+        return `📝 ${title} • ${contentArray.length} Topic • read ${readTime}`
       }
 
     case 'quiz':
@@ -203,13 +237,13 @@ const generateContentPreview = (content: AIGeneratedContent): string => {
         const quizTitle = (contentData.title as string) || (metadata.title as string) || content.title
         const questions = Array.isArray(contentData.questions) ? contentData.questions : []
         const difficulty = (metadata.difficulty as string) || 'beginner'
-        const duration = (metadata.estimatedTime as string) || '10 นาที'
-        return `🧠 ${quizTitle} • ${questions.length} คำถาม • ระดับ ${difficulty} • ${duration}`
+        const duration = (metadata.estimatedTime as string) || '10 minutes'
+        return `🧠 ${quizTitle} • ${questions.length} questions • level ${difficulty} • ${duration}`
       } else {
         // Current API format: { questions: [{ question, options, answer }] }
         const title = content.title || 'Quiz'
         const questions = Array.isArray(parsedContent.questions) ? parsedContent.questions : []
-        return `🧠 ${title} • ${questions.length} คำถาม • ทดสอบความรู้`
+        return `🧠 ${title} • ${questions.length} questions • quiz`
       }
 
     case 'flashcard':
@@ -1016,16 +1050,16 @@ onMounted(async () => {
     <!-- Content Grid/List -->
     <div v-if="paginatedContent.length > 0">
       <!-- Grid View -->
-      <div v-if="viewMode === 'grid'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div v-if="viewMode === 'grid'" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6 auto-rows-fr">
         <div
           v-for="content in paginatedContent"
           :key="content.id"
           @click="handleViewDetails(content)"
-          class="bg-white rounded-lg border border-slate-200 overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
+          class="group bg-white rounded-xl border border-slate-200 overflow-hidden hover:border-blue-300 hover:shadow-xl hover:shadow-blue-100 transition-all duration-300 cursor-pointer transform hover:-translate-y-1"
         >
-          <div class="p-6">
+          <div class="p-6 h-full flex flex-col">
             <div class="flex items-center justify-between mb-4">
-              <span :class="getFormatColor(content.outputFormat)" class="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full text-xs font-medium">
+              <span :class="getFormatColor(content.outputFormat)" class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium shadow-sm">
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path v-if="getFormatIcon(content.outputFormat) === 'FileText'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   <path v-else-if="getFormatIcon(content.outputFormat) === 'HelpCircle'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -1034,19 +1068,10 @@ onMounted(async () => {
                 </svg>
                 {{ content.outputFormat }}
               </span>
-              <div class="flex items-center gap-1">
-                <button
-                  @click.stop="handleDownload(content)"
-                  class="text-slate-400 hover:text-slate-600 transition-colors"
-                  title="Download"
-                >
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                </button>
+              <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                 <button
                   @click.stop="handleDelete(content)"
-                  class="text-slate-400 hover:text-red-600 transition-colors"
+                  class="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
                   title="Delete"
                 >
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1056,16 +1081,34 @@ onMounted(async () => {
               </div>
             </div>
 
-            <h3 class="text-lg font-semibold text-slate-900 mb-2 line-clamp-2">{{ extractTopicTitle(content) }}</h3>
-            <p class="text-sm text-slate-600 mb-4 line-clamp-3">{{ generateContentPreview(content) }}</p>
+            <!-- Content Title with AI Icon -->
+            <div class="flex-1 mb-4">
+              <h3 class="text-lg font-semibold text-slate-900 mb-3 line-clamp-2 group-hover:text-blue-700 transition-colors duration-200">
+                {{ extractTopicTitle(content) }}
+              </h3>
+              <p class="text-sm text-slate-600 line-clamp-3">{{ generateContentPreview(content) }}</p>
+            </div>
 
-            <div class="flex items-center justify-between text-xs text-slate-500">
-              <span>{{ new Date(content.createdAt).toLocaleDateString() }}</span>
-              <div class="flex items-center gap-1 text-blue-600">
-                <span class="text-sm font-medium">Click to view</span>
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                </svg>
+            <!-- Card Footer -->
+            <div class="mt-auto pt-4 border-t border-slate-100">
+              <div class="flex items-center justify-between text-xs">
+                <div class="flex items-center gap-3">
+                  <span class="text-slate-500">{{ new Date(content.createdAt).toLocaleDateString() }}</span>
+                  <!-- AI Generated Badge -->
+                  <div class="inline-flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 text-blue-700 rounded-full text-xs font-medium">
+                    <!-- Gemini-style sparkle icon -->
+                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 16 16">
+                      <path d="M8 0.5L9.5 5.5L14.5 7L9.5 8.5L8 13.5L6.5 8.5L1.5 7L6.5 5.5L8 0.5Z"/>
+                    </svg>
+                    AI
+                  </div>
+                </div>
+                <div class="flex items-center gap-1 text-blue-600 opacity-70 group-hover:opacity-100 transition-opacity duration-200">
+                  <span class="text-xs font-medium">View</span>
+                  <svg class="w-3 h-3 transform group-hover:translate-x-0.5 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
               </div>
             </div>
           </div>
@@ -1133,15 +1176,7 @@ onMounted(async () => {
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                     </button>
-                    <button
-                      @click.stop="handleDownload(content)"
-                      class="text-slate-600 hover:text-slate-900 transition-colors"
-                      title="Download"
-                    >
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                    </button>
+
                     <button
                       @click.stop="(e: Event) => handleDelete(content)"
                       class="text-red-600 hover:text-red-900 transition-colors"
@@ -1235,9 +1270,17 @@ onMounted(async () => {
           </button>
           <button
             @click="confirmDelete"
-            class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            :disabled="isDeleting"
+            class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            Delete
+            <span v-if="isDeleting" class="flex items-center">
+              <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Deleting...
+            </span>
+            <span v-else>Delete</span>
           </button>
         </div>
       </div>
@@ -1245,7 +1288,7 @@ onMounted(async () => {
 
     <!-- Content Detail Modal -->
     <div v-if="showDetailModal && selectedContent" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[60]">
-      <div class="bg-white rounded-lg max-w-6xl w-full max-h-[95vh] overflow-hidden">
+      <div class="bg-white rounded-xl max-w-6xl w-full max-h-[95vh] overflow-hidden shadow-2xl flex flex-col">
         <!-- Modal Header -->
         <div class="flex items-center justify-between p-6 border-b border-slate-200">
           <div class="flex items-center gap-3">
@@ -1292,7 +1335,7 @@ onMounted(async () => {
         </div>
 
         <!-- Modal Content -->
-        <div class="overflow-y-auto max-h-[calc(95vh-140px)]">
+        <div class="flex-1 overflow-y-auto">
           <!-- Detail View -->
           <div v-if="currentViewMode === 'detail'" class="p-6">
             <!-- Content Info -->
@@ -1399,27 +1442,16 @@ onMounted(async () => {
         </div>
 
         <!-- Modal Footer -->
-        <div class="flex items-center justify-between p-6 border-t border-slate-200">
+        <div class="flex items-center justify-between p-6 border-t border-slate-200 bg-slate-50">
           <div class="text-sm text-slate-500">
             Content ID: {{ selectedContent.id }}
           </div>
-          <div class="flex gap-3">
-            <button
-              @click="handleDownload(selectedContent)"
-              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              Download
-            </button>
-            <button
-              @click="showDetailModal = false"
-              class="px-4 py-2 text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
-            >
-              Close
-            </button>
-          </div>
+          <button
+            @click="showDetailModal = false"
+            class="px-6 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800 transition-colors"
+          >
+            Close
+          </button>
         </div>
       </div>
     </div>

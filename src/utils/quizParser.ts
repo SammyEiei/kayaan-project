@@ -71,7 +71,7 @@ const DEFAULT_OPTIONS: QuizConversionOptions = {
 /**
  * สร้างตัวเลือกสำหรับคำถาม Multiple Choice
  */
-const generateOptions = (correctAnswer: string, question: string, language: string = 'th'): Array<{id: string, text: string, correct: boolean}> => {
+export const generateOptions = (correctAnswer: string, question: string, language: string = 'th'): Array<{id: string, text: string, correct: boolean}> => {
   const options = [
     { id: 'A', text: correctAnswer, correct: true }
   ]
@@ -330,6 +330,200 @@ export const convertToMixedQuiz = (
   })
 }
 
+/**
+ * แปลงเป็น Quiz ประเภทเฉพาะ (แก้ปัญหา round-robin แบบสิ้นเชิง)
+ * 🚀 DIRECT IMPLEMENTATION - ไม่ใช้ convertToMixedQuiz
+ */
+export const convertToSpecificQuizType = (
+  simpleQuestions: SimpleQuestion[],
+  quizType: 'multiple-choice' | 'true-false' | 'open-ended',
+  options: Partial<QuizConversionOptions> = {}
+): ConvertedQuestion[] => {
+  console.log(`🎯 convertToSpecificQuizType DIRECT: ${quizType}`)
+  console.log(`📊 Input: ${simpleQuestions.length} simple questions`)
+
+  const finalOptions = {
+    ...DEFAULT_OPTIONS,
+    ...options,
+    language: options.language || 'th'
+  }
+
+  console.log('🔧 Direct conversion options:', finalOptions)
+
+  // 🚀 DIRECT CONVERSION - ไม่ผ่าน convertToMixedQuiz
+  const result: ConvertedQuestion[] = simpleQuestions.map((q, index) => {
+    const questionId = index + 1
+
+    switch (quizType) {
+      case 'multiple-choice':
+        return {
+          id: questionId,
+          type: 'multiple-choice' as const,
+          question: q.question,
+          options: generateOptions(q.answer, q.question, finalOptions.language || 'th'),
+          correctAnswer: q.answer,
+          explanation: finalOptions.generateExplanations ? q.context || q.answer : undefined,
+          points: finalOptions.pointsDistribution?.['multiple-choice'] || 10
+        }
+
+      case 'true-false':
+        return convertToTrueFalse(q, questionId, finalOptions)
+
+      case 'open-ended':
+        return {
+          id: questionId,
+          type: 'open-ended' as const,
+          question: finalOptions.language === 'th' ?
+            `อธิบาย: ${q.question}` :
+            `Explain: ${q.question}`,
+          correctAnswer: q.answer,
+          keywords: extractKeywords(q.answer),
+          explanation: finalOptions.generateExplanations ? q.context : undefined,
+          points: finalOptions.pointsDistribution?.['open-ended'] || 15
+        }
+
+      default:
+        throw new Error(`Unsupported question type: ${quizType}`)
+    }
+  })
+
+  // 🔍 VALIDATE RESULT
+  const resultTypes = [...new Set(result.map(q => q.type))]
+  console.log(`🔍 DIRECT CONVERSION result types: [${resultTypes.join(', ')}]`)
+
+  if (resultTypes.length === 1 && resultTypes[0] === quizType) {
+    console.log(`✅ DIRECT CONVERSION SUCCESS: All ${result.length} questions are ${quizType}`)
+  } else {
+    console.error(`❌ DIRECT CONVERSION FAILED: Expected [${quizType}], got [${resultTypes.join(', ')}]`)
+  }
+
+  return result
+}
+
+/**
+ * แปลงเป็น Mixed Quiz แบบกำหนดจำนวนแต่ละประเภท
+ */
+export const convertToCustomMixedQuiz = (
+  simpleQuestions: SimpleQuestion[],
+  questionCounts: {
+    'multiple-choice'?: number
+    'true-false'?: number
+    'open-ended'?: number
+  },
+  options: Partial<QuizConversionOptions> = {}
+): ConvertedQuestion[] => {
+  const totalRequested = Object.values(questionCounts).reduce((sum, count) => sum + (count || 0), 0)
+
+  if (totalRequested > simpleQuestions.length) {
+    console.warn(`Requested ${totalRequested} questions but only ${simpleQuestions.length} available`)
+  }
+
+  const result: ConvertedQuestion[] = []
+  let questionIndex = 0
+
+  // สร้างคำถามตามจำนวนที่กำหนดสำหรับแต่ละประเภท
+  Object.entries(questionCounts).forEach(([type, count]) => {
+    if (count && count > 0 && questionIndex < simpleQuestions.length) {
+      const questionsForType = simpleQuestions.slice(questionIndex, questionIndex + count)
+
+      const convertedQuestions = convertToSpecificQuizType(
+        questionsForType,
+        type as 'multiple-choice' | 'true-false' | 'open-ended',
+        options
+      )
+
+      // อัปเดต ID ให้ต่อเนื่องกัน
+      convertedQuestions.forEach(q => {
+        q.id = result.length + 1
+        result.push(q)
+      })
+
+      questionIndex += count
+    }
+  })
+
+  return result
+}
+
+/**
+ * ตรวจสอบประเภท Quiz จาก Template หรือ Prompt
+ */
+export const detectQuizTypeFromTemplate = (templateId: string, prompt?: string): {
+  quizType: 'single' | 'mixed' | 'custom'
+  recommendedTypes: Array<'multiple-choice' | 'true-false' | 'open-ended'>
+} => {
+  const lowerPrompt = (prompt || '').toLowerCase()
+
+  // ตรวจสอบจาก template ID
+  switch (templateId) {
+    case 'multiple-choice':
+      return {
+        quizType: 'single',
+        recommendedTypes: ['multiple-choice']
+      }
+    case 'short-answer':
+      return {
+        quizType: 'single',
+        recommendedTypes: ['open-ended']
+      }
+    case 'critical-thinking':
+      return {
+        quizType: 'single',
+        recommendedTypes: ['open-ended']
+      }
+    case 'mixed-format':
+      return {
+        quizType: 'mixed',
+        recommendedTypes: ['multiple-choice', 'true-false', 'open-ended']
+      }
+    default:
+      // ตรวจสอบจาก prompt content
+      if (lowerPrompt.includes('multiple-choice') &&
+          !lowerPrompt.includes('true-false') &&
+          !lowerPrompt.includes('short-answer')) {
+        return {
+          quizType: 'single',
+          recommendedTypes: ['multiple-choice']
+        }
+      }
+
+      return {
+        quizType: 'mixed',
+        recommendedTypes: ['multiple-choice', 'true-false', 'open-ended']
+      }
+  }
+}
+
+/**
+ * Parse Mixed Format Quiz Parameters จาก Prompt
+ * เช่น "5 multiple-choice, 3 true/false, and 2 short-answer questions"
+ */
+export const parseMixedQuizCounts = (prompt: string): {
+  'multiple-choice': number
+  'true-false': number
+  'open-ended': number
+} => {
+  const lowerPrompt = prompt.toLowerCase()
+
+  // หาจำนวน multiple-choice
+  const mcMatch = lowerPrompt.match(/(\d+)\s*multiple[-\s]choice/i)
+  const multipleChoice = mcMatch ? parseInt(mcMatch[1]) : 0
+
+  // หาจำนวน true/false
+  const tfMatch = lowerPrompt.match(/(\d+)\s*true[-/\s]false/i)
+  const trueFalse = tfMatch ? parseInt(tfMatch[1]) : 0
+
+  // หาจำนวน short-answer/open-ended
+  const saMatch = lowerPrompt.match(/(\d+)\s*(?:short[-\s]answer|open[-\s]ended)/i)
+  const openEnded = saMatch ? parseInt(saMatch[1]) : 0
+
+  return {
+    'multiple-choice': multipleChoice,
+    'true-false': trueFalse,
+    'open-ended': openEnded
+  }
+}
+
 // Helper functions
 const shuffleArray = <T>(array: T[]): T[] => {
   const shuffled = [...array]
@@ -352,7 +546,7 @@ const getWeightedQuestionType = (types: string[]): string => {
   return types[Math.floor(Math.random() * types.length)]
 }
 
-const extractKeywords = (answer: string): string[] => {
+export const extractKeywords = (answer: string): string[] => {
   // Simple keyword extraction
   return answer.split(/\s+/)
     .filter(word => word.length > 3)
