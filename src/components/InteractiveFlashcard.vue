@@ -108,21 +108,32 @@ const parseJsonFlashcards = (jsonData: Record<string, unknown>): Flashcard[] => 
   if (jsonData.cards && Array.isArray(jsonData.cards)) {
     jsonData.cards.forEach((card: Record<string, unknown>, index: number) => {
       const flashcard: Flashcard = {
-        id: card.id || index + 1,
+        id: typeof card.id === 'number' ? card.id : index + 1,
         front: '',
         back: '',
-        category: card.category
+        category: typeof card.category === 'string' ? card.category : undefined
       }
 
       // Handle different card formats
       if (card.front && card.back) {
         // Standard front/back format
-        flashcard.front = typeof card.front === 'string' ? card.front : card.front.text || ''
-        flashcard.back = typeof card.back === 'string' ? card.back : card.back.text || ''
+        if (typeof card.front === 'string') {
+          flashcard.front = card.front
+        } else if (typeof card.front === 'object' && card.front && 'text' in card.front) {
+          const frontObj = card.front as Record<string, unknown>
+          flashcard.front = typeof frontObj.text === 'string' ? frontObj.text : ''
+        }
+
+        if (typeof card.back === 'string') {
+          flashcard.back = card.back
+        } else if (typeof card.back === 'object' && card.back && 'text' in card.back) {
+          const backObj = card.back as Record<string, unknown>
+          flashcard.back = typeof backObj.text === 'string' ? backObj.text : ''
+        }
       } else if (card.question && card.answer) {
         // Question/answer format
-        flashcard.front = card.question
-        flashcard.back = card.answer
+        flashcard.front = typeof card.question === 'string' ? card.question : ''
+        flashcard.back = typeof card.answer === 'string' ? card.answer : ''
       }
 
       if (flashcard.front && flashcard.back) {
@@ -208,7 +219,17 @@ const restartSession = () => {
 }
 
 onMounted(() => {
-  flashcards.value = parseFlashcards(props.content)
+  try {
+    if (props.content && typeof props.content === 'string') {
+      flashcards.value = parseFlashcards(props.content)
+    } else {
+      console.warn('Invalid content provided to InteractiveFlashcard')
+      flashcards.value = []
+    }
+  } catch (error) {
+    console.error('Error parsing flashcard content:', error)
+    flashcards.value = []
+  }
 })
 </script>
 

@@ -72,23 +72,49 @@ const DEFAULT_OPTIONS: QuizConversionOptions = {
  * สร้างตัวเลือกสำหรับคำถาม Multiple Choice
  */
 export const generateOptions = (correctAnswer: string, question: string, language: string = 'th'): Array<{id: string, text: string, correct: boolean}> => {
+  console.log('🎯 generateOptions called with:', { correctAnswer, question, language })
+
   const options = [
     { id: 'A', text: correctAnswer, correct: true }
   ]
 
   // สร้างตัวเลือกผิดตาม context ของคำถาม
   const wrongOptions = generateWrongOptions(correctAnswer, question, language)
+  console.log('🔀 Generated wrong options:', wrongOptions)
 
   wrongOptions.forEach((option, index) => {
-    options.push({
-      id: String.fromCharCode(66 + index), // B, C, D
-      text: option,
-      correct: false
-    })
+    if (index < 3) { // จำกัดไม่เกิน 3 ตัวเลือกผิด (A,B,C,D รวม 4 ตัวเลือก)
+      options.push({
+        id: String.fromCharCode(66 + index), // B, C, D
+        text: option,
+        correct: false
+      })
+    }
   })
 
+  console.log('📝 Final options before shuffle:', options)
+
+  // ตรวจสอบว่ามีตัวเลือกครบหรือไม่
+  if (options.length < 2) {
+    console.warn('⚠️ Not enough options generated, adding fallback options')
+    // เพิ่มตัวเลือกสำรองหากไม่พอ
+    const fallbackOptions = language === 'th' ?
+      ['ตัวเลือกที่ 1', 'ตัวเลือกที่ 2', 'ตัวเลือกที่ 3'] :
+      ['Option 1', 'Option 2', 'Option 3']
+
+    for (let i = options.length; i < 4; i++) {
+      options.push({
+        id: String.fromCharCode(65 + i), // B, C, D
+        text: fallbackOptions[i - 1] || `Fallback ${i}`,
+        correct: false
+      })
+    }
+  }
+
   // สลับตำแหน่งตัวเลือก
-  return shuffleArray(options)
+  const shuffled = shuffleArray(options)
+  console.log('🎲 Final shuffled options:', shuffled)
+  return shuffled
 }
 
 /**
@@ -193,19 +219,33 @@ const generateConceptWrongOptions = (correctAnswer: string, question: string, is
  * สร้างตัวเลือกผิดทั่วไป
  */
 const generateGenericWrongOptions = (correctAnswer: string, isThaiLanguage: boolean): string[] => {
+  console.log('🔄 generateGenericWrongOptions called with:', { correctAnswer, isThaiLanguage })
+
   const prefixes = isThaiLanguage ?
-    ['การ', 'ระบบ', 'วิธี', 'กระบวนการ'] :
-    ['A method of', 'A system for', 'A process of', 'A technique for']
+    ['การ', 'ระบบ', 'วิธี', 'กระบวนการ', 'เทคนิค', 'แนวทาง'] :
+    ['A method of', 'A system for', 'A process of', 'A technique for', 'An approach to', 'A way to']
 
   const suffixes = isThaiLanguage ?
-    ['ที่มีประสิทธิภาพ', 'ในยุคปัจจุบัน', 'ที่ได้รับความนิยม'] :
-    ['that is efficient', 'in modern times', 'that is popular']
+    ['ที่มีประสิทธิภาพ', 'ในยุคปัจจุบัน', 'ที่ได้รับความนิยม', 'แบบดั้งเดิม', 'ที่ทันสมัย', 'ขั้นพื้นฐาน'] :
+    ['that is efficient', 'in modern times', 'that is popular', 'that is traditional', 'that is advanced', 'that is basic']
 
-  return [
+  const wrongOptions = [
     `${prefixes[0]} ${correctAnswer.toLowerCase()} ${suffixes[0]}`,
     `${prefixes[1]} ${correctAnswer.toLowerCase()} ${suffixes[1]}`,
     `${prefixes[2]} ${correctAnswer.toLowerCase()} ${suffixes[2]}`
   ]
+
+  // เพิ่มตัวเลือกสำรองหากคำตอบสั้นเกินไป
+  if (correctAnswer.length < 10) {
+    wrongOptions.push(
+      isThaiLanguage ? 'คำตอบที่ไม่ถูกต้อง' : 'Incorrect answer',
+      isThaiLanguage ? 'ตัวเลือกผิด' : 'Wrong option',
+      isThaiLanguage ? 'ไม่ใช่คำตอบ' : 'Not the answer'
+    )
+  }
+
+  console.log('🔄 Generated generic wrong options:', wrongOptions)
+  return wrongOptions.slice(0, 3) // จำกัดแค่ 3 ตัวเลือก
 }
 
 /**

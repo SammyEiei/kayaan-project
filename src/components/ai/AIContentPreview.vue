@@ -41,15 +41,15 @@ watch(
 const getContentTypeIcon = (type: string) => {
   switch (type) {
     case 'summary':
-      return '📝'
+      return 'FileText'
     case 'quiz':
-      return '❓'
+      return 'HelpCircle'
     case 'flashcard':
-      return '🃏'
+      return 'CreditCard'
     case 'notes':
-      return '📋'
+      return 'StickyNote'
     default:
-      return '🤖'
+      return 'Bot'
   }
 }
 

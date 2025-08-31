@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import AIGenerationPage from '@/components/AIGenerationPage.vue'
 import GenerationHistory from '@/components/GenerationHistory.vue'
@@ -13,8 +13,31 @@ onMounted(() => {
   const tabFromQuery = route.query.tab as string
   if (tabFromQuery && ['chat', 'history', 'saved'].includes(tabFromQuery)) {
     activeTab.value = tabFromQuery as 'chat' | 'history' | 'saved'
+    console.log('🎯 Initial tab set to:', activeTab.value)
   }
 })
+
+// Watch route changes เพื่อเปลี่ยน tab เมื่อ query parameter เปลี่ยน
+watch(() => route.query.tab, (newTab, oldTab) => {
+  console.log('🔍 Route query.tab changed:', { from: oldTab, to: newTab })
+  if (newTab && ['chat', 'history', 'saved'].includes(newTab as string)) {
+    const previousTab = activeTab.value
+    activeTab.value = newTab as 'chat' | 'history' | 'saved'
+    console.log('🔄 Tab changed:', { from: previousTab, to: activeTab.value })
+
+    // Force reactive update
+    if (newTab === 'saved') {
+      console.log('📁 Switching to SavedContentPage tab')
+    }
+  } else {
+    console.log('⚠️ Invalid tab or no tab specified, staying on current tab:', activeTab.value)
+  }
+}, { immediate: true })
+
+// Also watch the entire route for debugging
+watch(() => route.fullPath, (newPath) => {
+  console.log('🛣️ Full route changed to:', newPath)
+}, { immediate: true })
 
 const tabs = [
   { id: 'chat', label: 'Generate', icon: 'Star', description: 'Create AI content' },
@@ -68,7 +91,7 @@ const tabs = [
     <div class="flex-1">
       <AIGenerationPage v-if="activeTab === 'chat'" />
       <GenerationHistory v-else-if="activeTab === 'history'" />
-      <SavedContentPage v-else-if="activeTab === 'saved'" />
+      <SavedContentPage v-else-if="activeTab === 'saved'" :key="'saved-' + route.query._t" />
     </div>
   </div>
 </template>

@@ -23,11 +23,11 @@ const currentViewMode = ref<'detail' | 'interactive'>('detail')
 
 // Format options
 const formatOptions = [
-  { value: 'all', label: 'All Formats', icon: 'List' },
-  { value: 'summary', label: 'Summary', icon: 'FileText', color: 'text-blue-600 bg-blue-50' },
-  { value: 'quiz', label: 'Quiz', icon: 'HelpCircle', color: 'text-green-600 bg-green-50' },
-  { value: 'flashcard', label: 'Flashcards', icon: 'Cards', color: 'text-purple-600 bg-purple-50' },
-  { value: 'note', label: 'Notes', icon: 'StickyNote', color: 'text-orange-600 bg-orange-50' },
+  { value: 'all', label: 'All Formats', icon: 'Folder' },
+  // { value: 'summary', label: 'Summary', icon: 'FileText', color: 'text-blue-600 bg-blue-50' },
+  { value: 'quiz', label: 'Quiz', icon: 'Brain', color: 'text-green-600 bg-green-50' },
+  { value: 'flashcard', label: 'Flashcards', icon: 'CreditCard', color: 'text-purple-600 bg-purple-50' },
+  { value: 'note', label: 'Notes', icon: 'FileText', color: 'text-orange-600 bg-orange-50' },
 ]
 
 // Computed properties
@@ -221,13 +221,13 @@ const generateContentPreview = (content: AIGeneratedContent): string => {
         const sections = Array.isArray(contentData.sections) ? contentData.sections : []
         const difficulty = (metadata.difficulty as string) || 'beginner'
         const readTime = (metadata.estimatedReadTime as string) || '5 minutes'
-        return `📝 ${topic} • ${sections.length} Topic • level ${difficulty} • read ${readTime}`
+        return `${topic} • ${sections.length} Topic • level ${difficulty} • read ${readTime}`
       } else {
         // Current API format: { title, content: [{ feature, description }] }
         const title = (parsedContent.title as string) || content.title || 'Study Notes'
         const contentArray = Array.isArray(parsedContent.content) ? parsedContent.content : []
         const readTime = `${Math.max(1, Math.ceil(contentArray.length * 2))} minutes`
-        return `📝 ${title} • ${contentArray.length} Topic • read ${readTime}`
+        return `${title} • ${contentArray.length} Topic • read ${readTime}`
       }
 
     case 'quiz':
@@ -238,12 +238,12 @@ const generateContentPreview = (content: AIGeneratedContent): string => {
         const questions = Array.isArray(contentData.questions) ? contentData.questions : []
         const difficulty = (metadata.difficulty as string) || 'beginner'
         const duration = (metadata.estimatedTime as string) || '10 minutes'
-        return `🧠 ${quizTitle} • ${questions.length} questions • level ${difficulty} • ${duration}`
+        return `${quizTitle} • ${questions.length} questions • level ${difficulty} • ${duration}`
       } else {
         // Current API format: { questions: [{ question, options, answer }] }
         const title = content.title || 'Quiz'
         const questions = Array.isArray(parsedContent.questions) ? parsedContent.questions : []
-        return `🧠 ${title} • ${questions.length} questions • quiz`
+        return `${title} • ${questions.length} questions • quiz`
       }
 
     case 'flashcard':
@@ -860,8 +860,11 @@ const renderSummaryPreview = (parsedContent: Record<string, unknown>) => {
 
 // Load data on mount
 onMounted(async () => {
+  console.log('📁 SavedContentPage mounted!')
   try {
+    console.log('🔄 Loading saved content...')
     await aiStore.loadSavedContent()
+    console.log('✅ Saved content loaded, total items:', aiStore.getSavedContent.length)
 
     // ถ้ามี currentRequest แสดงว่ามาจาก GenerationHistory
     if (aiStore.currentRequest) {
@@ -904,7 +907,7 @@ onMounted(async () => {
         <div class="flex items-center">
           <div class="p-2 bg-green-100 rounded-lg">
             <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
             </svg>
           </div>
           <div class="ml-3">
@@ -936,7 +939,7 @@ onMounted(async () => {
         <div class="flex items-center">
           <div class="p-2 bg-orange-100 rounded-lg">
             <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
           </div>
           <div class="ml-3">
@@ -1062,9 +1065,9 @@ onMounted(async () => {
               <span :class="getFormatColor(content.outputFormat)" class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium shadow-sm">
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path v-if="getFormatIcon(content.outputFormat) === 'FileText'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  <path v-else-if="getFormatIcon(content.outputFormat) === 'HelpCircle'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  <path v-else-if="getFormatIcon(content.outputFormat) === 'Cards'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                  <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  <path v-else-if="getFormatIcon(content.outputFormat) === 'Brain'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  <path v-else-if="getFormatIcon(content.outputFormat) === 'CreditCard'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                  <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
                 {{ content.outputFormat }}
               </span>
@@ -1144,9 +1147,9 @@ onMounted(async () => {
                   <span :class="getFormatColor(content.outputFormat)" class="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full text-xs font-medium">
                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path v-if="getFormatIcon(content.outputFormat) === 'FileText'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      <path v-else-if="getFormatIcon(content.outputFormat) === 'HelpCircle'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      <path v-else-if="getFormatIcon(content.outputFormat) === 'Cards'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                      <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      <path v-else-if="getFormatIcon(content.outputFormat) === 'Brain'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                      <path v-else-if="getFormatIcon(content.outputFormat) === 'CreditCard'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                      <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 712-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                     {{ content.outputFormat }}
                   </span>

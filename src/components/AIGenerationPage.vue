@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAIGenerationStore } from '@/stores/aiGeneration'
-import { useAIContentStore } from '@/stores/aiContent'
+// import { useAIContentStore } from '@/stores/aiContent'
 import { ApiTestUtil } from '@/utils/apiTestUtil'
 import { PathTestUtil } from '@/utils/pathTestUtil'
 
 const aiGenerationStore = useAIGenerationStore()
-const aiContentStore = useAIContentStore()
+// const aiContentStore = useAIContentStore()
 const router = useRouter()
 
 // Step management
@@ -55,6 +55,8 @@ const customFields = ref<Record<string, string>>({})
 // Auto-redirect settings
 const autoRedirectToContent = ref(true) // สามารถเปลี่ยนเป็น false ถ้าไม่ต้องการ auto-redirect
 const redirectTimeoutId = ref<NodeJS.Timeout | null>(null)
+const redirectCountdown = ref(2) // Countdown timer for redirect
+const redirectCountdownInterval = ref<NodeJS.Timeout | null>(null)
 
 // Rate limiting
 const lastRequestTime = ref<number>(0)
@@ -481,7 +483,7 @@ const handleContentTypeChange = (type: 'quiz' | 'flashcard' | 'note') => {
 
 // Debug mode
 const DEBUG_MODE = true
-const isDevelopment = import.meta.env.MODE === 'development' || import.meta.env.DEV
+// const isDevelopment = import.meta.env.MODE === 'development' || import.meta.env.DEV
 
 // Debug API connection
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -551,29 +553,37 @@ This shows exact URLs that will be sent to backend.`
   })
 }
 
-// Navigate to AI Content Generator View
-const navigateToAIContentGenerator = async () => {
-  console.log('🧭 Navigating to AI Content Generator View...')
-  // Cancel auto-redirect if it's pending
-  if (redirectTimeoutId.value) {
-    clearTimeout(redirectTimeoutId.value)
-    redirectTimeoutId.value = null
-  }
+// Navigation function removed - using auto-redirect instead
 
-  // Refresh saved content before navigating
+// Test navigation function for debugging
+const testNavigation = async () => {
+  console.log('🧪 Testing navigation manually...')
+  console.log('📍 Current route before test:', router.currentRoute.value.fullPath)
+
   try {
-    console.log('🔄 Refreshing saved content before navigation...')
-    await aiContentStore.loadSavedContent()
-    console.log('✅ Saved content refreshed before navigation')
-  } catch (error) {
-    console.warn('⚠️ Failed to refresh saved content before navigation:', error)
-  }
+    // Test Method 1: router.replace
+    console.log('🔄 Testing router.replace...')
+    await router.replace({
+      name: 'ai-content-generator',
+      query: { tab: 'saved' }
+    })
+    console.log('✅ Manual navigation test successful!')
+    console.log('📍 Route after test:', router.currentRoute.value.fullPath)
 
-  // Navigate to "My Content" tab to see the generated content
-  router.push({
-    name: 'ai-content-generator',
-    query: { tab: 'saved' }  // ไปหน้า "My Content" เพื่อดู AI generated content
-  })
+    // Test content loading
+    setTimeout(async () => {
+      try {
+        await aiGenerationStore.loadSavedContent()
+        console.log('✅ Content loaded after test navigation')
+      } catch (error) {
+        console.error('❌ Failed to load content after test:', error)
+      }
+    }, 200)
+
+  } catch (error) {
+    console.error('❌ Manual navigation test failed:', error)
+    alert('Navigation test failed. Check console for details.')
+  }
 }
 
 // Cancel auto-redirect
@@ -583,6 +593,13 @@ const cancelAutoRedirect = () => {
     redirectTimeoutId.value = null
     console.log('🚫 Auto-redirect cancelled')
   }
+
+  if (redirectCountdownInterval.value) {
+    clearInterval(redirectCountdownInterval.value)
+    redirectCountdownInterval.value = null
+  }
+
+  redirectCountdown.value = 2 // Reset countdown
 }
 
 // Generation
@@ -690,19 +707,85 @@ const handleGenerate = async () => {
 
         // Auto-redirect to AI Content Generator View if enabled
         if (autoRedirectToContent.value) {
-          redirectTimeoutId.value = setTimeout(async () => {
-            console.log('🚀 Auto-redirecting to AI Content Generator View...')
+          console.log('⚙️ Setting up auto-redirect to My Content...')
+          redirectCountdown.value = 2
 
-            // Refresh saved content before redirecting
-            try {
-              console.log('🔄 Refreshing saved content...')
-              await aiContentStore.loadSavedContent()
-              console.log('✅ Saved content refreshed')
-            } catch (error) {
-              console.warn('⚠️ Failed to refresh saved content:', error)
+          // Start countdown interval
+          redirectCountdownInterval.value = setInterval(() => {
+            redirectCountdown.value--
+            if (redirectCountdown.value <= 0) {
+              if (redirectCountdownInterval.value) {
+                clearInterval(redirectCountdownInterval.value)
+                redirectCountdownInterval.value = null
+              }
             }
+          }, 1000)
 
-            navigateToAIContentGenerator()
+                              redirectTimeoutId.value = setTimeout(async () => {
+            console.log('🚀 Auto-redirecting to My Content page...')
+            console.log('📍 Current route:', router.currentRoute.value.fullPath)
+
+            try {
+              // Method 1: Try navigation with replace to force route change
+              console.log('🔄 Attempting navigation with router.replace...')
+              console.log('📋 Target route:', { name: 'ai-content-generator', query: { tab: 'saved' } })
+
+              const result = await router.replace({
+                name: 'ai-content-generator',
+                query: { tab: 'saved' }
+              })
+
+              console.log('✅ Router.replace result:', result)
+              console.log('📍 New route after replace:', router.currentRoute.value.fullPath)
+
+              // Clear countdown interval since redirect is successful
+              if (redirectCountdownInterval.value) {
+                clearInterval(redirectCountdownInterval.value)
+                redirectCountdownInterval.value = null
+                console.log('🔄 Countdown interval cleared')
+              }
+
+              // Use nextTick to ensure DOM updates before loading content
+              await nextTick()
+              console.log('✅ NextTick completed')
+
+              // Force refresh content after navigation and DOM update
+              setTimeout(async () => {
+                try {
+                  console.log('🔄 Starting content refresh...')
+                  await aiGenerationStore.loadSavedContent()
+                  console.log('✅ Content refreshed after auto-redirect, total items:', aiGenerationStore.savedContent.length)
+                } catch (loadError) {
+                  console.warn('⚠️ Failed to refresh content after redirect:', loadError)
+                }
+              }, 300)
+
+                        } catch (error) {
+              console.error('❌ Auto-redirect with replace failed:', error)
+
+              // Method 2: Try with push and force reload
+              try {
+                console.log('🔄 Attempting fallback with router.push...')
+                const timestamp = Date.now()
+                console.log('📋 Fallback route:', { name: 'ai-content-generator', query: { tab: 'saved', _t: timestamp } })
+
+                await router.push({
+                  name: 'ai-content-generator',
+                  query: { tab: 'saved', _t: timestamp } // Add timestamp to force refresh
+                })
+                console.log('✅ Fallback navigation successful')
+                console.log('📍 Route after fallback push:', router.currentRoute.value.fullPath)
+
+              } catch (pushError) {
+                console.error('❌ Fallback navigation failed:', pushError)
+
+                // Method 3: Force page reload
+                console.log('🔄 Using window.location as last resort...')
+                const fallbackUrl = '/ai-content-generator?tab=saved&_t=' + Date.now()
+                console.log('📍 Fallback URL:', fallbackUrl)
+                window.location.href = fallbackUrl
+              }
+            }
           }, 2000) // รอ 2 วินาทีเพื่อให้เห็นข้อความ success ก่อน
         }
       }, 1000)
@@ -755,6 +838,7 @@ const handleGenerate = async () => {
 }
 
 const resetGeneration = () => {
+  console.log('🔄 Resetting generation - going back to prompt step')
   stopKayaanAnimation()
   currentStep.value = 'prompt'
   promptText.value = ''
@@ -772,6 +856,16 @@ const resetGeneration = () => {
     clearTimeout(redirectTimeoutId.value)
     redirectTimeoutId.value = null
   }
+
+  // Cancel countdown interval
+  if (redirectCountdownInterval.value) {
+    clearInterval(redirectCountdownInterval.value)
+    redirectCountdownInterval.value = null
+  }
+
+  // Reset countdown
+  redirectCountdown.value = 2
+  console.log('✅ Generation reset completed - back to prompt step')
 }
 
 onMounted(() => {
@@ -830,7 +924,7 @@ onMounted(() => {
     <div class="mb-8">
       <div class="flex items-center justify-between">
         <div class="flex items-center space-x-4">
-          <div
+           <div
             v-for="(step, index) in ['Prompt', 'Preview', 'Generating', 'Result']"
             :key="step"
             class="flex items-center"
@@ -1221,10 +1315,10 @@ onMounted(() => {
         </button>
         <button
           @click="handleGenerate"
-          :disabled="!isValid || currentStep === 'generating'"
+          :disabled="!isValid || (currentStep as string) === 'generating'"
           class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
-          {{ currentStep === 'generating' ? 'Generating...' : 'Generate Content' }}
+          {{ (currentStep as string) === 'generating' ? 'Generating...' : 'Generate Content' }}
         </button>
       </div>
     </div>
@@ -1329,63 +1423,122 @@ onMounted(() => {
     <!-- Step 4: Result -->
     <div v-if="currentStep === 'result'" class="space-y-6">
       <div class="bg-white rounded-lg border border-slate-200 p-6">
-        <h2 class="text-xl font-semibold text-slate-900 mb-4">Generation Complete!</h2>
-
-        <div class="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-          <div class="flex items-center gap-2 mb-3">
-            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="text-center mb-6">
+          <!-- Success Icon -->
+          <div class="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+            <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span class="font-medium text-green-900">Content Generated Successfully</span>
           </div>
-          <p class="text-green-800">Your {{ outputFormats.find(f => f.value === outputFormat)?.label.toLowerCase() }} has been created and is ready for use.</p>
+
+          <h2 class="text-2xl font-semibold text-slate-900 mb-2">Generation Complete!</h2>
+          <p class="text-slate-600">
+            Your <span class="font-semibold text-green-600">{{ outputFormats.find(f => f.value === outputFormat)?.label }}</span> has been created successfully
+          </p>
+        </div>
+
+        <!-- Generation Summary -->
+        <div class="mb-6 p-4 bg-slate-50 rounded-lg">
+          <h3 class="font-medium text-slate-900 mb-3">Generation Summary</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div>
+              <span class="text-slate-500">Content Type:</span>
+              <p class="font-medium text-slate-900">{{ outputFormats.find(f => f.value === outputFormat)?.label }}</p>
+            </div>
+            <div>
+              <span class="text-slate-500">Source Material:</span>
+              <p class="font-medium text-slate-900">{{ attachedFile ? attachedFile.name : 'Custom Prompt' }}</p>
+            </div>
+            <div>
+              <span class="text-slate-500">Generated At:</span>
+              <p class="font-medium text-slate-900">{{ new Date().toLocaleString() }}</p>
+            </div>
+            <div>
+              <span class="text-slate-500">Status:</span>
+              <div class="flex items-center gap-2">
+                <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+                <span class="font-medium text-green-700">Ready to Use</span>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Auto-redirect info (only show if auto-redirect is enabled) -->
-        <div v-if="autoRedirectToContent && redirectTimeoutId" class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+        <div v-if="autoRedirectToContent && redirectTimeoutId" class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
           <div class="flex items-center justify-between gap-2">
-            <div class="flex items-center gap-2">
-              <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <p class="text-blue-800 text-sm">
-                Auto-redirecting to content view in 2 seconds...
-              </p>
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                <svg class="w-5 h-5 text-blue-600 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </div>
+              <div>
+                <h4 class="font-medium text-blue-900">Redirecting to My Content</h4>
+                <p class="text-sm text-blue-700">
+                  Taking you to view your content in
+                  <span class="font-semibold">{{ redirectCountdown }}</span>
+                  second{{ redirectCountdown !== 1 ? 's' : '' }}...
+                </p>
+              </div>
             </div>
             <button
               @click="cancelAutoRedirect"
-              class="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+              class="px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
               Cancel
             </button>
           </div>
+
+          <!-- Progress Bar -->
+          <div class="mt-3">
+            <div class="w-full bg-blue-200 rounded-full h-2">
+              <div
+                class="bg-blue-600 h-2 rounded-full transition-all duration-1000 ease-linear"
+                :style="{ width: `${((2 - redirectCountdown) / 2) * 100}%` }"
+              ></div>
+            </div>
+          </div>
         </div>
 
-        <!-- Action Buttons -->
-        <div class="flex gap-3 flex-wrap">
-          <button
-            @click="navigateToAIContentGenerator"
-            class="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-          >
-            View Generated Content
-          </button>
-          <button
-            @click="handleGenerate"
-            class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Regenerate
-          </button>
-          <button
-            class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-          >
-            Save Content
-          </button>
+        <!-- Quick Action: Generate New Content -->
+        <div class="text-center">
           <button
             @click="resetGeneration"
-            class="px-6 py-3 text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+            class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 mx-auto"
           >
-            Start New
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            Generate New Content
           </button>
+
+          <!-- Debug: Manual Test Navigation Button -->
+          <button
+            @click="testNavigation"
+            class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2 mx-auto mt-3 text-sm"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            Test Navigation
+          </button>
+        </div>
+
+        <!-- Success Information -->
+        <div class="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+          <div class="flex items-start gap-3">
+            <svg class="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+            </svg>
+            <div>
+              <h4 class="font-medium text-green-900 mb-1">✨ Content Ready!</h4>
+              <p class="text-sm text-green-800">
+                Your generated content has been automatically saved and you'll be redirected to the "My Content" section shortly.
+                You can also generate more content anytime using the button above!
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>

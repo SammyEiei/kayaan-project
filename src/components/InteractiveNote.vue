@@ -312,24 +312,37 @@ const scrollToSection = (title: string) => {
             :id="`section-${section.title.replace(/\s+/g, '-').toLowerCase()}`"
             class="mb-8"
           >
-            <component
-              :is="`h${section.level}`"
-              class="font-bold text-slate-900 mb-4"
-              :class="{
-                'text-3xl': section.level === 1,
-                'text-2xl': section.level === 2,
-                'text-xl': section.level === 3,
-              }"
+            <h1
+              v-if="section.level === 1"
+              class="font-bold text-slate-900 mb-4 text-3xl"
             >
               {{ section.title }}
-            </component>
+            </h1>
+            <h2
+              v-else-if="section.level === 2"
+              class="font-bold text-slate-900 mb-4 text-2xl"
+            >
+              {{ section.title }}
+            </h2>
+            <h3
+              v-else-if="section.level === 3"
+              class="font-bold text-slate-900 mb-4 text-xl"
+            >
+              {{ section.title }}
+            </h3>
+            <h4
+              v-else
+              class="font-bold text-slate-900 mb-4 text-lg"
+            >
+              {{ section.title }}
+            </h4>
 
             <div
               v-for="(paragraph, index) in section.content"
               :key="index"
               class="mb-4 leading-relaxed"
             >
-              <p v-if="paragraph.trim()" class="text-slate-700">
+              <p v-if="typeof paragraph === 'string' && paragraph.trim()" class="text-slate-700">
                 {{ paragraph }}
               </p>
             </div>

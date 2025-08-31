@@ -485,30 +485,46 @@ const getUserAnswer = (questionId: number) => {
 }
 
 const parseAndSetQuestions = () => {
-  console.log('=== PARSING QUIZ CONTENT ===')
-  console.log('Content received:', props.content)
-  questions.value = parseQuizContent(props.content)
-  console.log('Final questions count:', questions.value.length)
-  console.log('Questions:', questions.value)
+  try {
+    console.log('=== PARSING QUIZ CONTENT ===')
+    console.log('Content received:', props.content)
 
-  // Debug individual questions
-  questions.value.forEach((q, index) => {
-    console.log(`Question ${index + 1}:`, {
-      id: q.id,
-      type: q.type,
-      question: q.question,
-      optionsCount: Array.isArray(q.options) ? q.options.length : 0,
-      optionsType: Array.isArray(q.options) && q.options.length > 0 ? typeof q.options[0] : 'none',
-      optionsPreview: Array.isArray(q.options) ? q.options.slice(0, 2) : 'none',
-      correctAnswer: q.correctAnswer
-    })
-  })
+    if (!props.content || typeof props.content !== 'string') {
+      console.warn('Invalid content provided to InteractiveQuiz')
+      questions.value = []
+      return
+    }
 
-  // Reset quiz state when content changes
-  quizStarted.value = false
-  currentQuestionIndex.value = 0
-  userAnswers.value = {}
-  showResults.value = false
+    questions.value = parseQuizContent(props.content)
+    console.log('Final questions count:', questions.value.length)
+    console.log('Questions:', questions.value)
+
+    // Debug individual questions with safe checks
+    if (Array.isArray(questions.value)) {
+      questions.value.forEach((q, index) => {
+        if (q && typeof q === 'object') {
+          console.log(`Question ${index + 1}:`, {
+            id: q.id,
+            type: q.type,
+            question: q.question,
+            optionsCount: Array.isArray(q.options) ? q.options.length : 0,
+            optionsType: Array.isArray(q.options) && q.options.length > 0 ? typeof q.options[0] : 'none',
+            optionsPreview: Array.isArray(q.options) ? q.options.slice(0, 2) : 'none',
+            correctAnswer: q.correctAnswer
+          })
+        }
+      })
+    }
+
+    // Reset quiz state when content changes
+    quizStarted.value = false
+    currentQuestionIndex.value = 0
+    userAnswers.value = {}
+    showResults.value = false
+  } catch (error) {
+    console.error('Error parsing quiz content:', error)
+    questions.value = []
+  }
 }
 
 onMounted(() => {
@@ -621,10 +637,10 @@ watch(() => props.content, () => {
           ></textarea>
 
                     <!-- Debug info (for development) -->
-          <div v-if="isDevelopmentMode" class="text-xs text-gray-500">
+          <!-- <div v-if="isDevelopmentMode" class="text-xs text-gray-500">
             Debug: Answer length = {{ userAnswers[currentQuestion.id]?.length || 0 }},
             Is provided = {{ isAnswerProvided }}
-          </div>
+          </div> -->
         </div>
 
         <!-- Open Ended (similar to short answer but longer) -->
