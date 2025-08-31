@@ -14,14 +14,15 @@ export interface StudyGroup {
   isPrivate: boolean
   maxMembers?: number
   tags?: string[]
+  members?: number // เพิ่มฟิลด์ members ที่ขาดหายไป
 }
 
 export interface GroupMember {
-  userId: string
+  userId: string | number
   username: string
   email: string
   avatarUrl?: string
-  role: 'member' | 'admin'
+  role: 'member' | 'admin' | 'moderator'
   status: 'pending' | 'accepted' | 'rejected'
   joinedAt: string
   // เพิ่มฟิลด์ใหม่
@@ -47,6 +48,11 @@ export interface GroupResource {
   tags?: string[]
   isPublic: boolean
   updatedAt?: string
+  // เพิ่มฟิลด์ที่ขาดหายไป
+  contentUrl?: string
+  contentText?: string
+  commentCount?: number
+  reactionCount?: number
 }
 
 // เพิ่ม type ใหม่สำหรับ Group Post
@@ -171,15 +177,17 @@ export interface UpdateGroupRequest {
 
 // เพิ่ม type ใหม่สำหรับ Invite Member Request
 export interface InviteMemberRequest {
-  email: string
+  email?: string
   role?: 'member' | 'admin'
   message?: string
 }
 
 // เพิ่ม type ใหม่สำหรับ Generate Invite Code Request
 export interface GenerateInviteCodeRequest {
+  groupId?: string
   maxUses?: number
   expiresInDays?: number
+  expiresInHours?: number
   message?: string
 }
 
@@ -197,21 +205,25 @@ export interface UpdateMemberRoleRequest {
 
 // เพิ่ม type ใหม่สำหรับ Upload Resource Request
 export interface UploadResourceRequest {
+  groupId?: string
   title: string
   description: string
-  file: File
+  file?: File
   tags?: string[]
   isPublic?: boolean
 }
 
 // เพิ่ม type ใหม่สำหรับ Add Comment Request
 export interface AddCommentRequest {
+  resourceId?: string
   content: string
   parentCommentId?: string
 }
 
 // เพิ่ม type ใหม่สำหรับ Add Reaction Request
 export interface AddReactionRequest {
+  resourceId?: string
+  reactionType?: string
   type: 'like' | 'love' | 'laugh' | 'wow' | 'sad' | 'angry'
 }
 
@@ -232,6 +244,7 @@ export interface UpdatePostRequest {
 
 // เพิ่ม type ใหม่สำหรับ Add Post Comment Request
 export interface AddPostCommentRequest {
+  postId?: string
   content: string
   parentCommentId?: string
 }
@@ -247,6 +260,11 @@ export interface SearchGroupContentRequest {
   sortBy?: 'recent' | 'popular' | 'relevance'
   page?: number
   limit?: number
+  filters?: {
+    query?: string
+    type?: string
+    sortBy?: string
+  }
 }
 
 // เพิ่ม type ใหม่สำหรับ Group Search Filters
@@ -258,6 +276,33 @@ export interface GroupSearchFilters {
   sortBy?: 'recent' | 'popular' | 'name'
   page?: number
   limit?: number
+}
+
+// เพิ่ม type ใหม่สำหรับ Group Notifications
+export interface GroupNotification {
+  id: string
+  groupId: string
+  userId: string
+  type: 'member_joined' | 'new_post' | 'new_resource' | 'comment' | 'reaction'
+  title: string
+  message: string
+  isRead: boolean
+  createdAt: string
+  actionUrl?: string
+}
+
+// เพิ่ม type ใหม่สำหรับ Update Group Settings
+export interface UpdateGroupSettingsRequest {
+  name?: string
+  description?: string
+  isPrivate?: boolean
+  maxMembers?: number
+  tags?: string[]
+  settings?: {
+    allowMemberInvites?: boolean
+    requireApproval?: boolean
+    allowFileUploads?: boolean
+  }
 }
 
 // เพิ่ม type ใหม่สำหรับ Group Statistics

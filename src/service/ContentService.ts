@@ -1,7 +1,7 @@
 import QuizService from './QuizService'
 import NoteService from './NoteService'
 import FlashcardService from './FlashcardService'
-import ContentInfoService, { ContentInfo } from './ContentInfoService'
+import ContentInfoService, { type ContentInfo } from './ContentInfoService'
 import { useAuthStore } from '../stores/auth'
 
 export interface ContentItem {

@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import ContentInfoService, { ContentInfo, CreateContentInfoRequest, UpdateContentInfoRequest } from '../service/ContentInfoService'
+import ContentInfoService, { type ContentInfo, type CreateContentInfoRequest, type UpdateContentInfoRequest } from '../service/ContentInfoService'
 import { useAuthStore } from './auth'
 
 export const useContentInfoStore = defineStore('contentInfo', () => {
