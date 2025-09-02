@@ -460,9 +460,8 @@ const isLoggedIn = computed(() => !!authStore.token)
 
 const menuItems = [
   { to: '/dashboard', icon: 'grid', label: 'Dashboard' },
-  { to: '/MyContentView', icon: 'book', label: 'My Content' },
-  { to: '/create-content', icon: 'sparkles', label: 'Create Content' },
-  { to: '/ai-content-generator', icon: 'ai', label: 'AI Content Generator' },
+  { to: '/create-content', icon: 'edit', label: 'Manual Generation' },
+  { to: '/ai-content-generator', icon: 'ai', label: 'AI Generation' },
   { to: '/study-groups', icon: 'users', label: 'Study Groups' },
   { to: '/pomodoro', icon: 'clock', label: 'Pomodoro Timer' },
   { to: '/settings', icon: 'settings', label: 'Settings' },
@@ -564,6 +563,22 @@ function getIconComponent(iconName: string) {
           }),
         ],
       ),
+    edit: () =>
+      h(
+        'svg',
+        {
+          class: 'w-5 h-5',
+          fill: 'none',
+          stroke: 'currentColor',
+          strokeWidth: '2',
+          viewBox: '0 0 24 24',
+        },
+        [
+          h('path', {
+            d: 'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z',
+          }),
+        ],
+      ),
     ai: () =>
       h(
         'svg',
@@ -586,7 +601,7 @@ function getPageTitle() {
   const titles: Record<string, string> = {
     '/dashboard': 'Dashboard',
     '/flashcards': 'Flashcards & Quizzes',
-    '/MyContentView': 'Create Content',
+    '/create-content': 'Manual Generation',
     '/ai-content-generator': 'AI Content Generator',
     '/study-groups': 'Study Groups',
     '/pomodoro': 'Pomodoro Timer',
@@ -599,7 +614,7 @@ function getPageIcon() {
   const icons: Record<string, string> = {
     '/dashboard': 'grid',
     '/flashcards': 'book',
-    '/MyContentView': 'sparkles',
+    '/create-content': 'edit',
     '/ai-content-generator': 'ai',
     '/study-groups': 'users',
     '/pomodoro': 'clock',
@@ -612,7 +627,7 @@ function getPageSubtitle() {
   const subtitles: Record<string, string> = {
     '/dashboard': 'Overview of your learning progress',
     '/flashcards': 'Create and study with flashcards',
-    '/MyContentView': 'Generate and manage your content',
+    '/create-content': 'Create and manage content manually',
     '/ai-content-generator': 'Create content with AI assistance',
     '/study-groups': 'Collaborate with study groups',
     '/pomodoro': 'Focus on your tasks with timer',

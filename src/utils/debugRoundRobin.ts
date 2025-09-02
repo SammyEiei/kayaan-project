@@ -81,7 +81,7 @@ export function testSingleQuestionConversion(): void {
  */
 export function testMixedQuizWithSingleType(): void {
   console.log('\n🔬 === MIXED QUIZ SINGLE TYPE DEBUG ===')
-  console.log('🎯 Testing convertToMixedQuiz with questionTypes: [\"multiple-choice\"]')
+  console.log('🎯 Testing convertToMixedQuiz with questionTypes: ["multiple-choice"]')
 
   const simpleQuestions: SimpleQuestion[] = [
     {

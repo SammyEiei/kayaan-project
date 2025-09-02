@@ -1103,7 +1103,7 @@ onMounted(async () => {
                     <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 16 16">
                       <path d="M8 0.5L9.5 5.5L14.5 7L9.5 8.5L8 13.5L6.5 8.5L1.5 7L6.5 5.5L8 0.5Z"/>
                     </svg>
-                    AI
+                    AI Generated
                   </div>
                 </div>
                 <div class="flex items-center gap-1 text-blue-600 opacity-70 group-hover:opacity-100 transition-opacity duration-200">

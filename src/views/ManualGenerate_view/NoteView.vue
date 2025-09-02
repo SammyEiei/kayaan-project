@@ -1,29 +1,71 @@
 <template>
-  <div class="space-y-6">
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Progress Steps -->
+    <div class="mb-8">
+      <div class="flex items-center justify-center">
+        <div class="flex items-center">
+          <div class="flex items-center">
+            <div
+              class="w-8 h-8 rounded-full flex items-center justify-center bg-green-500 text-white"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <span class="ml-2 text-sm font-medium text-green-600">Manual Creation</span>
+            <div class="ml-4 w-12 h-0.5 bg-green-500"></div>
+          </div>
+          <div class="flex items-center">
+            <div class="w-8 h-8 rounded-full flex items-center justify-center bg-green-500 text-white">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <span class="ml-2 text-sm font-medium text-green-600">Notes Selected</span>
+            <div class="ml-4 w-12 h-0.5 bg-green-500"></div>
+          </div>
+          <div class="flex items-center">
+            <div class="w-8 h-8 rounded-full flex items-center justify-center bg-blue-500 text-white">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <span class="ml-2 text-sm font-medium text-blue-600">Create Notes</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="space-y-6">
     <!-- Header -->
-    <div class="flex items-center justify-between">
-      <div class="flex items-center">
-        <button @click="goBack" class="mr-4 p-2 text-gray-600 hover:text-gray-800">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M10 19l-7-7m0 0l7-7m-7 7h18"
-            />
-          </svg>
-        </button>
-        <h2 class="text-2xl font-bold text-gray-900">
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div>
+        <h2 class="text-2xl font-bold text-slate-900">
           {{ isEditing ? 'Edit Note' : 'Create Notes' }}
         </h2>
+        <p class="text-sm text-slate-600 mt-1">
+          {{ isEditing ? 'Update your note content' : 'Write comprehensive study notes with rich formatting' }}
+        </p>
       </div>
-      <button
-        @click="saveNote"
-        :disabled="isLoading"
-        class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
-      >
-        {{ isLoading ? 'Saving...' : isEditing ? 'Update Note' : 'Save Notes' }}
-      </button>
+      <div class="flex gap-3">
+        <button
+          class="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors duration-150 font-medium"
+          @click="goBack"
+        >
+          Cancel
+        </button>
+        <button
+          @click="saveNote"
+          :disabled="isLoading"
+          class="px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white rounded-lg transition-all duration-150 font-medium shadow-sm hover:shadow-md flex items-center gap-2"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12" />
+          </svg>
+          <span v-if="!isLoading">{{ isEditing ? 'Update Note' : 'Save Notes' }}</span>
+          <span v-else>Saving...</span>
+        </button>
+      </div>
     </div>
 
     <!-- Error/Success Messages -->
@@ -38,34 +80,38 @@
     </div>
 
     <!-- Note Settings -->
-    <div class="bg-white rounded-lg p-6 shadow-sm">
-      <h3 class="text-lg font-semibold text-gray-900 mb-4">Note Information</h3>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+    <div class="bg-white rounded-lg border border-slate-200 p-6 shadow-sm">
+      <h2 class="text-xl font-semibold text-slate-900 mb-4">Note Configuration</h2>
+
+      <!-- Note Information -->
+      <div class="mb-8">
+        <label class="block text-sm font-medium text-slate-700 mb-4">Note Information</label>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Subject</label>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Subject</label>
           <input
             v-model="noteData.subject"
             type="text"
             placeholder="Enter subject name"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
           />
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Tags (comma separated)</label>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Tags (comma separated)</label>
           <input
             v-model="noteData.tags"
             type="text"
             placeholder="biology, cells, study guide"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
           />
         </div>
       </div>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Difficulty</label>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Difficulty</label>
           <select
             v-model="noteData.difficulty"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
           >
             <option value="easy">Easy</option>
             <option value="medium">Medium</option>
@@ -73,22 +119,24 @@
           </select>
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Note Title</label>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Note Title</label>
           <input
             v-model="noteData.title"
             type="text"
             placeholder="Enter note title"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
           />
+        </div>
         </div>
       </div>
     </div>
 
     <!-- Note Editor -->
-    <div class="bg-white rounded-lg p-6 shadow-sm">
+    <div class="bg-white rounded-lg border border-slate-200 p-6 shadow-sm">
+      <h2 class="text-xl font-semibold text-slate-900 mb-4">Note Content</h2>
       <div class="notion-editor space-y-2">
         <div
-          v-for="(block, index) in noteData.blocks"
+          v-for="block in noteData.blocks"
           :key="block.id"
           class="notion-block group flex items-start space-x-2 min-h-[2.5rem]"
         >
@@ -96,7 +144,7 @@
           <div class="flex-shrink-0 w-8 pt-2">
             <select
               :value="block.type"
-              @change="changeBlockType(block.id, $event.target.value)"
+              @change="changeBlockType(block.id, ($event.target as HTMLSelectElement)?.value || '')"
               class="w-8 h-6 text-xs border-none bg-transparent text-gray-400 hover:text-gray-600 focus:outline-none cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
             >
               <option value="paragraph">¶</option>
@@ -198,18 +246,19 @@
         </div>
       </div>
     </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { reactive, ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import NoteService from '@/service/NoteService'
+import ManualContentService from '@/service/ManualContentService'
 import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
 const route = useRoute()
-const emit = defineEmits(['save', 'back'])
+
 const authStore = useAuthStore()
 
 const isLoading = ref(false)
@@ -238,15 +287,16 @@ onMounted(async () => {
   if (editId) {
     editingId.value = Number(editId)
     try {
-      const note = await NoteService.getNoteById(editingId.value, authStore.currentUserName)
-      noteData.title = note.title
+      const note = await ManualContentService.getContentById(editingId.value)
+      const noteContent = JSON.parse(note.contentData)
+      noteData.title = note.contentTitle
       noteData.subject = note.subject || ''
       noteData.difficulty = note.difficulty || 'medium'
       noteData.tags = note.tags?.join(', ') || ''
 
       // Parse content into blocks
-      const contentLines = note.content.split('\n')
-      noteData.blocks = contentLines.map((line, index) => ({
+      const contentLines = noteContent.content?.[0]?.description?.split('\n') || []
+      noteData.blocks = contentLines.map((line: string, index: number) => ({
         id: index + 1,
         type: 'paragraph',
         content: line,
@@ -263,7 +313,7 @@ const isEditing = computed(() => editingId.value !== null)
 
 const addBlock = (type = 'paragraph') => {
   const newId = Math.max(...noteData.blocks.map((b) => b.id)) + 1
-  const placeholders = {
+  const placeholders: Record<string, string> = {
     paragraph: 'Start writing...',
     heading1: 'Heading 1',
     heading2: 'Heading 2',
@@ -293,7 +343,7 @@ const changeBlockType = (id: number, newType: string) => {
   const block = noteData.blocks.find((b) => b.id === id)
   if (block) {
     block.type = newType
-    const placeholders = {
+    const placeholders: Record<string, string> = {
       paragraph: 'Start writing...',
       heading1: 'Heading 1',
       heading2: 'Heading 2',
@@ -308,14 +358,14 @@ const changeBlockType = (id: number, newType: string) => {
 }
 
 const getBlockClasses = (type: string) => {
-  const classes = {
-    paragraph: 'text-base text-gray-900',
-    heading1: 'text-3xl font-bold text-gray-900',
-    heading2: 'text-2xl font-semibold text-gray-900',
-    heading3: 'text-xl font-medium text-gray-900',
-    bullet: 'text-base text-gray-900',
-    numbered: 'text-base text-gray-900',
-    quote: 'text-lg italic text-gray-700 border-l-4 border-gray-300 pl-4',
+  const classes: Record<string, string> = {
+    paragraph: 'text-base text-slate-900',
+    heading1: 'text-3xl font-bold text-slate-900',
+    heading2: 'text-2xl font-semibold text-slate-900',
+    heading3: 'text-xl font-medium text-slate-900',
+    bullet: 'text-base text-slate-900',
+    numbered: 'text-base text-slate-900',
+    quote: 'text-lg italic text-slate-700 border-l-4 border-slate-300 pl-4',
     code: 'text-sm font-mono bg-gray-100 text-gray-800 p-3 rounded',
   }
   return classes[type] || classes.paragraph
@@ -353,8 +403,8 @@ const saveNote = async () => {
 
     const tagsArray = noteData.tags
       .split(',')
-      .map((tag) => tag.trim())
-      .filter((tag) => tag)
+      .map((tag: string) => tag.trim())
+      .filter((tag: string) => tag)
 
     const notePayload = {
       title: noteData.title,
@@ -364,19 +414,39 @@ const saveNote = async () => {
       tags: tagsArray,
     }
 
+    // Convert to JSON format
+    const jsonNoteData = {
+      type: "note",
+      content: [
+        {
+          feature: notePayload.title,
+          description: notePayload.content
+        }
+      ]
+    }
+
+    const requestData = {
+      contentTitle: notePayload.title,
+      contentType: "note" as const,
+      contentData: JSON.stringify(jsonNoteData),
+      subject: notePayload.subject,
+      difficulty: notePayload.difficulty,
+      tags: notePayload.tags
+    }
+
     if (editingId.value) {
-      await NoteService.updateNote(editingId.value, notePayload, authStore.user.username)
+      await ManualContentService.updateContent(editingId.value, requestData)
       successMessage.value = 'Note updated successfully!'
     } else {
-      await NoteService.createNote(notePayload)
+      await ManualContentService.createContent(requestData)
       successMessage.value = 'Note created successfully!'
     }
 
     setTimeout(() => {
-      router.push('/MyContentView')
+      router.push('/create-content')
     }, 1000)
-  } catch (error: any) {
-    errorMessage.value = error?.response?.data?.message || 'Failed to save note'
+  } catch (error: unknown) {
+    errorMessage.value = (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to save note'
     console.error(error)
   } finally {
     isLoading.value = false
@@ -384,7 +454,7 @@ const saveNote = async () => {
 }
 
 const goBack = () => {
-  router.push('/MyContentView')
+  router.push('/create-content')
 }
 
 /**

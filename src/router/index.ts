@@ -106,12 +106,19 @@ const router = createRouter({
     {
       path: '/MyContentView',
       name: 'MyContentView',
-      component: () => import('../views/ManualGenerate_view/MyContentView.vue'),
+      redirect: _to => {
+        return { path: '/create-content', query: { tab: 'content' } }
+      }
     },
     {
       path: '/ai-content-generator',
       name: 'ai-content-generator',
       component: () => import('../views/features_view/AIContentGeneratorView.vue'),
+    },
+    {
+      path: '/content-hub',
+      name: 'content-hub',
+      component: () => import('../views/features_view/UnifiedContentView.vue'),
     },
   ],
 })

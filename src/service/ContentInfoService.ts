@@ -1,4 +1,5 @@
 import api from './api'
+import type { ManualContentResponse } from './ManualContentService'
 
 export interface ContentInfo {
   id: string
@@ -32,7 +33,7 @@ export interface UpdateContentInfoRequest {
 }
 
 export class ContentInfoService {
-  private static readonly BASE_URL = '/content-info'
+  private static readonly BASE_URL = '/content/manual'
 
   /**
    * Create new content info
@@ -110,8 +111,24 @@ export class ContentInfoService {
    * Get all active content info
    */
   static async getAllActiveContentInfo(): Promise<ContentInfo[]> {
-    const response = await api.get(`${this.BASE_URL}/active`)
-    return response.data
+    const response = await api.get(`${this.BASE_URL}`)
+
+    // Transform ManualContentResponse to ContentInfo format
+    return response.data.content.map((content: ManualContentResponse) => ({
+      id: content.id.toString(),
+      title: content.contentTitle,
+      subject: content.subject,
+      difficulty: content.difficulty.toUpperCase() as 'EASY' | 'MEDIUM' | 'HARD',
+      contentType: content.contentType as 'QUIZ' | 'NOTE' | 'FLASHCARD',
+      tags: content.tags,
+      createdBy: {
+        id: content.createdByUsername,
+        username: content.createdByUsername
+      },
+      isActive: true,
+      createdAt: content.createdAt,
+      updatedAt: content.updatedAt
+    }))
   }
 }
 

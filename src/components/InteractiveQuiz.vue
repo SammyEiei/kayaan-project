@@ -35,21 +35,66 @@ const userAnswers = ref<Record<number, string | string[]>>({})
 const showResults = ref(false)
 const quizStarted = ref(false)
 
+// Helper functions for better type handling
+const getQuestionTypeDisplay = (type: string) => {
+  switch (type) {
+    case 'multiple-choice': return 'Multiple Choice'
+    case 'true-false': return 'True/False'
+    case 'short-answer': return 'Short Answer'
+    case 'open-ended': return 'Open Ended'
+    default: return type
+  }
+}
+
+const isOpenEnded = (type: string) => {
+  return type === 'open-ended'
+}
+
+const shouldShowOptions = (question: QuizQuestion) => {
+  return question.type === 'multiple-choice' || question.type === 'true-false'
+}
+
+
+
+// Computed properties for debug info
+const debugInfo = computed(() => ({
+  questionId: currentQuestion.value?.id,
+  questionType: currentQuestion.value?.type,
+  optionsCount: currentQuestion.value?.options?.length || 0,
+  isOpenEnded: currentQuestion.value?.type === 'open-ended',
+  shouldShowOptions: shouldShowOptions(currentQuestion.value!)
+}))
+
 // Parse content to extract questions
 const parseQuizContent = (content: string) => {
-  console.log('Parsing content:', content)
+  console.log('🔥 === PARSING QUIZ CONTENT ===')
+  console.log('📋 Raw content:', content)
+  console.log('📊 Content type:', typeof content)
+  console.log('📏 Content length:', content.length)
 
   try {
     // Try to parse as JSON first
+    console.log('🔍 Attempting JSON parse...')
     const jsonData = JSON.parse(content)
+    console.log('✅ JSON parse successful')
+    console.log('📋 Parsed JSON structure:', {
+      hasQuestions: !!jsonData.questions,
+      questionsType: typeof jsonData.questions,
+      questionsIsArray: Array.isArray(jsonData.questions),
+      questionsLength: Array.isArray(jsonData.questions) ? jsonData.questions.length : 'N/A'
+    })
 
     // If it's a structured quiz object
     if (jsonData.questions && Array.isArray(jsonData.questions)) {
+      console.log('🚀 Using parseJsonQuiz for structured quiz')
       return parseJsonQuiz(jsonData)
+    } else {
+      console.log('⚠️ JSON parsed but no questions array found')
     }
-  } catch {
+  } catch (error) {
     // Not JSON, continue with text parsing
-    console.log('Not JSON, parsing as text')
+    console.log('❌ JSON parse failed:', error)
+    console.log('📝 Falling back to text parsing')
   }
 
   // Original text parsing logic
@@ -66,11 +111,24 @@ const parseQuizContent = (content: string) => {
       // Save previous question if exists
       if (currentQuestion.question) {
         console.log('Saving question:', currentQuestion)
+
+        // Ensure multiple choice questions have options
+        let finalOptions = currentQuestion.options
+        if (currentQuestion.type === 'multiple-choice' && (!finalOptions || finalOptions.length === 0)) {
+          console.log('⚠️ Adding fallback options for multiple choice question')
+          finalOptions = [
+            { id: 'A', text: 'Option A', correct: false },
+            { id: 'B', text: 'Option B', correct: false },
+            { id: 'C', text: 'Option C', correct: false },
+            { id: 'D', text: 'Option D', correct: false }
+          ]
+        }
+
         parsedQuestions.push({
           id: questionId++,
           type: currentQuestion.type || 'multiple-choice',
           question: currentQuestion.question,
-          options: currentQuestion.options,
+          options: finalOptions,
           correctAnswer: currentQuestion.correctAnswer || '',
           explanation: currentQuestion.explanation
         } as QuizQuestion)
@@ -88,8 +146,8 @@ const parseQuizContent = (content: string) => {
       if (questionText.includes('true/false')) {
         currentQuestion.type = 'true-false'
         currentQuestion.options = [
-          { id: 'true', text: 'true', correct: false },
-          { id: 'false', text: 'false', correct: false }
+          { id: 'true', text: 'True', correct: false },
+          { id: 'false', text: 'False', correct: false }
         ]
         console.log('Set type to true-false for:', questionText)
       }
@@ -97,6 +155,16 @@ const parseQuizContent = (content: string) => {
       else if (questionText.includes('Explain') || questionText.includes('Describe')) {
         currentQuestion.type = 'short-answer'
         console.log('Set type to short-answer for:', questionText)
+      }
+      // For multiple choice, ensure we have default options
+      else {
+        currentQuestion.options = [
+          { id: 'A', text: 'Option A', correct: false },
+          { id: 'B', text: 'Option B', correct: false },
+          { id: 'C', text: 'Option C', correct: false },
+          { id: 'D', text: 'Option D', correct: false }
+        ]
+        console.log('Set type to multiple-choice with default options for:', questionText)
       }
 
       console.log('New question:', currentQuestion)
@@ -133,11 +201,24 @@ const parseQuizContent = (content: string) => {
   // Add last question
   if (currentQuestion.question) {
     console.log('Saving last question:', currentQuestion)
+
+    // Ensure multiple choice questions have options
+    let finalOptions = currentQuestion.options
+    if (currentQuestion.type === 'multiple-choice' && (!finalOptions || finalOptions.length === 0)) {
+      console.log('⚠️ Adding fallback options for multiple choice question')
+      finalOptions = [
+        { id: 'A', text: 'Option A', correct: false },
+        { id: 'B', text: 'Option B', correct: false },
+        { id: 'C', text: 'Option C', correct: false },
+        { id: 'D', text: 'Option D', correct: false }
+      ]
+    }
+
     parsedQuestions.push({
       id: questionId,
       type: currentQuestion.type || 'multiple-choice',
       question: currentQuestion.question,
-      options: currentQuestion.options,
+      options: finalOptions,
       correctAnswer: currentQuestion.correctAnswer || '',
       explanation: currentQuestion.explanation
     } as QuizQuestion)
@@ -160,16 +241,125 @@ const parseJsonQuiz = (jsonData: Record<string, unknown>): QuizQuestion[] => {
 
   // Check if this is already a converted quiz format from Quiz Parser
   if (jsonData.questions && Array.isArray(jsonData.questions)) {
-    return jsonData.questions.map((q: Record<string, unknown>) => ({
-      id: q.id as number || 0,
-      type: q.type as QuizQuestion['type'] || 'multiple-choice',
-      question: q.question as string || '',
-      options: q.options as QuizQuestion['options'],
-      correctAnswer: q.correctAnswer as QuizQuestion['correctAnswer'] || '',
-      explanation: q.explanation as string,
-      points: q.points as number,
-      keywords: q.keywords as string[]
-    }))
+    console.log('📋 Parsing pre-converted quiz format')
+
+    return jsonData.questions.map((q: Record<string, unknown>, index: number) => {
+      // 🔍 DEBUG: Log raw question data
+      console.log(`🔍 RAW Question ${index + 1} data:`, {
+        rawType: q.type,
+        rawTypeType: typeof q.type,
+        rawId: q.id,
+        rawQuestion: q.question,
+        rawOptions: q.options,
+        // 🔍 เพิ่ม debug สำหรับ type ที่อ่านได้
+        typeAsString: String(q.type),
+        typeLength: String(q.type).length,
+        typeCharCodes: Array.from(String(q.type)).map(c => c.charCodeAt(0))
+      })
+
+      // 🔍 DEBUG: ตรวจสอบ type ที่ละเอียดขึ้น
+      const rawType = q.type
+      console.log(`🔍 Type analysis for question ${index + 1}:`, {
+        rawType,
+        rawTypeType: typeof rawType,
+        rawTypeString: String(rawType),
+        rawTypeTrimmed: String(rawType).trim(),
+        rawTypeLower: String(rawType).toLowerCase(),
+        rawTypeStrict: rawType === 'open-ended',
+        rawTypeStrictLower: String(rawType).toLowerCase() === 'open-ended'
+      })
+
+      let questionType = q.type as QuizQuestion['type'] || 'multiple-choice'
+      let questionOptions = q.options as QuizQuestion['options']
+
+      console.log(`🔍 Processing question ${index + 1}:`, {
+        id: q.id,
+        type: questionType,
+        hasOptions: !!questionOptions,
+        optionsLength: questionOptions?.length || 0,
+        questionText: q.question
+      })
+
+      // Use the type field directly from the backend - no more content-based conversion
+      console.log(`🔍 Question ${index + 1} type from backend:`, questionType)
+      console.log(`🔍 Type comparison checks:`)
+      console.log(`  - questionType === 'open-ended':`, questionType === 'open-ended')
+      console.log(`  - questionType === 'multiple-choice':`, questionType === 'multiple-choice')
+      console.log(`  - questionType === 'true-false':`, questionType === 'true-false')
+      console.log(`  - questionType === 'short-answer':`, questionType === 'short-answer')
+
+      // 🔍 DEBUG: ตรวจสอบ type comparison ที่ละเอียดขึ้น
+      console.log(`🔍 Detailed type comparison for question ${index + 1}:`, {
+        questionType,
+        questionTypeType: typeof questionType,
+        questionTypeString: String(questionType),
+        questionTypeTrimmed: String(questionType).trim(),
+        questionTypeLower: String(questionType).toLowerCase(),
+        isOpenEndedStrict: questionType === 'open-ended',
+        isOpenEndedLower: String(questionType).toLowerCase() === 'open-ended',
+        isMultipleChoiceStrict: questionType === 'multiple-choice',
+        isMultipleChoiceLower: String(questionType).toLowerCase() === 'multiple-choice'
+      })
+
+      // For multiple choice questions without options, add fallback options
+      if (questionType === 'multiple-choice' && (!questionOptions || questionOptions.length === 0)) {
+        console.log('⚠️ Multiple choice question without options, adding fallback')
+        questionOptions = [
+          { id: 'A', text: 'Option A', correct: false },
+          { id: 'B', text: 'Option B', correct: false },
+          { id: 'C', text: 'Option C', correct: false },
+          { id: 'D', text: 'Option D', correct: false }
+        ]
+      }
+
+      // Ensure open-ended questions don't have options
+      if (questionType === 'open-ended') {
+        questionOptions = undefined
+        console.log('✅ Ensuring open-ended question has no options')
+      }
+
+      // For true/false questions without options, add fallback
+      if (questionType === 'true-false' && (!questionOptions || questionOptions.length === 0)) {
+        console.log('⚠️ True/false question without options, adding fallback')
+        questionOptions = [
+          { id: 'true', text: 'True', correct: q.correctAnswer === true },
+          { id: 'false', text: 'False', correct: q.correctAnswer === false }
+        ]
+      }
+
+      const finalQuestion = {
+        id: q.id as number || index + 1,
+        type: questionType,
+        question: q.question as string || '',
+        options: questionOptions,
+        correctAnswer: q.correctAnswer as QuizQuestion['correctAnswer'] || '',
+        explanation: q.explanation as string,
+        points: q.points as number,
+        keywords: q.keywords as string[]
+      }
+
+      console.log(`✅ Final question ${index + 1}:`, {
+        id: finalQuestion.id,
+        type: finalQuestion.type,
+        hasOptions: !!finalQuestion.options,
+        optionsLength: finalQuestion.options?.length || 0
+      })
+
+      // 🔍 DEBUG: ตรวจสอบ final result ที่ละเอียดขึ้น
+      console.log(`🔍 Final result analysis for question ${index + 1}:`, {
+        finalType: finalQuestion.type,
+        finalTypeType: typeof finalQuestion.type,
+        finalTypeString: String(finalQuestion.type),
+        finalTypeTrimmed: String(finalQuestion.type).trim(),
+        finalTypeLower: String(finalQuestion.type).toLowerCase(),
+        finalIsOpenEnded: finalQuestion.type === 'open-ended',
+        finalIsMultipleChoice: finalQuestion.type === 'multiple-choice',
+        finalHasOptions: !!finalQuestion.options,
+        finalOptionsLength: finalQuestion.options?.length || 0
+      })
+
+      return finalQuestion
+    })
   }
 
     // Check if this is simple format that needs conversion
@@ -188,26 +378,39 @@ const parseJsonQuiz = (jsonData: Record<string, unknown>): QuizQuestion[] => {
     console.log('- sourcePrompt:', jsonData.sourcePrompt)
     console.log('- simpleQuestions count:', simpleQuestions.length)
 
-    // 🚨 FORCE MULTIPLE CHOICE FOR ALL CASES (TEMPORARY DEBUG)
-    // ถ้ายังเจอปัญหา แสดงว่าต้อง force single type ก่อน
+    // 🔍 Analyze template type from metadata or prompt
     let quizType: 'single' | 'mixed' = 'single'
     let recommendedType: 'multiple-choice' | 'true-false' | 'open-ended' = 'multiple-choice'
 
-    console.log('🚀 FORCING SINGLE MULTIPLE-CHOICE TYPE (DEBUG MODE)')
+    console.log('🔍 Analyzing template type from prompt...')
 
-    // Check from prompt content for multiple choice indicators
+    // Check from prompt content for question type indicators
     const lowerPrompt = originalPrompt.toLowerCase()
-
-    // Only allow mixed if explicitly mentioned
     if (lowerPrompt.includes('mixed-format') || lowerPrompt.includes('combination quiz') ||
         (lowerPrompt.includes('multiple-choice') && lowerPrompt.includes('true-false') && lowerPrompt.includes('short-answer'))) {
       quizType = 'mixed'
       console.log('✅ Detected: Explicit Mixed Format Quiz')
     } else {
-      // Default to single multiple choice for EVERYTHING else
-      quizType = 'single'
-      recommendedType = 'multiple-choice'
-      console.log('✅ FORCED: Single Multiple Choice (Safe Mode)')
+      // 🔍 Smart detection based on question content
+      console.log('🔍 Smart detection: Analyzing question content...')
+
+      // Check if any questions suggest open-ended format
+      const hasOpenEndedIndicators = simpleQuestions.some(q => {
+        const questionText = (q.question || '').toLowerCase()
+        return questionText.includes('explain') || questionText.includes('describe') ||
+               questionText.includes('why') || questionText.includes('how') ||
+               questionText.includes('discuss') || questionText.includes('analyze')
+      })
+
+      if (hasOpenEndedIndicators) {
+        quizType = 'single'
+        recommendedType = 'open-ended'
+        console.log('✅ DETECTED: Open-ended questions based on content')
+      } else {
+        quizType = 'single'
+        recommendedType = 'multiple-choice'
+        console.log('✅ DEFAULT: Multiple choice (no open-ended indicators)')
+      }
     }
 
         let convertedQuiz
@@ -255,13 +458,33 @@ const parseJsonQuiz = (jsonData: Record<string, unknown>): QuizQuestion[] => {
 
     return convertedQuiz.map(q => ({
       id: q.id,
-      type: q.type === 'open-ended' ? 'short-answer' : q.type,
+      // ✅ เก็บ type เดิม ไม่แปลง open-ended เป็น short-answer
+      type: q.type,
       question: q.question,
-      options: q.type === 'multiple-choice' ? q.options :
-               q.type === 'true-false' ? [
-                 { id: 'true', text: 'จริง', correct: q.correctAnswer === true },
-                 { id: 'false', text: 'เท็จ', correct: q.correctAnswer === false }
-               ] : undefined,
+            // ✅ ใช้ options ตาม type จริง
+      options: (() => {
+        const questionType = q.type as string
+        if (questionType === 'multiple-choice') {
+          // Safe access to options with fallback
+          const questionOptions = (q as any).options
+          return (questionOptions && questionOptions.length > 0) ? questionOptions : [
+            { id: 'A', text: 'Option A', correct: false },
+            { id: 'B', text: 'Option B', correct: false },
+            { id: 'C', text: 'Option C', correct: false },
+            { id: 'D', text: 'Option D', correct: false }
+          ]
+        } else if (questionType === 'true-false') {
+          return [
+            { id: 'true', text: 'True', correct: q.correctAnswer === true },
+            { id: 'false', text: 'False', correct: q.correctAnswer === false }
+          ]
+        } else if (questionType === 'open-ended' || questionType === 'short-answer') {
+          // ✅ open-ended และ short-answer ไม่มี options
+          return undefined
+        } else {
+          return undefined
+        }
+      })(),
       correctAnswer: q.correctAnswer,
       explanation: q.explanation,
       points: q.points,
@@ -293,8 +516,24 @@ const parseJsonQuiz = (jsonData: Record<string, unknown>): QuizQuestion[] => {
 
       const lowerPrompt = originalPrompt.toLowerCase()
 
+      // Check question content to detect open-ended questions
+      const hasOpenEndedQuestions = simpleQuestions.some(q => {
+        const questionText = (q.question || '').toLowerCase()
+        return questionText.includes('explain') || questionText.includes('describe') ||
+               questionText.includes('why') || questionText.includes('how') ||
+               questionText.includes('what are') || questionText.includes('discuss') ||
+               questionText.includes('elaborate') || questionText.includes('analyze') ||
+               questionText.includes('compare') || questionText.includes('evaluate') ||
+               questionText.includes('justify') || questionText.includes('criticize')
+      })
+
+      if (hasOpenEndedQuestions) {
+        console.log('✅ Detected open-ended questions in content')
+        quizType = 'mixed'
+        recommendedType = 'open-ended'
+      }
       // Detect multiple choice from prompt
-      if (lowerPrompt.includes('multiple-choice') || lowerPrompt.includes('multiple choice')) {
+      else if (lowerPrompt.includes('multiple-choice') || lowerPrompt.includes('multiple choice')) {
         if (!lowerPrompt.includes('true') && !lowerPrompt.includes('false') &&
             !lowerPrompt.includes('short-answer') && !lowerPrompt.includes('open-ended')) {
           quizType = 'single'
@@ -341,24 +580,62 @@ const parseJsonQuiz = (jsonData: Record<string, unknown>): QuizQuestion[] => {
           })
           console.log('✅ Fallback: Using custom mixed quiz with parsed counts')
         } else {
-          // Default to pure multiple choice as safest option
-          convertedQuiz = convertToSpecificQuizType(simpleQuestions, 'multiple-choice', {
-            language: 'th',
-            generateExplanations: true
+          // 🔍 Smart fallback: Check question content for type hints
+          console.log('🔍 Smart fallback: Analyzing question content for type hints...')
+
+          const hasOpenEndedHints = simpleQuestions.some(q => {
+            const questionText = (q.question || '').toLowerCase()
+            return questionText.includes('explain') || questionText.includes('describe') ||
+                   questionText.includes('why') || questionText.includes('how') ||
+                   questionText.includes('discuss') || questionText.includes('analyze')
           })
-          console.log('✅ Fallback: Using pure multiple choice as safe default')
+
+          if (hasOpenEndedHints) {
+            convertedQuiz = convertToSpecificQuizType(simpleQuestions, 'open-ended', {
+              language: 'th',
+              generateExplanations: true
+            })
+            console.log('✅ Fallback: Using open-ended based on question content hints')
+          } else {
+            // Default to pure multiple choice as safest option
+            convertedQuiz = convertToSpecificQuizType(simpleQuestions, 'multiple-choice', {
+              language: 'th',
+              generateExplanations: true
+            })
+            console.log('✅ Fallback: Using pure multiple choice as safe default')
+          }
         }
       }
 
       return convertedQuiz.map(q => ({
         id: q.id,
-        type: q.type === 'open-ended' ? 'short-answer' : q.type,
+        // ✅ เก็บ type เดิม ไม่แปลง open-ended เป็น short-answer
+        type: q.type,
         question: q.question,
-        options: q.type === 'multiple-choice' ? q.options :
-                 q.type === 'true-false' ? [
-                   { id: 'true', text: 'จริง', correct: q.correctAnswer === true },
-                   { id: 'false', text: 'เท็จ', correct: q.correctAnswer === false }
-                 ] : undefined,
+        // ✅ ใช้ options ตาม type จริง
+        options: (() => {
+          const questionType = q.type as string
+          if (questionType === 'multiple-choice') {
+            // Safe access to options with fallback
+            const questionOptions = (q as any).options
+            return (questionOptions && questionOptions.length > 0) ? questionOptions : [
+              { id: 'A', text: 'Option A', correct: false },
+              { id: 'B', text: 'Option B', correct: false },
+              { id: 'C', text: 'Option C', correct: false },
+              { id: 'D', text: 'Option D', correct: false }
+            ]
+          } else if (questionType === 'true-false') {
+            return [
+              { id: 'true', text: 'True', correct: q.correctAnswer === true },
+              { id: 'false', text: 'False', correct: q.correctAnswer === false }
+            ]
+          } else if (questionType === 'open-ended' || questionType === 'short-answer') {
+            // ✅ open-ended และ short-answer ไม่มี options
+            return undefined
+          } else {
+            return undefined
+          }
+        })(),
         correctAnswer: q.correctAnswer,
         explanation: q.explanation,
         points: q.points,
@@ -429,7 +706,21 @@ const startQuiz = () => {
 }
 
 const selectAnswer = (answer: string) => {
-  userAnswers.value[currentQuestion.value.id] = answer
+  const questionId = currentQuestion.value.id
+  console.log('🎯 Selecting answer:', {
+    answer,
+    questionId,
+    questionType: currentQuestion.value.type,
+    currentAnswers: userAnswers.value
+  })
+
+  userAnswers.value[questionId] = answer
+
+  console.log('✅ Updated userAnswers:', {
+    questionId,
+    selectedAnswer: userAnswers.value[questionId],
+    allAnswers: userAnswers.value
+  })
 }
 
 const handleAnswerInput = () => {
@@ -459,7 +750,19 @@ const restartQuiz = () => {
 }
 
 const isAnswerSelected = (answer: string) => {
-  return userAnswers.value[currentQuestion.value.id] === answer
+  const questionId = currentQuestion.value.id
+  const currentAnswer = userAnswers.value[questionId]
+  const isSelected = currentAnswer === answer
+
+  console.log(`🔍 Checking selection:`, {
+    questionId,
+    checkingAnswer: answer,
+    currentAnswer,
+    isSelected,
+    allAnswers: userAnswers.value
+  })
+
+  return isSelected
 }
 
 const isAnswerCorrect = (questionId: number, answer: string | string[]) => {
@@ -495,7 +798,9 @@ const parseAndSetQuestions = () => {
       return
     }
 
+    console.log('🚀 Calling parseQuizContent with content:', props.content)
     questions.value = parseQuizContent(props.content)
+    console.log('✅ parseQuizContent returned:', questions.value)
     console.log('Final questions count:', questions.value.length)
     console.log('Questions:', questions.value)
 
@@ -575,31 +880,35 @@ watch(() => props.content, () => {
           {{ currentQuestion.question }}
         </h3>
 
-                <!-- Debug info for question type (development only) -->
-        <!-- <div v-if="isDevelopmentMode" class="mb-4 p-2 bg-gray-100 rounded text-xs text-gray-600">
-          Debug: Question Type = <strong>{{ currentQuestion.type }}</strong>,
-          ID = {{ currentQuestion.id }}
-        </div> -->
-
         <!-- Multiple Choice -->
-        <div v-if="currentQuestion.type === 'multiple-choice'" class="space-y-3">
-          <div v-if="!currentQuestion.options || currentQuestion.options.length === 0"
-               class="text-red-600 bg-red-50 p-4 rounded-lg">
-            ⚠️ No options available for this question. Please check the content format.
+        <div v-if="currentQuestion.type === 'multiple-choice' && currentQuestion.options && currentQuestion.options.length > 0" class="space-y-3">
+          <!-- Debug info for development -->
+          <div v-if="isDevelopmentMode" class="mb-4 p-2 bg-gray-100 rounded text-xs text-gray-600">
+            <strong>Debug:</strong> Question ID = {{ debugInfo.questionId }},
+            Options count = {{ debugInfo.optionsCount }},
+            Options structure: {{ JSON.stringify(currentQuestion.options, null, 2) }}
             <br>
-            <small>Question ID: {{ currentQuestion.id }}, Type: {{ currentQuestion.type }}</small>
+            <strong>User Answers:</strong> {{ JSON.stringify(userAnswers, null, 2) }}
+            <br>
+            <strong>Question Type:</strong> {{ getQuestionTypeDisplay(currentQuestion.type) }}
+            <br>
+            <strong>Should show options?:</strong> {{ debugInfo.shouldShowOptions }}
+            <br>
+            <strong>Question Text:</strong> {{ currentQuestion.question }}
+            <br>
+            <strong>Is Open-ended Content?:</strong> {{ debugInfo.isOpenEnded }}
           </div>
+
           <button
-            v-else
             v-for="(option, index) in currentQuestion.options"
             :key="index"
-            @click="selectAnswer(typeof option === 'string' ? option : option.text)"
-            :class="
-              isAnswerSelected(typeof option === 'string' ? option : option.text)
+            @click="selectAnswer(option.id || String.fromCharCode(65 + index))"
+            :class="[
+              'w-full p-4 text-left border-2 rounded-lg transition-colors',
+              isAnswerSelected(option.id || String.fromCharCode(65 + index))
                 ? 'bg-blue-100 border-blue-500 text-blue-900'
                 : 'bg-white border-slate-300 hover:bg-slate-50'
-            "
-            class="w-full p-4 text-left border-2 rounded-lg transition-colors"
+            ]"
           >
             <span class="font-medium mr-3">{{ String.fromCharCode(65 + index) }}.</span>
             {{ typeof option === 'string' ? option : option.text }}
@@ -610,17 +919,17 @@ watch(() => props.content, () => {
         <div v-else-if="currentQuestion.type === 'true-false'" class="space-y-3">
           <button
             v-for="option in currentQuestion.options || [
-              { id: 'true', text: 'true', correct: false },
-              { id: 'false', text: 'false', correct: false }
+              { id: 'true', text: 'True', correct: false },
+              { id: 'false', text: 'False', correct: false }
             ]"
             :key="typeof option === 'string' ? option : option.id"
-            @click="selectAnswer(typeof option === 'string' ? option : option.text)"
-            :class="
-              isAnswerSelected(typeof option === 'string' ? option : option.text)
+            @click="selectAnswer(typeof option === 'string' ? option : option.id)"
+            :class="[
+              'w-full p-4 text-left border-2 rounded-lg transition-colors',
+              isAnswerSelected(typeof option === 'string' ? option : option.id)
                 ? 'bg-blue-100 border-blue-500 text-blue-900'
                 : 'bg-white border-slate-300 hover:bg-slate-50'
-            "
-            class="w-full p-4 text-left border-2 rounded-lg transition-colors"
+            ]"
           >
             {{ typeof option === 'string' ? option : option.text }}
           </button>
@@ -628,6 +937,9 @@ watch(() => props.content, () => {
 
         <!-- Short Answer -->
         <div v-else-if="currentQuestion.type === 'short-answer'" class="space-y-3">
+          <div class="mb-4">
+            <p class="text-slate-700 text-sm mb-2">Please provide your answer to the question above:</p>
+          </div>
           <textarea
             v-model="userAnswers[currentQuestion.id]"
             rows="4"
@@ -635,16 +947,13 @@ watch(() => props.content, () => {
             placeholder="Type your answer here..."
             @input="handleAnswerInput"
           ></textarea>
-
-                    <!-- Debug info (for development) -->
-          <!-- <div v-if="isDevelopmentMode" class="text-xs text-gray-500">
-            Debug: Answer length = {{ userAnswers[currentQuestion.id]?.length || 0 }},
-            Is provided = {{ isAnswerProvided }}
-          </div> -->
         </div>
 
-        <!-- Open Ended (similar to short answer but longer) -->
+        <!-- Open Ended -->
         <div v-else-if="currentQuestion.type === 'open-ended'" class="space-y-3">
+          <div class="mb-4">
+            <p class="text-slate-700 text-sm mb-2">Please provide a detailed answer to the question above:</p>
+          </div>
           <textarea
             v-model="userAnswers[currentQuestion.id]"
             rows="6"
@@ -652,12 +961,36 @@ watch(() => props.content, () => {
             placeholder="Provide your detailed answer here..."
             @input="handleAnswerInput"
           ></textarea>
+        </div>
 
-                    <!-- Debug info (for development) -->
-          <div v-if="isDevelopmentMode" class="text-xs text-gray-500">
-            Debug: Answer length = {{ userAnswers[currentQuestion.id]?.length || 0 }},
-            Is provided = {{ isAnswerProvided }}
+        <!-- Questions without options or open-ended content -->
+        <div v-else-if="currentQuestion.type === 'multiple-choice' && (!currentQuestion.options || currentQuestion.options.length === 0)" class="space-y-3">
+          <!-- Debug info for development -->
+          <div v-if="isDevelopmentMode" class="mb-4 p-2 bg-gray-100 rounded text-xs text-gray-600">
+            <strong>Debug:</strong> Question ID = {{ debugInfo.questionId }},
+            Options count = {{ debugInfo.optionsCount }},
+            Options structure: {{ JSON.stringify(currentQuestion.options, null, 2) }}
+            <br>
+            <strong>User Answers:</strong> {{ JSON.stringify(userAnswers, null, 2) }}
+            <br>
+            <strong>Question Type:</strong> {{ getQuestionTypeDisplay(currentQuestion.type) }}
+            <br>
+            <strong>Question Text:</strong> {{ currentQuestion.question }}
+            <br>
+            <strong>Is Open-ended Content?:</strong> {{ debugInfo.isOpenEnded }}
           </div>
+
+          <!-- Auto-convert to open-ended for questions without options -->
+          <div class="mb-4">
+            <p class="text-slate-700 text-sm mb-2">Please provide a detailed answer to the question above:</p>
+          </div>
+          <textarea
+            v-model="userAnswers[currentQuestion.id]"
+            rows="6"
+            class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+            placeholder="Provide your detailed answer here..."
+            @input="handleAnswerInput"
+          ></textarea>
         </div>
 
         <!-- Fallback for unsupported question types -->

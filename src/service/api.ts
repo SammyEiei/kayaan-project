@@ -66,24 +66,59 @@ api.interceptors.request.use((cfg) => {
   return cfg
 })
 
-// Response interceptor: handle 401 errors
+// Response interceptor: handle authentication and server errors
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
     console.log('❌ API Error:', error.response?.status, error.response?.statusText)
     console.log('🔍 Error URL:', error.config?.url)
     console.log('📋 Response headers:', error.response?.headers)
     console.log('📄 Response data:', error.response?.data)
 
+    const auth = useAuthStore()
+
     if (error.response?.status === 401) {
-      console.log('🚨 401 Unauthorized - logging out')
-      const auth = useAuthStore()
+      console.log('🚨 401 Unauthorized - token invalid/expired')
+      // Clear invalid token and redirect to login
       auth.logout()
-      // Redirect to login if needed
       window.location.href = '/login'
     } else if (error.response?.status === 403) {
-      console.log('🚨 403 Forbidden - check authorization')
+      console.log('🚨 403 Forbidden - authentication required')
+      // Check if we have a token, if not redirect to login
+      if (!auth.token) {
+        console.log('🔄 No token found, redirecting to login')
+        window.location.href = '/login'
+      } else {
+        console.log('⚠️ Valid token but access denied - check permissions')
+      }
+    } else if (error.response?.status === 500) {
+      console.log('🚨 500 Internal Server Error - possible authentication injection failure')
+
+      // Check if this might be an authentication-related 500 error
+      const errorMessage = error.response?.data?.message || ''
+      if (errorMessage.includes('Authentication') ||
+          errorMessage.includes('Principal') ||
+          errorMessage.includes('currentUser') ||
+          errorMessage.includes('NullPointer')) {
+        console.log('🔄 Authentication injection failed, token might be invalid')
+
+        // Try to refresh token or logout
+        if (auth.token) {
+          console.log('♾️ Clearing potentially invalid token')
+          auth.logout()
+
+          // Show user-friendly message
+          if (typeof window !== 'undefined' && window.alert) {
+            window.alert('Authentication session expired. Please log in again.')
+          }
+
+          window.location.href = '/login'
+        }
+      } else {
+        console.log('⚠️ Server error not related to authentication')
+      }
     }
+
     return Promise.reject(error)
   }
 )

@@ -94,7 +94,7 @@ export const useAuthStore = defineStore('auth', {
       firstname: string,
       lastname: string,
     ) {
-      const { data } = await apiClient.post('/api/v1/auth/register', {
+      const { data } = await apiClient.post('/v1/auth/register', {
         email,
         password,
         username,
@@ -114,7 +114,7 @@ export const useAuthStore = defineStore('auth', {
     },
 
     async login(username: string, password: string) {
-      const { data } = await apiClient.post('/api/v1/auth/authenticate', {
+      const { data } = await apiClient.post('/v1/auth/authenticate', {
         username,
         password,
       })
@@ -137,7 +137,7 @@ export const useAuthStore = defineStore('auth', {
       if (!this.token) return
 
       try {
-        const { data } = await apiClient.get<UserInfo>('/api/users/me', {
+        const { data } = await apiClient.get<UserInfo>('/users/me', {
           headers: { Authorization: `Bearer ${this.token}` },
         })
 

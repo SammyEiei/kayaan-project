@@ -54,8 +54,14 @@ const customFields = ref<Record<string, string>>({})
 
 // Auto-redirect settings
 const autoRedirectToContent = ref(true) // สามารถเปลี่ยนเป็น false ถ้าไม่ต้องการ auto-redirect
+const showBackendIntegrationWarning = ref(true)
 const redirectTimeoutId = ref<NodeJS.Timeout | null>(null)
 const redirectCountdown = ref(2) // Countdown timer for redirect
+
+// Methods for warnings
+const hideBackendIntegrationWarning = () => {
+  showBackendIntegrationWarning.value = false
+}
 const redirectCountdownInterval = ref<NodeJS.Timeout | null>(null)
 
 // Rate limiting
@@ -963,23 +969,23 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- Error Alert -->
-    <!-- <div v-if="aiGenerationStore.error" class="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
-      <div class="flex items-center gap-3">
-        <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-        </svg>
-        <div>
-          <h3 class="text-sm font-medium text-red-800">Error</h3>
-          <p class="text-sm text-red-700 mt-1">{{ aiGenerationStore.error }}</p>
-        </div>
-        <button @click="aiGenerationStore.clearError" class="ml-auto text-red-400 hover:text-red-600">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+    <!-- Backend Status Warning for Manual Content Integration -->
+    <div v-if="showBackendIntegrationWarning" class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
           </svg>
-        </button>
+        </div>
+        <div class="ml-3">
+          <p class="text-sm text-blue-700">
+            <strong>Feature Integration:</strong> AI Generation และ Manual Content จะสามารถแสดงผลร่วมกันใน "My Content" เร็วๆ นี้!
+            ตอนนี้ Manual content ยังใช้ mock data สำหรับการพัฒนา.
+            <button @click="hideBackendIntegrationWarning" class="ml-2 underline">Dismiss</button>
+          </p>
+        </div>
       </div>
-    </div> -->
+    </div>
 
     <!-- Development Mode Controls -->
     <!-- <div v-if="isDevelopment" class="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">

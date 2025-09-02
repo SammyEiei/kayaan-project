@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 
 interface Props {
   content: string
@@ -13,53 +13,84 @@ const fontSize = ref(16)
 const lineHeight = ref(1.6)
 const theme = ref<'light' | 'dark' | 'sepia'>('light')
 const showTableOfContents = ref(true)
+const readingProgress = ref(0)
+const activeSection = ref('')
 
 // Try to parse JSON content first, then fallback to markdown
 const parseContent = (content: string) => {
+  if (!content || typeof content !== 'string') {
+    return [{
+      level: 1,
+      title: 'No content',
+      content: ['There is no content in this note yet']
+    }]
+  }
+
   try {
     // Try to parse as JSON
     const jsonData = JSON.parse(content)
 
     // If it's a note object with structured data
-    if (jsonData.topic || jsonData.content) {
+    if (jsonData.topic || jsonData.content || jsonData.sections) {
       return parseJsonNote(jsonData)
     }
   } catch {
     // Not JSON, continue with regular parsing
   }
 
-  // Regular markdown parsing
+  // Regular markdown parsing with better handling
   const lines = content.split('\n')
   const sections: { level: number; title: string; content: string[] }[] = []
   let currentSection: { level: number; title: string; content: string[] } | null = null
+
+  // If no headers found, treat entire content as single section
+  let hasHeaders = false
 
   for (const line of lines) {
     const trimmedLine = line.trim()
 
     if (trimmedLine.startsWith('#')) {
+      hasHeaders = true
       // Save previous section
-      if (currentSection) {
+      if (currentSection && currentSection.content.length > 0) {
         sections.push(currentSection)
       }
 
       // Start new section
       const level = trimmedLine.match(/^#+/)?.[0].length || 1
-      const title = trimmedLine.replace(/^#+\s*/, '')
-      currentSection = { level, title, content: [] }
+      const title = trimmedLine.replace(/^#+\s*/, '').trim()
+      if (title) {
+        currentSection = { level, title, content: [] }
+      }
     } else if (currentSection && trimmedLine) {
-      currentSection.content.push(line)
+      currentSection.content.push(trimmedLine)
+    } else if (!hasHeaders && trimmedLine) {
+      // If no headers, collect all content
+      if (!currentSection) {
+        currentSection = { level: 1, title: 'Content', content: [] }
+      }
+      currentSection.content.push(trimmedLine)
     }
   }
 
   // Add last section
-  if (currentSection) {
+  if (currentSection && currentSection.content.length > 0) {
     sections.push(currentSection)
+  }
+
+  // If no sections found, create a default one
+  if (sections.length === 0) {
+    sections.push({
+      level: 1,
+      title: 'Content',
+      content: lines.filter(l => l.trim())
+    })
   }
 
   return sections
 }
 
-// Parse JSON note content
+// Parse JSON note content with better structure
 const parseJsonNote = (jsonData: Record<string, unknown>) => {
   const sections: { level: number; title: string; content: string[] }[] = []
 
@@ -70,12 +101,16 @@ const parseJsonNote = (jsonData: Record<string, unknown>) => {
     // New API format
     const contentData = jsonData.content as Record<string, unknown>
 
-    // Main topic section
+    // Main topic section with introduction if available
     if (contentData.topic && typeof contentData.topic === 'string') {
+      const introContent: string[] = []
+      if (contentData.introduction && typeof contentData.introduction === 'string') {
+        introContent.push(contentData.introduction)
+      }
       sections.push({
         level: 1,
         title: contentData.topic,
-        content: []
+        content: introContent
       })
     }
 
@@ -84,54 +119,81 @@ const parseJsonNote = (jsonData: Record<string, unknown>) => {
       contentData.sections.forEach((item: Record<string, unknown>) => {
         if (item.title && typeof item.title === 'string') {
           const contentLines: string[] = []
-          if (Array.isArray(item.content)) {
+
+          // Handle different content formats
+          if (typeof item.content === 'string') {
+            contentLines.push(item.content)
+          } else if (Array.isArray(item.content)) {
             item.content.forEach((line: unknown) => {
-              if (typeof line === 'string') {
+              if (typeof line === 'string' && line.trim()) {
                 contentLines.push(line)
               }
             })
+          } else if (typeof item.description === 'string') {
+            contentLines.push(item.description)
           }
 
-          sections.push({
-            level: 2,
-            title: item.title,
-            content: contentLines
-          })
+          if (contentLines.length > 0) {
+            sections.push({
+              level: 2,
+              title: item.title,
+              content: contentLines
+            })
+          }
         }
       })
     }
   } else {
     // Current API format: { title, content: [{ feature, description }] }
 
-    // Main title section
+    // Main title section with overview if available
     if (jsonData.title && typeof jsonData.title === 'string') {
+      const overviewContent: string[] = []
+      if (jsonData.overview && typeof jsonData.overview === 'string') {
+        overviewContent.push(jsonData.overview)
+      }
       sections.push({
         level: 1,
         title: jsonData.title,
-        content: []
+        content: overviewContent
       })
     }
 
     // Content sections (features)
     if (jsonData.content && Array.isArray(jsonData.content)) {
       jsonData.content.forEach((item: Record<string, unknown>) => {
-        const title = (item.feature || item.title) as string
-        const description = item.description as string
+        const title = (item.feature || item.title || item.section) as string
+        const description = (item.description || item.content || item.text) as string
 
-        if (title) {
+        if (title && description) {
           const contentLines: string[] = []
-          if (description) {
-            contentLines.push(description)
+          if (typeof description === 'string') {
+            // Split long descriptions into paragraphs
+            const paragraphs = description.split(/\n\n|\. (?=[A-Z])/)
+            paragraphs.forEach(p => {
+              if (p.trim()) contentLines.push(p.trim())
+            })
           }
 
-          sections.push({
-            level: 2,
-            title: title,
-            content: contentLines
-          })
+          if (contentLines.length > 0) {
+            sections.push({
+              level: 2,
+              title: title,
+              content: contentLines
+            })
+          }
         }
       })
     }
+  }
+
+  // If no sections created, add default
+  if (sections.length === 0) {
+    sections.push({
+      level: 1,
+      title: 'Content',
+      content: ['Content cannot be displayed at the moment']
+    })
   }
 
   return sections
@@ -179,8 +241,42 @@ const scrollToSection = (title: string) => {
   const element = document.getElementById(`section-${title.replace(/\s+/g, '-').toLowerCase()}`)
   if (element) {
     element.scrollIntoView({ behavior: 'smooth' })
+    activeSection.value = title
   }
 }
+
+// Update reading progress on scroll
+const updateReadingProgress = () => {
+  const scrollTop = window.scrollY
+  const docHeight = document.documentElement.scrollHeight - window.innerHeight
+  const progress = docHeight > 0 ? Math.min((scrollTop / docHeight) * 100, 100) : 0
+  readingProgress.value = Math.round(progress)
+
+  // Update active section
+  const sectionElements = document.querySelectorAll('[id^="section-"]')
+  let currentSection = ''
+
+  sectionElements.forEach((element) => {
+    const rect = element.getBoundingClientRect()
+    if (rect.top <= 100 && rect.bottom > 100) {
+      const id = element.getAttribute('id') || ''
+      currentSection = id.replace('section-', '').replace(/-/g, ' ')
+    }
+  })
+
+  if (currentSection) {
+    activeSection.value = currentSection
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('scroll', updateReadingProgress)
+  updateReadingProgress()
+})
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', updateReadingProgress)
+})
 </script>
 
 <template>
@@ -273,19 +369,29 @@ const scrollToSection = (title: string) => {
         class="w-64 p-6 border-r border-slate-200 min-h-screen"
       >
         <h3 class="font-semibold text-slate-900 mb-4">Table of Contents</h3>
-        <nav class="space-y-2">
+        <nav class="space-y-1">
           <button
             v-for="section in tableOfContents"
             :key="section.title"
             @click="scrollToSection(section.title)"
-            class="block w-full text-left p-2 rounded-lg hover:bg-slate-100 transition-colors"
-            :class="{
-              'pl-2': section.level === 1,
-              'pl-4': section.level === 2,
-              'pl-6': section.level === 3,
-            }"
+            class="block w-full text-left px-3 py-2 rounded-lg transition-all duration-200"
+            :class="[
+              activeSection === section.title
+                ? 'bg-blue-50 border-l-4 border-blue-500 text-blue-700'
+                : 'hover:bg-slate-50 text-slate-600 hover:text-slate-900',
+              {
+                'pl-3': section.level === 1,
+                'pl-6': section.level === 2,
+                'pl-9': section.level === 3,
+              }
+            ]"
           >
-            <span class="text-sm font-medium text-slate-700">{{ section.title }}</span>
+            <span class="text-sm" :class="{ 'font-semibold': section.level === 1, 'font-medium': section.level === 2 }">
+              {{ section.title }}
+            </span>
+            <div v-if="section.content.length > 0" class="text-xs text-slate-500 mt-1">
+              {{ section.content.length }} paragraphs
+            </div>
           </button>
         </nav>
       </div>
@@ -293,70 +399,123 @@ const scrollToSection = (title: string) => {
       <!-- Main Content -->
       <div class="flex-1 p-8 max-w-4xl mx-auto">
         <!-- Title -->
-        <header class="mb-8">
+        <header class="mb-12 pb-6 border-b-2 border-slate-200">
           <h1 class="text-4xl font-bold text-slate-900 mb-4">{{ props.title }}</h1>
           <div class="flex items-center gap-4 text-sm text-slate-600">
-            <span>{{ sections.length }} sections</span>
+            <span class="flex items-center gap-1">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              {{ sections.length }} sections
+            </span>
             <span>•</span>
-            <span>{{ props.content.split(' ').length }} words</span>
+            <span class="flex items-center gap-1">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              </svg>
+              {{ props.content.split(' ').length }} words
+            </span>
             <span>•</span>
-            <span>{{ Math.ceil(props.content.split(' ').length / 200) }} min read</span>
+            <span class="flex items-center gap-1">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              {{ Math.ceil(props.content.split(' ').length / 200) }} min
+            </span>
           </div>
         </header>
 
         <!-- Content -->
         <article class="prose prose-slate max-w-none" :style="contentStyle">
+          <!-- Empty State -->
+          <div v-if="sections.length === 0" class="text-center py-12">
+            <svg class="w-16 h-16 mx-auto text-slate-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <p class="text-slate-500">There is no content in this note yet</p>
+          </div>
+
+          <!-- Sections -->
           <div
-            v-for="section in sections"
+            v-for="(section, sectionIndex) in sections"
             :key="section.title"
             :id="`section-${section.title.replace(/\s+/g, '-').toLowerCase()}`"
-            class="mb-8"
+            class="mb-12 scroll-mt-20"
           >
-            <h1
-              v-if="section.level === 1"
-              class="font-bold text-slate-900 mb-4 text-3xl"
-            >
-              {{ section.title }}
-            </h1>
-            <h2
-              v-else-if="section.level === 2"
-              class="font-bold text-slate-900 mb-4 text-2xl"
-            >
-              {{ section.title }}
-            </h2>
-            <h3
-              v-else-if="section.level === 3"
-              class="font-bold text-slate-900 mb-4 text-xl"
-            >
-              {{ section.title }}
-            </h3>
-            <h4
-              v-else
-              class="font-bold text-slate-900 mb-4 text-lg"
-            >
-              {{ section.title }}
-            </h4>
-
-            <div
-              v-for="(paragraph, index) in section.content"
-              :key="index"
-              class="mb-4 leading-relaxed"
-            >
-              <p v-if="typeof paragraph === 'string' && paragraph.trim()" class="text-slate-700">
-                {{ paragraph }}
-              </p>
+            <!-- Section Header with visual separator -->
+            <div class="relative mb-6">
+              <h1
+                v-if="section.level === 1"
+                class="font-bold text-slate-900 text-3xl flex items-center gap-3"
+              >
+                <span class="text-blue-500 font-normal">{{ String(sectionIndex + 1).padStart(2, '0') }}</span>
+                {{ section.title }}
+              </h1>
+              <h2
+                v-else-if="section.level === 2"
+                class="font-bold text-slate-800 text-2xl flex items-center gap-3"
+              >
+                <span class="w-8 h-1 bg-blue-500 rounded"></span>
+                {{ section.title }}
+              </h2>
+              <h3
+                v-else-if="section.level === 3"
+                class="font-semibold text-slate-700 text-xl"
+              >
+                {{ section.title }}
+              </h3>
+              <h4
+                v-else
+                class="font-medium text-slate-600 text-lg"
+              >
+                {{ section.title }}
+              </h4>
             </div>
+
+            <!-- Section Content with better spacing -->
+            <div v-if="section.content.length > 0" class="space-y-4">
+              <div
+                v-for="(paragraph, index) in section.content"
+                :key="index"
+                class="relative"
+              >
+                <!-- Check if paragraph is a list item -->
+                <div v-if="paragraph.startsWith('•') || paragraph.startsWith('-') || paragraph.match(/^\d+\./)"
+                     class="flex gap-3 items-start">
+                  <span class="text-blue-500 mt-1">•</span>
+                  <p class="text-slate-700 leading-relaxed flex-1">
+                    {{ paragraph.replace(/^[•\-]\s*|^\d+\.\s*/, '') }}
+                  </p>
+                </div>
+                <!-- Regular paragraph -->
+                <p v-else-if="typeof paragraph === 'string' && paragraph.trim()"
+                   class="text-slate-700 leading-relaxed text-base">
+                  {{ paragraph }}
+                </p>
+              </div>
+            </div>
+
+            <!-- Empty section indicator -->
+            <div v-else class="text-slate-400 italic">
+              (No content in this section)
+            </div>
+
+            <!-- Section separator -->
+            <div v-if="sectionIndex < sections.length - 1" class="mt-8 border-b border-slate-200"></div>
           </div>
         </article>
 
         <!-- Reading Progress -->
         <div class="fixed bottom-8 right-8 bg-white rounded-lg shadow-lg p-4 border border-slate-200">
-          <div class="text-sm font-medium text-slate-700 mb-2">Reading Progress</div>
-          <div class="w-32 h-2 bg-slate-200 rounded-full">
+          <div class="text-sm font-medium text-slate-700 mb-2">Read {{ readingProgress }}%</div>
+          <div class="w-32 h-2 bg-slate-200 rounded-full overflow-hidden">
             <div
-              class="h-2 bg-blue-600 rounded-full transition-all duration-300"
-              :style="{ width: '75%' }"
+              class="h-2 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full transition-all duration-300 ease-out"
+              :style="{ width: `${readingProgress}%` }"
             ></div>
+          </div>
+          <div v-if="activeSection" class="text-xs text-slate-500 mt-2 truncate max-w-[128px]">
+            Reading: {{ activeSection }}
           </div>
         </div>
       </div>
