@@ -442,6 +442,8 @@
 
               <!-- Interactive Components -->
               <div v-else>
+
+
                 <InteractiveQuiz
                   v-if="selectedContent.type === 'quiz'"
                   :content="prepareContentForInteractive(selectedContent)"
@@ -889,7 +891,10 @@ async function loadDetailedContent(item: ContentItem) {
 }
 
 function prepareContentForInteractive(item: ContentItem): string {
-  console.log('🔧 Preparing content for interactive view:', item)
+  console.log('🔧 === PREPARE CONTENT FOR INTERACTIVE ===')
+  console.log('🔧 Item type:', item.type)
+  console.log('🔧 Item data:', item)
+  console.log('🔧 Item keys:', Object.keys(item))
 
     // Check if this is a deck item with deckData
   const deckItem = item as ContentItem & { isDeck?: boolean; deckData?: Record<string, unknown> }
@@ -924,7 +929,7 @@ function prepareContentForInteractive(item: ContentItem): string {
               text: choice,
               correct: choiceIndex === ((q.correctAnswer as number) || 0)
             })),
-            correctAnswer: ((q.options as string[]) || (q.choices as string[]) || ['Option A'])[(q.correctAnswer as number) || 0] || 'Option A',
+            correctAnswer: (q.correctAnswer as string) || '',
             explanation: (q.explanation as string) || `Explanation for question ${index + 1}`
           }))
 
@@ -940,41 +945,109 @@ function prepareContentForInteractive(item: ContentItem): string {
 
   switch (item.type) {
     case 'quiz':
+      console.log('🎯 === QUIZ CASE ===')
+      console.log('🎯 Has detailed content?', !!detailed)
+      console.log('🎯 Has questions?', !!(detailed && detailed.questions))
+      console.log('🎯 Questions is array?', !!(detailed && detailed.questions && Array.isArray(detailed.questions)))
+
       if (detailed && detailed.questions && Array.isArray(detailed.questions)) {
         console.log('✅ Using real quiz data with', detailed.questions.length, 'questions')
         console.log('📋 Raw quiz data:', detailed)
+        console.log('📋 Questions array:', detailed.questions)
+        console.log('📋 First question:', detailed.questions[0])
+        console.log('📋 First question type:', detailed.questions[0]?.type)
+        console.log('📋 First question keys:', detailed.questions[0] ? Object.keys(detailed.questions[0]) : 'No question')
 
-        // Convert Manual Quiz format to Interactive Quiz format
+                // Convert Manual Quiz format to Interactive Quiz format
+        console.log('🔄 === CONVERTING QUESTIONS ===')
         const convertedQuestions = detailed.questions.map((q, index: number) => {
-          // Handle different correct answer formats
-          let correctIndex = 0
-          if (typeof q?.correctAnswer === 'string') {
-            // If correctAnswer is the actual text, find its index in choices
-            const answerIndex = q.choices?.indexOf(q.correctAnswer)
-            correctIndex = answerIndex !== undefined && answerIndex >= 0 ? answerIndex : 0
-          } else if (typeof q?.correctAnswer === 'number') {
-            correctIndex = q.correctAnswer
-          } else if (typeof q?.answer === 'number') {
-            correctIndex = q.answer
-          }
+          console.log(`🔄 Processing question ${index + 1}:`, q)
 
-          const choices = q?.choices || q?.options || ['Option A', 'Option B', 'Option C', 'Option D']
+                            // ✅ ใช้ helper function สำหรับ question type detection
+        const questionType = getQuestionType(q)
+        console.log(`🔍 Question ${index + 1} type from helper:`, questionType)
+        console.log(`🔍 Question ${index + 1} original type:`, q?.type)
+        console.log(`🔍 Question ${index + 1} raw type:`, typeof q?.type, q?.type)
+        console.log(`🔍 Question ${index + 1} has type property:`, 'type' in q)
+        console.log(`🔍 Question ${index + 1} all properties:`, Object.keys(q))
+
+        // ✅ ตรวจสอบว่า helper function ทำงานถูกต้องหรือไม่
+        console.log(`🔍 Question ${index + 1} helper function result:`, {
+          originalType: q?.type,
+          helperResult: questionType,
+          isCorrect: q?.type === questionType
+        })
+
+                          // ✅ แก้ไข logic สำหรับ correctAnswer ตาม question type
+        if (!q) {
+          console.warn(`⚠️ Question ${index + 1} is undefined, skipping`)
+          return {
+            id: index + 1,
+            type: 'multiple-choice',
+            question: `Question ${index + 1}`,
+            options: undefined,
+            correctAnswer: '',
+            explanation: ''
+          }
+        }
+
+        // ✅ ใช้ correctAnswer จริงจาก backend
+        const correctAnswer = q.correctAnswer || ''
+        console.log(`🔍 Question ${index + 1} correctAnswer from backend:`, correctAnswer)
+
+        if (questionType === 'multiple-choice') {
+          // ✅ สำหรับ multiple choice ต้องมี options
+          const choices = q.choices || q.options || ['Option A', 'Option B', 'Option C', 'Option D']
 
           return {
             id: index + 1,
             type: 'multiple-choice',
-            question: q?.questionText || q?.question || q?.text || `Question ${index + 1}`,
+            question: q.questionText || q.question || q.text || `Question ${index + 1}`,
             options: choices.map((choice: string, choiceIndex: number) => ({
               id: choiceIndex.toString(),
               text: choice,
-              correct: choiceIndex === correctIndex
+              correct: choice === correctAnswer // ✅ ใช้ correctAnswer จริง
             })),
-            correctAnswer: choices[correctIndex] || choices[0],
-            explanation: q?.explanation || q?.feedback || `Explanation for question ${index + 1}`
+            correctAnswer: correctAnswer, // ✅ ใช้ correctAnswer จริง
+            explanation: q.explanation || q.feedback || `Explanation for question ${index + 1}`
           }
+        } else if (questionType === 'open-ended') {
+          // ✅ สำหรับ open-ended ไม่มี options
+          return {
+            id: index + 1,
+            type: 'open-ended',
+            question: q.questionText || q.question || q.text || `Question ${index + 1}`,
+            options: undefined, // ✅ ไม่มี options
+            correctAnswer: correctAnswer, // ✅ ใช้ correctAnswer จริง
+            explanation: q.explanation || q.feedback || `Explanation for question ${index + 1}`
+          }
+        } else if (questionType === 'true-false') {
+          // ✅ สำหรับ true/false
+          return {
+            id: index + 1,
+            type: 'true-false',
+            question: q.questionText || q.question || q.text || `Question ${index + 1}`,
+            options: [
+              { id: 'true', text: 'True', correct: correctAnswer === 'true' },
+              { id: 'false', text: 'False', correct: correctAnswer === 'false' }
+            ],
+            correctAnswer: correctAnswer, // ✅ ใช้ correctAnswer จริง
+            explanation: q.explanation || q.feedback || `Explanation for question ${index + 1}`
+          }
+        } else {
+          // ✅ Other question types (short-answer, etc.)
+          return {
+            id: index + 1,
+            type: questionType,
+            question: q.questionText || q.question || q.text || `Question ${index + 1}`,
+            options: undefined, // ไม่มี options
+            correctAnswer: correctAnswer, // ✅ ใช้ correctAnswer จริง
+            explanation: q.explanation || q.feedback || `Explanation for question ${index + 1}`
+          }
+        }
         })
 
-        const finalQuizData = {
+                const finalQuizData = {
           title: detailed.title || item.title,
           questions: convertedQuestions
         }
@@ -982,16 +1055,42 @@ function prepareContentForInteractive(item: ContentItem): string {
         console.log('🎯 Final converted quiz data:', finalQuizData)
         console.log('📊 Questions preview:', convertedQuestions.map(q => ({
           id: q.id,
+          type: q.type,
           question: q.question,
           optionsCount: q.options?.length,
           correctAnswer: q.correctAnswer
         })))
 
+        // 🔍 DEBUG: ตรวจสอบ type ที่ละเอียดขึ้น
+        console.log('🔍 Type analysis for converted questions:', {
+          questionTypes: convertedQuestions.map(q => q.type),
+          openEndedCount: convertedQuestions.filter(q => q.type === 'open-ended').length,
+          multipleChoiceCount: convertedQuestions.filter(q => q.type === 'multiple-choice').length,
+          hasOpenEnded: convertedQuestions.some(q => q.type === 'open-ended'),
+          hasMultipleChoice: convertedQuestions.some(q => q.type === 'multiple-choice')
+        })
+
+        // 🔍 DEBUG: ตรวจสอบ correctAnswer ที่ละเอียดขึ้น
+        console.log('🔍 CorrectAnswer analysis for converted questions:', {
+          correctAnswers: convertedQuestions.map(q => q.correctAnswer),
+          openEndedCorrectAnswers: convertedQuestions.filter(q => q.type === 'open-ended').map(q => q.correctAnswer),
+          multipleChoiceCorrectAnswers: convertedQuestions.filter(q => q.type === 'multiple-choice').map(q => q.correctAnswer)
+        })
+
+        console.log('📤 === RETURNING QUIZ DATA ===')
+        console.log('📤 Final quiz data object:', finalQuizData)
+        console.log('📤 Final quiz data JSON:', JSON.stringify(finalQuizData))
+        console.log('📤 Final quiz data type:', typeof JSON.stringify(finalQuizData))
+
         return JSON.stringify(finalQuizData)
       }
 
       // Fallback to mock data
+      console.warn('⚠️ === FALLBACK TO MOCK DATA ===')
       console.warn('⚠️ No detailed quiz data, using mock')
+      console.warn('⚠️ Detailed content:', detailed)
+      console.warn('⚠️ Item:', item)
+
       return JSON.stringify({
         questions: [
           {
@@ -1004,7 +1103,7 @@ function prepareContentForInteractive(item: ContentItem): string {
               { id: '2', text: 'Option C', correct: false },
               { id: '3', text: 'Option D', correct: false }
             ],
-            correctAnswer: 'Option A',
+            correctAnswer: 'Sample answer',
             explanation: 'This is a sample question from your manual content.'
           }
         ]
@@ -1055,6 +1154,58 @@ function prepareContentForInteractive(item: ContentItem): string {
     default:
       return 'Content not available for interactive view.'
   }
+}
+
+// ✅ Helper function สำหรับ question type detection
+function getQuestionType(question: Record<string, unknown>): string {
+  console.log('🔍 === GET QUESTION TYPE ===')
+  console.log('🔍 Question data:', question)
+  console.log('🔍 Question type field:', question.type)
+  console.log('🔍 Question type type:', typeof question.type)
+  console.log('🔍 Question options:', question.options)
+  console.log('🔍 Question choices:', question.choices)
+
+  // ✅ ตรวจสอบ type field ก่อน - เพิ่ม debug logging
+  console.log('🔍 Checking if type is open-ended...')
+  console.log('🔍 question.type === "open-ended":', question.type === 'open-ended')
+  console.log('🔍 question.type === "open_ended":', question.type === 'open_ended')
+  console.log('🔍 String(question.type) === "open-ended":', String(question.type) === 'open-ended')
+
+  if (question.type === 'open-ended' || question.type === 'open_ended') {
+    console.log('🔍 Type is open-ended, returning open-ended')
+    return 'open-ended'
+  }
+
+  if (question.type === 'multiple-choice' || question.type === 'multiple_choice') {
+    // ตรวจสอบ options ที่ถูกต้อง
+    const hasValidOptions = question.options && Array.isArray(question.options) && question.options.length > 0
+    const hasValidChoices = question.choices && Array.isArray(question.choices) && question.choices.length > 0
+
+    console.log('🔍 Multiple choice detected, hasValidOptions:', hasValidOptions, 'hasValidChoices:', hasValidChoices)
+
+    if (hasValidOptions || hasValidChoices) {
+      console.log('🔍 Valid options found, returning multiple-choice')
+      return 'multiple-choice'
+    } else {
+      // ถ้าไม่มี options ที่ถูกต้อง ให้เป็น open-ended
+      console.log('🔍 No valid options, changing to open-ended')
+      return 'open-ended'
+    }
+  }
+
+  // Fallback: ตรวจสอบจาก options
+  if (question.options && Array.isArray(question.options) && question.options.length > 0) {
+    console.log('🔍 Fallback: options found, returning multiple-choice')
+    return 'multiple-choice'
+  }
+
+  if (question.choices && Array.isArray(question.choices) && question.choices.length > 0) {
+    console.log('🔍 Fallback: choices found, returning multiple-choice')
+    return 'multiple-choice'
+  }
+
+  console.log('🔍 Fallback: no options/choices found, returning open-ended')
+  return 'open-ended' // Default to open-ended
 }
 
 function canShowInteractive(item: ContentItem | null): boolean {
