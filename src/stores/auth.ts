@@ -80,6 +80,16 @@ export const useAuthStore = defineStore('auth', {
         console.log('🔑 Token preview:', state.token.substring(0, 20) + '...')
         console.log('📅 Token length:', state.token.length)
         console.log('✅ Is valid JWT:', state.token.split('.').length === 3)
+
+        // Check token expiration
+        try {
+          const decoded = jwtDecode<JwtPayload>(state.token)
+          const expiration = new Date(decoded.exp * 1000)
+          console.log('📅 Token expires at:', expiration)
+          console.log('⏰ Is expired:', expiration < new Date())
+        } catch (e) {
+          console.error('❌ Failed to decode token:', e)
+        }
       }
       return state.token
     }
@@ -94,7 +104,7 @@ export const useAuthStore = defineStore('auth', {
       firstname: string,
       lastname: string,
     ) {
-      const { data } = await apiClient.post('/v1/auth/register', {
+      const { data } = await apiClient.post('api/v1/auth/register', {
         email,
         password,
         username,
@@ -114,7 +124,7 @@ export const useAuthStore = defineStore('auth', {
     },
 
     async login(username: string, password: string) {
-      const { data } = await apiClient.post('/v1/auth/authenticate', {
+      const { data } = await apiClient.post('api/v1/auth/authenticate', {
         username,
         password,
       })
@@ -137,7 +147,7 @@ export const useAuthStore = defineStore('auth', {
       if (!this.token) return
 
       try {
-        const { data } = await apiClient.get<UserInfo>('/users/me', {
+        const { data } = await apiClient.get<UserInfo>('api/users/me', {
           headers: { Authorization: `Bearer ${this.token}` },
         })
 
@@ -218,6 +228,7 @@ export const useAuthStore = defineStore('auth', {
       const stored = localStorage.getItem('access_token')
       console.log('🔍 Stored token:', stored ? 'EXISTS' : 'NOT FOUND')
       console.log('🔍 Token value:', stored?.substring(0, 50) + '...')
+      console.log('🔍 Full token length:', stored?.length || 0)
 
       if (!stored) {
         console.log('🔍 No stored token found')

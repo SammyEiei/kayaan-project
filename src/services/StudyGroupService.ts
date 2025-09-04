@@ -1,366 +1,332 @@
-import { apiClient } from './apiClient';
-import type {
-  StudyGroup,
-  GroupMember,
-  GroupInvite,
-  PermissionCheckResponse,
-  ApiResponse,
-  CreateGroupRequest,
-  UpdateGroupRequest,
-  InviteMemberRequest,
-  GenerateInviteCodeRequest,
-  JoinGroupByCodeRequest,
-  UpdateMemberRoleRequest,
-  UploadResourceRequest,
-  AddCommentRequest,
-  AddReactionRequest,
-  CreatePostRequest,
-  UpdatePostRequest,
-  AddPostCommentRequest,
-  SearchGroupContentRequest,
-  GroupSearchFilters,
-  GroupPost,
-  PostComment
-} from '../types/group';
+import api from './api';
 
-export class StudyGroupService {
-  private baseUrl = '/study-group';
+// Types for Study Group API
+export interface StudyGroup {
+  id: number;
+  name: string;
+  description?: string;
+  ownerId: number;
+  ownerName: string;
+  memberCount: number;
+  createdAt: string;
+  updatedAt: string;
+  isOwner: boolean;
+  userRole: 'admin' | 'member';
+  members?: GroupMember[];
+}
 
-  // ===== GROUP MANAGEMENT =====
+export interface GroupMember {
+  userId: number;
+  username: string;
+  firstname: string;
+  lastname: string;
+  role: 'admin' | 'member';
+  joinedAt: string;
+}
+
+export interface CreateGroupRequest {
+  name: string;
+  description?: string;
+}
+
+export interface UpdateGroupRequest {
+  name?: string;
+  description?: string;
+}
+
+export interface GroupInvite {
+  token: string;
+  expiresAt: string;
+  maxUses: number;
+  currentUses: number;
+}
+
+export interface GenerateInviteRequest {
+  expiryDays?: number;
+}
+
+export interface JoinGroupRequest {
+  token: string; // invite code 6 ตัวอักษร
+}
+
+export interface GroupContent {
+  id: number;
+  title: string;
+  description?: string;
+  fileName?: string;
+  fileUrl?: string;
+  fileSize?: number;
+  mimeType?: string;
+  tags?: string;
+  uploaderId: number;
+  uploaderName: string;
+  createdAt: string;
+}
+
+export interface UploadContentRequest {
+  title: string;
+  description?: string;
+  tags?: string;
+  file?: File;
+}
+
+export interface GroupMessage {
+  id: number;
+  groupId: number;
+  senderId: number;
+  message: string;
+  messageType: 'text' | 'file' | 'image';
+  createdAt: string;
+}
+
+class StudyGroupService {
+  private baseURL = '/groups';
+
+  // 🔐 Authentication & Basic Group Operations
 
   /**
-   * ดึงรายการกลุ่มทั้งหมดของผู้ใช้
+   * ดึงกลุ่มที่ user เป็นสมาชิก
    */
-  async getMyGroups(): Promise<ApiResponse<StudyGroup[]>> {
-    const response = await apiClient.get(`${this.baseUrl}/groups/my`);
-    return response.data;
+  async getMyGroups(): Promise<StudyGroup[]> {
+    try {
+      const response = await api.get('/api/groups/my');
+      console.log('✅ My groups loaded:', response.data);
+      return response.data;
+    } catch (error: unknown) {
+      console.error('❌ Get my groups failed:', error);
+      throw error;
+    }
   }
 
   /**
    * สร้างกลุ่มใหม่
    */
-  async createGroup(groupData: CreateGroupRequest): Promise<ApiResponse<StudyGroup>> {
-    const response = await apiClient.post(`${this.baseUrl}/groups`, groupData);
-    return response.data;
+  async createGroup(groupData: CreateGroupRequest): Promise<StudyGroup> {
+    try {
+      const response = await api.post('/api/groups', groupData);
+      console.log('✅ Group created:', response.data);
+      return response.data;
+    } catch (error: unknown) {
+      console.error('❌ Create group failed:', error);
+      throw error;
+    }
   }
 
   /**
-   * ดึงข้อมูลกลุ่มตาม ID
+   * ดึงข้อมูลกลุ่ม
    */
-  async getGroupById(groupId: string): Promise<ApiResponse<StudyGroup>> {
-    const response = await apiClient.get(`${this.baseUrl}/groups/${groupId}`);
-    return response.data;
+  async getGroup(groupId: number): Promise<StudyGroup> {
+    try {
+      const response = await api.get(`/api/groups/${groupId}`);
+      console.log('✅ Group details loaded:', response.data);
+      return response.data;
+    } catch (error: unknown) {
+      console.error('❌ Get group details failed:', error);
+      throw error;
+    }
+  }
+
+  // 🎯 INVITE MEMBER FEATURES - Focus Area
+
+  /**
+   * เข้าร่วมกลุ่มด้วย invite code
+   */
+  async joinGroup(inviteCode: string): Promise<StudyGroup> {
+    try {
+      const request: JoinGroupRequest = { token: inviteCode };
+      const response = await api.post('/api/groups/join', request);
+      console.log('✅ Successfully joined group:', response.data);
+      return response.data;
+    } catch (error: unknown) {
+      console.error('❌ Join group failed:', error);
+      console.error('❌ Error response data:', (error as { response?: { data?: unknown } })?.response?.data);
+
+      // Re-throw error เพื่อให้ component จัดการ user-friendly message
+      throw error;
+    }
   }
 
   /**
-   * อัปเดตข้อมูลกลุ่ม
+   * ดึง invite code ของกลุ่ม
    */
-  async updateGroup(groupId: string, groupData: UpdateGroupRequest): Promise<ApiResponse<StudyGroup>> {
-    const response = await apiClient.put(`${this.baseUrl}/groups/${groupId}`, groupData);
-    return response.data;
+  async getGroupInviteCode(groupId: number): Promise<GroupInvite> {
+    try {
+      const response = await api.get(`/api/groups/${groupId}/invite-code`);
+      console.log('✅ Invite code retrieved:', response.data);
+      return response.data;
+    } catch (error: unknown) {
+      console.error('❌ Get invite code failed:', error);
+      throw error;
+    }
   }
 
   /**
-   * ลบกลุ่ม
+   * สร้าง invite ใหม่
    */
-  async deleteGroup(groupId: string): Promise<ApiResponse<void>> {
-    const response = await apiClient.delete(`${this.baseUrl}/groups/${groupId}`);
-    return response.data;
+  async generateInvite(groupId: number, expiryDays: number = 30): Promise<GroupInvite> {
+    try {
+      const request: GenerateInviteRequest = { expiryDays };
+      const response = await api.post(`/api/groups/${groupId}/invites`, request);
+      console.log('✅ New invite code generated:', response.data);
+      return response.data;
+    } catch (error: unknown) {
+      console.error('❌ Generate invite code failed:', error);
+      throw error;
+    }
   }
 
-  // ===== MEMBER MANAGEMENT =====
+  // 👥 Member Management
 
   /**
-   * ดึงรายการสมาชิกในกลุ่ม
+   * ดึงรายชื่อสมาชิกในกลุ่ม
    */
-  async getGroupMembers(groupId: string): Promise<ApiResponse<GroupMember[]>> {
-    const response = await apiClient.get(`${this.baseUrl}/groups/${groupId}/members`);
-    return response.data;
+  async getGroupMembers(groupId: number): Promise<GroupMember[]> {
+    try {
+      const response = await api.get(`/api/groups/${groupId}/members`);
+      console.log('✅ Group members loaded:', response.data);
+      return response.data;
+    } catch (error: unknown) {
+      console.error('❌ Get group members failed:', error);
+      throw error;
+    }
   }
 
   /**
-   * เพิ่มสมาชิกใหม่
+   * เปลี่ยนสิทธิ์สมาชิก
    */
-  async addMember(groupId: string, memberData: InviteMemberRequest): Promise<ApiResponse<GroupMember>> {
-    const response = await apiClient.post(`${this.baseUrl}/groups/${groupId}/members`, memberData);
-    return response.data;
-  }
-
-  /**
-   * อัปเดตบทบาทของสมาชิก
-   */
-  async updateMemberRole(groupId: string, memberId: string, role: string): Promise<ApiResponse<GroupMember>> {
-    const response = await apiClient.put(`${this.baseUrl}/groups/${groupId}/members/${memberId}/role`, { role });
-    return response.data;
+  async updateMemberRole(groupId: number, memberId: number, role: 'admin' | 'member'): Promise<void> {
+    try {
+      await api.patch(`/api/groups/${groupId}/members/${memberId}/role`, { role });
+      console.log('✅ Member role updated');
+    } catch (error: unknown) {
+      console.error('❌ Update member role failed:', error);
+      throw error;
+    }
   }
 
   /**
    * ลบสมาชิกออกจากกลุ่ม
    */
-  async removeMember(groupId: string, memberId: string): Promise<ApiResponse<void>> {
-    const response = await apiClient.delete(`${this.baseUrl}/groups/${groupId}/members/${memberId}`);
-    return response.data;
+  async removeMember(groupId: number, memberId: number): Promise<void> {
+    try {
+      await api.delete(`/api/groups/${groupId}/members/${memberId}?confirm=true`);
+      console.log('✅ Member removed');
+    } catch (error: unknown) {
+      console.error('❌ Remove member failed:', error);
+      throw error;
+    }
   }
 
-  // ===== INVITE MANAGEMENT =====
+  // 📁 Content Management
 
   /**
-   * สร้างรหัสเชิญใหม่
+   * ดึงเนื้อหาในกลุ่ม
    */
-  async createInvite(groupId: string, inviteData: GenerateInviteCodeRequest): Promise<ApiResponse<GroupInvite>> {
-    const response = await apiClient.post(`${this.baseUrl}/invites/create`, {
-      groupId,
-      ...inviteData
-    });
-    return response.data;
-  }
-
-  /**
-   * ดึงรายการรหัสเชิญของกลุ่ม
-   */
-  async getGroupInvites(groupId: string): Promise<ApiResponse<GroupInvite[]>> {
-    const response = await apiClient.get(`${this.baseUrl}/invites/group/${groupId}`);
-    return response.data;
-  }
-
-  /**
-   * เพิกถอนรหัสเชิญ
-   */
-  async revokeInvite(inviteCode: string): Promise<ApiResponse<void>> {
-    const response = await apiClient.delete(`${this.baseUrl}/invites/revoke/${inviteCode}`);
-    return response.data;
-  }
-
-  // ===== INVITE VALIDATION =====
-
-  /**
-   * ตรวจสอบความถูกต้องของรหัสเชิญ
-   */
-  async validateInvite(inviteCode: string, userAgent?: string, ipAddress?: string): Promise<ApiResponse<any>> {
-    const response = await apiClient.post(`${this.baseUrl}/invite-validation/validate`, {
-      inviteCode,
-      userAgent,
-      ipAddress
-    });
-    return response.data;
+  async getGroupContent(groupId: number, page: number = 0, size: number = 20): Promise<{
+    content: GroupContent[];
+    totalElements: number;
+    totalPages: number;
+    size: number;
+    number: number;
+  }> {
+    try {
+      const response = await api.get(`/api/groups/${groupId}/content?page=${page}&size=${size}&sort=createdAt,desc`);
+      console.log('✅ Group content loaded:', response.data);
+      return response.data;
+    } catch (error: unknown) {
+      console.error('❌ Get group content failed:', error);
+      throw error;
+    }
   }
 
   /**
-   * ใช้รหัสเชิญเพื่อเข้าร่วมกลุ่ม
+   * อัปโหลดเนื้อหา
    */
-  async useInvite(inviteCode: string, message?: string): Promise<ApiResponse<any>> {
-    const response = await apiClient.post(`${this.baseUrl}/invite-validation/validate`, {
-      inviteCode,
-      message,
-      userAgent: navigator.userAgent,
-      ipAddress: 'client-side' // จะถูกเติมจาก Backend
-    });
-    return response.data;
+  async uploadContent(groupId: number, contentData: UploadContentRequest): Promise<GroupContent> {
+    try {
+      const formData = new FormData();
+      formData.append('title', contentData.title);
+      if (contentData.description) {
+        formData.append('description', contentData.description);
+      }
+      if (contentData.tags) {
+        formData.append('tags', contentData.tags);
+      }
+      if (contentData.file) {
+        formData.append('file', contentData.file);
+      }
+
+      const response = await api.post(`/api/groups/${groupId}/content`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      console.log('✅ Content uploaded:', response.data);
+      return response.data;
+    } catch (error: unknown) {
+      console.error('❌ Upload content failed:', error);
+      throw error;
+    }
   }
 
-  // ===== PERMISSION MANAGEMENT =====
+  // 🚪 Group Exit & Deletion
 
   /**
-   * ตรวจสอบสิทธิ์เฉพาะ
+   * ออกจากกลุ่ม
    */
-  async checkPermission(groupId: string, permission: string): Promise<ApiResponse<PermissionCheckResponse>> {
-    const response = await apiClient.get(`${this.baseUrl}/security/permissions/${groupId}/${permission}`);
-    return response.data;
-  }
-
-  /**
-   * ดึงสิทธิ์ทั้งหมดของผู้ใช้ในกลุ่ม
-   */
-  async getUserPermissions(groupId: string): Promise<ApiResponse<string[]>> {
-    const response = await apiClient.get(`${this.baseUrl}/permissions/user/${groupId}`);
-    return response.data;
-  }
-
-  /**
-   * ดึงบทบาทของผู้ใช้ในกลุ่ม
-   */
-  async getUserRole(groupId: string): Promise<ApiResponse<string>> {
-    const response = await apiClient.get(`${this.baseUrl}/permissions/role/${groupId}`);
-    return response.data;
-  }
-
-  /**
-   * ดึง permission summary ของกลุ่ม
-   */
-  async getPermissionSummary(groupId: string): Promise<ApiResponse<any>> {
-    const response = await apiClient.get(`${this.baseUrl}/groups/${groupId}/permissions/summary`);
-    return response.data;
-  }
-
-  // ===== ACTION CONFIRMATION =====
-
-  /**
-   * สร้างการยืนยันการกระทำ
-   */
-  async requestConfirmation(action: string, groupId: string, description?: string): Promise<ApiResponse<any>> {
-    const response = await apiClient.post('/confirmations', {
-      action,
-      groupId,
-      description
-    });
-    return response.data;
+  async leaveGroup(groupId: number): Promise<void> {
+    try {
+      await api.post(`/api/groups/${groupId}/leave?confirm=true`);
+      console.log('✅ Successfully left group');
+    } catch (error: unknown) {
+      console.error('❌ Leave group failed:', error);
+      throw error;
+    }
   }
 
   /**
-   * ตรวจสอบความถูกต้องของ confirmation token
+   * ลบกลุ่ม (owner only)
    */
-  async validateConfirmation(token: string, action: string): Promise<ApiResponse<any>> {
-    const response = await apiClient.post(`/confirmations/${token}/validate`, {
-      action
-    });
-    return response.data;
+  async deleteGroup(groupId: number): Promise<void> {
+    try {
+      await api.delete(`/api/groups/${groupId}?confirm=true`);
+      console.log('✅ Group deleted');
+    } catch (error: unknown) {
+      console.error('❌ Delete group failed:', error);
+      throw error;
+    }
+  }
+
+  // 🔍 Utility Methods
+
+  /**
+   * ตรวจสอบว่า user เป็นสมาชิกของกลุ่มหรือไม่
+   */
+  async isUserMember(groupId: number): Promise<boolean> {
+    try {
+      await this.getGroup(groupId);
+      return true;
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as { response?: { status?: number } };
+        if (axiosError.response?.status === 403) {
+          return false;
+        }
+      }
+      throw error;
+    }
   }
 
   /**
-   * ดำเนินการตาม confirmation token
+   * ตรวจสอบว่า user เป็น admin ของกลุ่มหรือไม่
    */
-  async executeAction(token: string, action: string, data?: any, reason?: string): Promise<ApiResponse<any>> {
-    const response = await apiClient.post(`/confirmations/${token}/execute`, {
-      action,
-      data,
-      reason
-    });
-    return response.data;
-  }
-
-  // ===== CONTENT MANAGEMENT =====
-
-  /**
-   * ดึงเนื้อหาของกลุ่ม
-   */
-  async getGroupContent(groupId: string, contentType?: string): Promise<ApiResponse<any[]>> {
-    const response = await apiClient.get(`${this.baseUrl}/groups/${groupId}/content`, {
-      params: { contentType }
-    });
-    return response.data;
-  }
-
-  /**
-   * อัปโหลดเนื้อหาใหม่
-   */
-  async uploadContent(groupId: string, contentData: any): Promise<ApiResponse<any>> {
-    const response = await apiClient.post(`${this.baseUrl}/groups/${groupId}/content`, contentData);
-    return response.data;
-  }
-
-  /**
-   * อัปเดตเนื้อหา
-   */
-  async updateContent(groupId: string, contentId: string, contentData: any): Promise<ApiResponse<any>> {
-    const response = await apiClient.put(`${this.baseUrl}/groups/${groupId}/content/${contentId}`, contentData);
-    return response.data;
-  }
-
-  /**
-   * ลบเนื้อหา
-   */
-  async deleteContent(groupId: string, contentId: string): Promise<ApiResponse<void>> {
-    const response = await apiClient.delete(`${this.baseUrl}/groups/${groupId}/content/${contentId}`);
-    return response.data;
-  }
-
-  // ===== POST MANAGEMENT =====
-
-  /**
-   * สร้างโพสต์ใหม่
-   */
-  async createPost(postData: CreatePostRequest): Promise<ApiResponse<GroupPost>> {
-    const response = await apiClient.post(`${this.baseUrl}/groups/${postData.groupId}/posts`, postData);
-    return response.data;
-  }
-
-  /**
-   * ดึงโพสต์ของกลุ่ม
-   */
-  async getGroupPosts(groupId: string): Promise<ApiResponse<GroupPost[]>> {
-    const response = await apiClient.get(`${this.baseUrl}/groups/${groupId}/posts`);
-    return response.data;
-  }
-
-  /**
-   * อัปเดตโพสต์
-   */
-  async updatePost(groupId: string, postId: string, postData: UpdatePostRequest): Promise<ApiResponse<GroupPost>> {
-    const response = await apiClient.put(`${this.baseUrl}/groups/${groupId}/posts/${postId}`, postData);
-    return response.data;
-  }
-
-  /**
-   * ลบโพสต์
-   */
-  async deletePost(groupId: string, postId: string): Promise<ApiResponse<void>> {
-    const response = await apiClient.delete(`${this.baseUrl}/groups/${groupId}/posts/${postId}`);
-    return response.data;
-  }
-
-  /**
-   * เพิ่มความคิดเห็นในโพสต์
-   */
-  async addPostComment(groupId: string, postId: string, commentData: AddPostCommentRequest): Promise<ApiResponse<PostComment>> {
-    const response = await apiClient.post(`${this.baseUrl}/groups/${groupId}/posts/${postId}/comments`, commentData);
-    return response.data;
-  }
-
-  /**
-   * กดไลค์โพสต์
-   */
-  async likePost(groupId: string, postId: string): Promise<ApiResponse<void>> {
-    const response = await apiClient.post(`${this.baseUrl}/groups/${groupId}/posts/${postId}/like`);
-    return response.data;
-  }
-
-  // ===== SEARCH & FILTER =====
-
-  /**
-   * ค้นหาเนื้อหาในกลุ่ม
-   */
-  async searchGroupContent(groupId: string, searchData: SearchGroupContentRequest): Promise<ApiResponse<GroupPost[]>> {
-    const response = await apiClient.post(`${this.baseUrl}/groups/${groupId}/search`, searchData);
-    return response.data;
-  }
-
-  // ===== GROUP SETTINGS =====
-
-  /**
-   * อัปเดตการตั้งค่ากลุ่ม
-   */
-  async updateGroupSettings(groupId: string, settings: UpdateGroupRequest): Promise<ApiResponse<void>> {
-    const response = await apiClient.put(`${this.baseUrl}/groups/${groupId}/settings`, settings);
-    return response.data;
-  }
-
-  // ===== JOIN GROUP =====
-
-  /**
-   * เข้าร่วมกลุ่มด้วยรหัสเชิญ
-   */
-  async joinGroupByCode(joinData: JoinGroupByCodeRequest): Promise<ApiResponse<StudyGroup>> {
-    const response = await apiClient.post(`${this.baseUrl}/groups/join`, joinData);
-    return response.data;
-  }
-
-  // ===== AUDIT & ANALYTICS =====
-
-  /**
-   * ดึง audit log ของกลุ่ม
-   */
-  async getGroupAuditLog(groupId: string): Promise<ApiResponse<any[]>> {
-    const response = await apiClient.get(`${this.baseUrl}/security/audit/${groupId}`);
-    return response.data;
-  }
-
-  /**
-   * ดึง analytics ของกลุ่ม
-   */
-  async getGroupAnalytics(groupId: string): Promise<ApiResponse<any>> {
-    const response = await apiClient.get(`${this.baseUrl}/security/analytics/${groupId}`);
-    return response.data;
+  async isUserAdmin(groupId: number): Promise<boolean> {
+    try {
+      const group = await this.getGroup(groupId);
+      return group.userRole === 'admin';
+    } catch (error: unknown) {
+      console.error('❌ Check admin status failed:', error);
+      return false;
+    }
   }
 }
 
-export const studyGroupService = new StudyGroupService();
+export default StudyGroupService;

@@ -35,8 +35,11 @@ const joinGroup = async () => {
 
     // Redirect to the group
     router.push(`/study-groups/${group.id}`)
-  } catch (err: any) {
-    error.value = err.message || 'Failed to join group. Please check your invite code.'
+  } catch (err: unknown) {
+    // แสดง user-friendly message จาก Backend หรือ fallback message
+    const errorObj = err as { userMessage?: string; response?: { data?: { message?: string } }; message?: string }
+    error.value = errorObj.userMessage || errorObj.response?.data?.message || errorObj.message || 'Failed to join group. Please check your invite code.'
+    console.error('Join group error:', err)
   } finally {
     isJoining.value = false
   }

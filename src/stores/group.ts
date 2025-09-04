@@ -44,6 +44,7 @@ export const useGroupStore = defineStore('group', () => {
   // State
   const groups = ref<StudyGroup[]>([])
   const currentGroup = ref<StudyGroup | null>(null)
+  const currentGroupId = ref<string | null>(null)
   const groupMembers = ref<GroupMember[]>([])
   const groupResources = ref<GroupResource[]>([])
   const resourceComments = ref<ResourceComment[]>([])
@@ -64,6 +65,13 @@ export const useGroupStore = defineStore('group', () => {
   const viewerRole = computed(() => currentGroup.value?.userRole || 'member')
 
   // Actions
+  const setCurrentGroup = (group: StudyGroup | null) => {
+    currentGroup.value = group;
+    currentGroupId.value = group?.id || null;
+    console.log('🔍 Set current group:', group);
+    console.log('🔍 Current group ID:', currentGroupId.value);
+  };
+
   const fetchGroups = async () => {
     loading.value = true
     error.value = null
@@ -341,22 +349,72 @@ export const useGroupStore = defineStore('group', () => {
     }
   }
 
+    const getGroupInviteCode = async (groupId: string) => {
+    loading.value = true
+    error.value = null
+    try {
+      console.log('🚀 Getting invite code for group:', groupId)
+      const response = await GroupService.getGroupInviteCode(groupId)
+      console.log('✅ Got invite code from service:', response)
+      return response
+    } catch (err) {
+      error.value = 'Failed to get invite code'
+      console.error('getGroupInviteCode error:', err)
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+      const getExistingInviteCode = async () => {
+    try {
+      if (!currentGroupId.value) {
+        throw new Error('No current group selected')
+      }
+
+      console.log('🔍 Getting existing invite code for group:', currentGroupId.value)
+
+      const response = await GroupService.getGroupInviteCode(currentGroupId.value)
+      return response
+
+    } catch (error) {
+      console.error('❌ getExistingInviteCode error:', error)
+      throw error
+    }
+  }
+
   const generateNewInviteCode = async (request: GenerateInviteCodeRequest) => {
-    if (!currentGroup.value) {
-      throw new Error('No current group selected')
+    if (!currentGroupId.value) {
+      throw new Error('No current group selected. Please select a group first.')
     }
 
     loading.value = true
     error.value = null
     try {
-      const response = await GroupService.generateInviteCode(currentGroup.value.id)
+      console.log('🔍 Generating invite code for group:', currentGroupId.value)
+
+      const response = await GroupService.generateInviteCode(currentGroupId.value)
+
+      console.log('🔍 Group store received response:', response)
+
+      // Handle both inviteCode and token fields from backend
+      const inviteCode = response.inviteCode || (response as any).token
+
+      if (!inviteCode) {
+        throw new Error('No invite code received from backend')
+      }
 
       // Update current group with new invite code
       if (currentGroup.value) {
-        currentGroup.value.inviteCode = response.inviteCode
+        currentGroup.value.inviteCode = inviteCode
+        console.log('✅ Updated current group invite code:', inviteCode)
       }
 
-      return response
+      // Return response with normalized inviteCode
+      return {
+        ...response,
+        inviteCode: inviteCode
+      }
     } catch (err) {
       error.value = 'Failed to generate invite code'
       console.error('generateNewInviteCode error:', err)
@@ -902,6 +960,7 @@ export const useGroupStore = defineStore('group', () => {
     // State
     groups,
     currentGroup,
+    currentGroupId,
     groupMembers,
     groupResources,
     resourceComments,
@@ -922,6 +981,7 @@ export const useGroupStore = defineStore('group', () => {
     viewerRole,
 
     // Actions
+    setCurrentGroup,
     fetchGroups,
     createGroup,
     fetchGroupDetails,
@@ -930,6 +990,8 @@ export const useGroupStore = defineStore('group', () => {
     updateMemberRole,
     removeMember,
     inviteMember,
+    getGroupInviteCode,
+    getExistingInviteCode,
     generateNewInviteCode,
     joinGroupByCode,
     uploadResource,

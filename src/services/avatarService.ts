@@ -1,4 +1,4 @@
-import { api } from './api'
+import api from './api'
 
 export type SignedUrlResponse = { path: string; expiresIn: number; signedUrl: string }
 export type AvatarResponse   = { avatarUrl?: string; path: string }

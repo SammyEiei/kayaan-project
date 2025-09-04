@@ -1,15 +1,18 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useGroupStore } from '@/stores/group'
-import type { GenerateInviteCodeRequest } from '@/types/group'
+import { useAuthStore } from '@/stores/auth'
+import GroupService from '@/service/GroupService'
+import TokenDebugger from '@/components/TokenDebugger.vue'
 
 interface Props {
-  groupId: string
-  groupName: string
-  currentInviteCode?: string
+  groupId?: number
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  groupId: undefined
+})
+
 const groupStore = useGroupStore()
 
 const emit = defineEmits<{
@@ -21,9 +24,89 @@ const codeLength = ref(6)
 const expiresIn = ref(24) // hours
 const isGenerating = ref(false)
 const showAdvancedOptions = ref(false)
-const generatedCode = ref(props.currentInviteCode || '')
+const generatedCode = ref<string>('')
+
+// Computed properties
+const currentGroupId = computed(() => {
+  // ใช้ props.groupId ก่อน ถ้าไม่มีให้ใช้จาก store
+  return props.groupId || groupStore.currentGroupId
+})
+
+const hasCurrentGroup = computed(() => {
+  const id = currentGroupId.value
+  return id && !isNaN(Number(id)) && Number(id) > 0
+})
+
+// Function to fetch existing invite code
+
+
+// Function to fetch existing invite code
+const checkExistingCode = async () => {
+  try {
+    if (!hasCurrentGroup.value) {
+      errorMessage.value = 'No current group selected'
+      return
+    }
+
+    const groupId = String(currentGroupId.value)
+    console.log('🔍 Checking existing invite code for group:', groupId)
+
+    // เรียก API โดยตรง
+    const response = await GroupService.getGroupInviteCode(groupId)
+    generatedCode.value = response.inviteCode
+
+    console.log('✅ Existing invite code found:', response.inviteCode)
+
+  } catch (err: unknown) {
+    console.error('❌ Failed to get existing invite code:', err)
+    errorMessage.value = err instanceof Error ? err.message : 'Failed to get existing invite code'
+  }
+}
+
+// Watch for changes in generatedCode
+watch(generatedCode, (newValue, oldValue) => {
+  console.log('🔍 generatedCode changed:', { oldValue, newValue })
+}, { immediate: true })
+
+// Watch สำหรับ props.groupId changes
+watch(() => props.groupId, (newGroupId) => {
+  console.log('🔍 Group ID changed:', newGroupId)
+  if (newGroupId && hasCurrentGroup.value) {
+    checkExistingCode()
+  }
+}, { immediate: true })
+
+// Check component mount
+onMounted(() => {
+  console.log('🔍 Component mounted')
+  console.log('🔍 Props groupId:', props.groupId)
+  console.log('🔍 Store currentGroupId:', groupStore.currentGroupId)
+  console.log('🔍 Computed currentGroupId:', currentGroupId.value)
+  console.log('🔍 Has current group:', hasCurrentGroup.value)
+
+  // Check JWT token
+  const token = localStorage.getItem('token')
+  console.log('🔐 JWT Token exists:', !!token)
+  if (token) {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]))
+      const expiration = new Date(payload.exp * 1000)
+      console.log('🔐 Token expires at:', expiration)
+      console.log('🔐 Is expired:', expiration < new Date())
+    } catch (e) {
+      console.error('❌ Invalid token format:', e)
+    }
+  }
+
+  // Check for existing code เมื่อ component mount
+  if (hasCurrentGroup.value) {
+    checkExistingCode()
+  }
+})
+
 const codeCopied = ref(false)
 const linkCopied = ref(false)
+const errorMessage = ref('')
 
 const codeLengthOptions = [
   { value: 4, label: '4 characters' },
@@ -45,20 +128,108 @@ const inviteLink = computed(() => {
   return ''
 })
 
-const generateCode = async () => {
-  isGenerating.value = true
+// Token validation helper
+const validateToken = (token: string | null): boolean => {
+  if (!token || typeof token !== 'string') {
+    console.error('❌ Invalid token format:', token)
+    return false
+  }
+
   try {
-    const request: GenerateInviteCodeRequest = {
-      groupId: props.groupId,
-      codeLength: codeLength.value,
-      expiresIn: expiresIn.value,
+    // ตรวจสอบว่าเป็น valid JWT format
+    const parts = token.split('.')
+    if (parts.length !== 3) {
+      console.error('❌ Invalid JWT format - expected 3 parts, got:', parts.length)
+      return false
     }
 
-    const result = await groupStore.generateNewInviteCode(request)
-    generatedCode.value = result.inviteCode
-    emit('codeGenerated', result.inviteCode)
+    // Decode payload
+    const payload = JSON.parse(atob(parts[1]))
+    console.log('✅ Token payload:', payload)
+    return true
   } catch (error) {
-    console.error('Failed to generate invite code:', error)
+    console.error('❌ Token decode error:', error)
+    return false
+  }
+}
+
+// Process token safely
+const processToken = (token: string | null) => {
+  if (!validateToken(token)) {
+    return null
+  }
+
+  try {
+    const payload = JSON.parse(atob(token!.split('.')[1]))
+    return payload
+  } catch (error) {
+    console.error('❌ Failed to process token:', error)
+    return null
+  }
+}
+
+const debugAuth = () => {
+  console.log('🔍 === AUTH DEBUG ===')
+
+  // Check localStorage
+  const token = localStorage.getItem('access_token')
+  console.log('🔐 localStorage token:', !!token)
+
+  // Validate token format
+  if (token) {
+    const isValid = validateToken(token)
+    console.log('🔐 Token is valid JWT:', isValid)
+
+    if (isValid) {
+      const payload = processToken(token)
+      if (payload) {
+        const expiration = new Date(payload.exp * 1000)
+        console.log('📅 Token expires at:', expiration)
+        console.log('⏰ Is expired:', expiration < new Date())
+        console.log('👤 User ID:', payload.sub)
+      }
+    }
+  }
+
+  // Check auth store
+  const authStore = useAuthStore()
+  console.log('🔐 Auth store token:', !!authStore.token)
+  console.log('🔐 Auth store user:', authStore.user)
+  console.log('🔐 Auth store isAuthenticated:', authStore.isAuthenticated)
+
+  // Debug token details
+  console.log('🔐 Auth store debug token:', authStore.debugToken)
+
+  // Check current request headers
+  console.log('🔍 Current request would include headers:', {
+    'Content-Type': 'application/json',
+    'Authorization': token ? `Bearer ${token.substring(0, 20)}...` : 'NOT SET'
+  })
+}
+
+const generateCode = async () => {
+  try {
+    if (!hasCurrentGroup.value) {
+      errorMessage.value = 'No current group selected. Please select a group first.'
+      console.error('❌ No current group ID:', currentGroupId.value)
+      return
+    }
+
+    isGenerating.value = true
+    errorMessage.value = ''
+
+    const groupId = String(currentGroupId.value)
+    console.log('🔍 Generating invite code for group:', groupId)
+
+    // เรียก API โดยตรง
+    const response = await GroupService.generateInviteCode(groupId)
+    generatedCode.value = response.inviteCode
+
+    console.log('✅ Invite code generated:', response.inviteCode)
+
+  } catch (err: unknown) {
+    console.error('❌ Failed to generate invite code:', err)
+    errorMessage.value = err instanceof Error ? err.message : 'Failed to generate invite code'
   } finally {
     isGenerating.value = false
   }
@@ -93,7 +264,39 @@ const copyInviteCode = async () => {
 }
 
 const closeModal = () => {
+  console.log('🔍 closeModal called')
+  console.log('🔍 Current generatedCode:', generatedCode.value)
+  console.log('🔍 Current isGenerating:', isGenerating.value)
   emit('close')
+}
+
+// Function to fetch existing invite code
+const fetchExistingInviteCode = async () => {
+  if (!groupStore.currentGroupId) {
+    console.log('⚠️ No current group selected, cannot fetch invite code')
+    return
+  }
+
+  try {
+    console.log('🚀 Fetching existing invite code for group:', groupStore.currentGroupId)
+    const result = await groupStore.getExistingInviteCode()
+    console.log('✅ Fetched existing invite code:', result)
+
+    if (result && (result.inviteCode || (result as { token?: string }).token)) {
+      const inviteCode = result.inviteCode || (result as { token?: string }).token
+      if (inviteCode) {
+        generatedCode.value = inviteCode
+        console.log('✅ Set existing invite code:', inviteCode)
+      } else {
+        console.log('ℹ️ No existing invite code found')
+      }
+    } else {
+      console.log('ℹ️ No existing invite code found')
+    }
+  } catch (error) {
+    console.error('❌ Failed to fetch existing invite code:', error)
+    // Don't show error to user, just log it
+  }
 }
 </script>
 
@@ -137,9 +340,28 @@ const closeModal = () => {
       <!-- Content -->
       <div class="p-6 space-y-6">
         <!-- Current Invite Code -->
-        <div v-if="generatedCode" class="animate-fadeIn">
+        <div class="animate-fadeIn">
+          <!-- Debug Info -->
+          <div class="debug-info" style="background: #f0f0f0; padding: 10px; margin: 10px 0; font-size: 12px;">
+            <strong>Debug Info:</strong><br>
+            Props Group ID: {{ props.groupId }}<br>
+            Store Group ID: {{ groupStore.currentGroupId }}<br>
+            Computed Group ID: {{ currentGroupId }}<br>
+            Has Current Group: {{ hasCurrentGroup }}<br>
+            Generated Code: {{ generatedCode || 'None' }}
+            <br><br>
+            <button @click="debugAuth" class="px-2 py-1 bg-blue-500 text-white text-xs rounded">
+              Debug Auth
+            </button>
+          </div>
+
+          <!-- Token Debugger Component -->
+          <TokenDebugger />
+
           <label class="block text-sm font-medium text-gray-700 mb-3">Current Invite Code</label>
-          <div class="flex items-center gap-3">
+
+          <!-- Show invite code if exists -->
+          <div v-if="generatedCode" class="flex items-center gap-3">
             <div
               class="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 transition-all duration-200 hover:border-gray-300"
             >
@@ -181,6 +403,26 @@ const closeModal = () => {
                 </svg>
               </transition>
             </button>
+          </div>
+
+          <!-- Show message when no invite code -->
+          <div v-else class="text-center py-4 text-gray-500">
+            <p>No invite code generated yet.</p>
+            <div class="mt-3 space-y-2">
+              <button
+                @click="fetchExistingInviteCode"
+                class="px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg text-sm transition-all duration-200"
+              >
+                Check for Existing Code
+              </button>
+              <p class="text-xs text-gray-400">or</p>
+              <p>Click "Generate New Code" to create one.</p>
+            </div>
+          </div>
+
+          <!-- Error Message -->
+          <div v-if="errorMessage" class="mt-4 p-3 bg-red-100 border border-red-300 rounded-lg">
+            <p class="text-red-700 text-sm">{{ errorMessage }}</p>
           </div>
 
           <!-- Invite Link -->
@@ -306,6 +548,11 @@ const closeModal = () => {
             :disabled="isGenerating"
             class="w-full px-4 py-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-all duration-300 flex items-center justify-center gap-2 transform hover:scale-[1.02] active:scale-[0.98] hover:shadow-lg"
           >
+            <!-- Debug Info -->
+            <div class="text-xs text-white/80 mb-1">
+              isGenerating: {{ isGenerating }}, Code: {{ generatedCode || 'None' }}
+            </div>
+
             <svg v-if="isGenerating" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
               <circle
                 class="opacity-25"

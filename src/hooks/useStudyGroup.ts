@@ -1,5 +1,5 @@
 import { ref, computed } from 'vue'
-import { studyGroupService } from '../services/StudyGroupService'
+import StudyGroupService from '../services/StudyGroupService'
 import type {
   StudyGroup,
   GroupMember,
@@ -18,6 +18,7 @@ import type {
 } from '../types/group'
 
 export function useStudyGroup() {
+  const studyGroupService = new StudyGroupService()
   const loading = ref(false)
   const error = ref<string | null>(null)
   const groups = ref<StudyGroup[]>([])
@@ -32,10 +33,10 @@ export function useStudyGroup() {
       setLoading(true)
       clearError()
       const response = await studyGroupService.getMyGroups()
-      groups.value = response.data
-      return response.data
-    } catch (err: any) {
-      const errorMessage = err.message || 'เกิดข้อผิดพลาดในการดึงข้อมูลกลุ่ม'
+      groups.value = response
+      return response
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการดึงข้อมูลกลุ่ม'
       setError(errorMessage)
       throw err
     } finally {
@@ -48,10 +49,10 @@ export function useStudyGroup() {
       setLoading(true)
       clearError()
       const response = await studyGroupService.createGroup(groupData)
-      groups.value.unshift(response.data)
-      return response.data
-    } catch (err: any) {
-      const errorMessage = err.message || 'เกิดข้อผิดพลาดในการสร้างกลุ่ม'
+      groups.value.unshift(response)
+      return response
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการสร้างกลุ่ม'
       setError(errorMessage)
       throw err
     } finally {
@@ -63,11 +64,11 @@ export function useStudyGroup() {
     try {
       setLoading(true)
       clearError()
-      const response = await studyGroupService.getGroupById(groupId)
-      currentGroup.value = response.data
-      return response.data
-    } catch (err: any) {
-      const errorMessage = err.message || 'เกิดข้อผิดพลาดในการดึงข้อมูลกลุ่ม'
+      const response = await studyGroupService.getGroup(Number(groupId))
+      currentGroup.value = response
+      return response
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการดึงข้อมูลกลุ่ม'
       setError(errorMessage)
       throw err
     } finally {
@@ -79,21 +80,21 @@ export function useStudyGroup() {
     try {
       setLoading(true)
       clearError()
-      const response = await studyGroupService.updateGroup(groupId, groupData)
+      const response = await studyGroupService.updateGroup(Number(groupId), groupData)
 
       // Update local state
-      if (currentGroup.value?.id === groupId) {
-        currentGroup.value = { ...currentGroup.value, ...response.data }
+      if (currentGroup.value && String(currentGroup.value.id) === groupId) {
+        currentGroup.value = { ...currentGroup.value, ...response }
       }
 
-      const groupIndex = groups.value.findIndex(g => g.id === groupId)
+      const groupIndex = groups.value.findIndex(g => String(g.id) === groupId)
       if (groupIndex !== -1) {
-        groups.value[groupIndex] = { ...groups.value[groupIndex], ...response.data }
+        groups.value[groupIndex] = { ...groups.value[groupIndex], ...response }
       }
 
-      return response.data
-    } catch (err: any) {
-      const errorMessage = err.message || 'เกิดข้อผิดพลาดในการอัปเดตกลุ่ม'
+      return response
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการอัปเดตกลุ่ม'
       setError(errorMessage)
       throw err
     } finally {
@@ -105,15 +106,15 @@ export function useStudyGroup() {
     try {
       setLoading(true)
       clearError()
-      await studyGroupService.deleteGroup(groupId)
+      await studyGroupService.deleteGroup(Number(groupId))
 
       // Remove from local state
-      groups.value = groups.value.filter(g => g.id !== groupId)
-      if (currentGroup.value?.id === groupId) {
+      groups.value = groups.value.filter(g => String(g.id) !== groupId)
+      if (currentGroup.value && String(currentGroup.value.id) === groupId) {
         currentGroup.value = null
       }
-    } catch (err: any) {
-      const errorMessage = err.message || 'เกิดข้อผิดพลาดในการลบกลุ่ม'
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการลบกลุ่ม'
       setError(errorMessage)
       throw err
     } finally {
@@ -127,9 +128,9 @@ export function useStudyGroup() {
     try {
       setLoading(true)
       clearError()
-      const response = await studyGroupService.getGroupMembers(groupId)
-      groupMembers.value = response.data
-      return response.data
+      const response = await studyGroupService.getGroupMembers(Number(groupId))
+      groupMembers.value = response
+      return response
     } catch (err: any) {
       const errorMessage = err.message || 'เกิดข้อผิดพลาดในการดึงรายชื่อสมาชิก'
       setError(errorMessage)
@@ -143,9 +144,9 @@ export function useStudyGroup() {
     try {
       setLoading(true)
       clearError()
-      const response = await studyGroupService.addMember(groupId, memberData)
-      groupMembers.value.push(response.data)
-      return response.data
+      const response = await studyGroupService.inviteMember(Number(groupId), memberData)
+      groupMembers.value.push(response)
+      return response
     } catch (err: any) {
       const errorMessage = err.message || 'เกิดข้อผิดพลาดในการเพิ่มสมาชิก'
       setError(errorMessage)
@@ -159,7 +160,7 @@ export function useStudyGroup() {
     try {
       setLoading(true)
       clearError()
-      const response = await studyGroupService.updateMemberRole(groupId, memberId, role)
+      await studyGroupService.updateMemberRole(Number(groupId), Number(memberId), role as 'admin' | 'member')
 
       // Update local state
       const memberIndex = groupMembers.value.findIndex(m => m.userId === memberId)
@@ -181,7 +182,7 @@ export function useStudyGroup() {
     try {
       setLoading(true)
       clearError()
-      await studyGroupService.removeMember(groupId, memberId)
+      await studyGroupService.removeMember(Number(groupId), Number(memberId))
 
       // Remove from local state
       groupMembers.value = groupMembers.value.filter(m => m.userId !== memberId)
@@ -200,9 +201,9 @@ export function useStudyGroup() {
     try {
       setLoading(true)
       clearError()
-      const response = await studyGroupService.createInvite(groupId, inviteData)
-      groupInvites.value.unshift(response.data)
-      return response.data
+      const response = await studyGroupService.generateInvite(Number(groupId), inviteData.expiryDays || 30)
+      groupInvites.value.unshift(response)
+      return response
     } catch (err: any) {
       const errorMessage = err.message || 'เกิดข้อผิดพลาดในการสร้างรหัสเชิญ'
       setError(errorMessage)
@@ -216,9 +217,9 @@ export function useStudyGroup() {
     try {
       setLoading(true)
       clearError()
-      const response = await studyGroupService.getGroupInvites(groupId)
-      groupInvites.value = response.data
-      return response.data
+      const response = await studyGroupService.getGroupInviteCode(Number(groupId))
+      groupInvites.value = [response]
+      return [response]
     } catch (err: any) {
       const errorMessage = err.message || 'เกิดข้อผิดพลาดในการดึงรายการรหัสเชิญ'
       setError(errorMessage)
@@ -232,7 +233,9 @@ export function useStudyGroup() {
     try {
       setLoading(true)
       clearError()
-      await studyGroupService.revokeInvite(inviteCode)
+      // Note: revokeInvite method doesn't exist in StudyGroupService
+      // You may need to implement this or use a different approach
+      throw new Error('revokeInvite method not implemented')
 
       // Remove from local state
       groupInvites.value = groupInvites.value.filter(i => i.inviteCode !== inviteCode)
@@ -251,8 +254,9 @@ export function useStudyGroup() {
     try {
       setLoading(true)
       clearError()
-      const response = await studyGroupService.validateInvite(inviteCode)
-      return response.data
+      // Note: validateInvite method doesn't exist in StudyGroupService
+      // You may need to implement this or use a different approach
+      throw new Error('validateInvite method not implemented')
     } catch (err: any) {
       const errorMessage = err.message || 'เกิดข้อผิดพลาดในการตรวจสอบรหัสเชิญ'
       setError(errorMessage)
@@ -266,8 +270,9 @@ export function useStudyGroup() {
     try {
       setLoading(true)
       clearError()
-      const response = await studyGroupService.useInvite(inviteCode, message)
-      return response.data
+      // Note: useInvite method doesn't exist in StudyGroupService
+      // You may need to implement this or use a different approach
+      throw new Error('useInvite method not implemented')
     } catch (err: any) {
       const errorMessage = err.message || 'เกิดข้อผิดพลาดในการใช้รหัสเชิญ'
       setError(errorMessage)
@@ -283,8 +288,9 @@ export function useStudyGroup() {
     try {
       setLoading(true)
       clearError()
-      const response = await studyGroupService.checkPermission(groupId, permission)
-      return response.data.hasPermission
+      // Note: checkPermission method doesn't exist in StudyGroupService
+      // You may need to implement this or use a different approach
+      throw new Error('checkPermission method not implemented')
     } catch (err: any) {
       const errorMessage = err.message || 'เกิดข้อผิดพลาดในการตรวจสอบสิทธิ์'
       setError(errorMessage)
@@ -298,8 +304,9 @@ export function useStudyGroup() {
     try {
       setLoading(true)
       clearError()
-      const response = await studyGroupService.getUserPermissions(groupId)
-      return response.data
+      // Note: getUserPermissions method doesn't exist in StudyGroupService
+      // You may need to implement this or use a different approach
+      throw new Error('getUserPermissions method not implemented')
     } catch (err: any) {
       const errorMessage = err.message || 'เกิดข้อผิดพลาดในการดึงสิทธิ์'
       setError(errorMessage)
@@ -313,8 +320,9 @@ export function useStudyGroup() {
     try {
       setLoading(true)
       clearError()
-      const response = await studyGroupService.getUserRole(groupId)
-      return response.data
+      // Note: getUserRole method doesn't exist in StudyGroupService
+      // You may need to implement this or use a different approach
+      throw new Error('getUserRole method not implemented')
     } catch (err: any) {
       const errorMessage = err.message || 'เกิดข้อผิดพลาดในการดึงบทบาท'
       setError(errorMessage)
@@ -330,8 +338,9 @@ export function useStudyGroup() {
     try {
       setLoading(true)
       clearError()
-      const response = await studyGroupService.requestConfirmation(action, groupId, description)
-      return response.data
+      // Note: requestConfirmation method doesn't exist in StudyGroupService
+      // You may need to implement this or use a different approach
+      throw new Error('requestConfirmation method not implemented')
     } catch (err: any) {
       const errorMessage = err.message || 'เกิดข้อผิดพลาดในการขอการยืนยัน'
       setError(errorMessage)
@@ -345,8 +354,9 @@ export function useStudyGroup() {
     try {
       setLoading(true)
       clearError()
-      const response = await studyGroupService.validateConfirmation(token, action)
-      return response.data
+      // Note: validateConfirmation method doesn't exist in StudyGroupService
+      // You may need to implement this or use a different approach
+      throw new Error('validateConfirmation method not implemented')
     } catch (err: any) {
       const errorMessage = err.message || 'เกิดข้อผิดพลาดในการตรวจสอบการยืนยัน'
       setError(errorMessage)
@@ -360,8 +370,9 @@ export function useStudyGroup() {
     try {
       setLoading(true)
       clearError()
-      const response = await studyGroupService.executeAction(token, action, data, reason)
-      return response.data
+      // Note: executeAction method doesn't exist in StudyGroupService
+      // You may need to implement this or use a different approach
+      throw new Error('executeAction method not implemented')
     } catch (err: any) {
       const errorMessage = err.message || 'เกิดข้อผิดพลาดในการดำเนินการ'
       setError(errorMessage)
@@ -377,9 +388,9 @@ export function useStudyGroup() {
     try {
       setLoading(true)
       clearError()
-      const response = await studyGroupService.joinGroupByCode(joinData)
-      groups.value.push(response.data)
-      return response.data
+      const response = await studyGroupService.joinGroup(joinData.token)
+      groups.value.push(response)
+      return response
     } catch (err: any) {
       const errorMessage = err.message || 'เกิดข้อผิดพลาดในการเข้าร่วมกลุ่ม'
       setError(errorMessage)

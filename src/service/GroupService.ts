@@ -73,6 +73,10 @@ export interface JoinGroupByCodePayload {
   inviteCode: string
 }
 
+export interface JoinGroupByTokenPayload {
+  token: string
+}
+
 export interface GenerateInviteCodeResponse {
   inviteCode: string
   inviteLink: string
@@ -83,27 +87,11 @@ export default {
   async createGroup(payload: CreateGroupPayload) {
     try {
       console.log('🚀 Creating group with payload:', payload)
-      const response = await api.post<StudyGroupDTO>('/api/groups', payload)
+      const response = await api.post<StudyGroupDTO>('/groups', payload)
       console.log('✅ Group created successfully:', response.data)
       return response.data
     } catch (error: any) {
       console.error('❌ Backend API failed:', error.response?.status, error.message)
-
-      // Mock response for development
-      if (import.meta.env.DEV) {
-        const mockGroup: StudyGroupDTO = {
-          id: `mock-${Date.now()}`,
-          name: payload.name,
-          description: payload.description,
-          ownerId: 'mock-user-id',
-          createdAt: new Date().toISOString(),
-          membersCount: 1
-        }
-
-        console.log('✅ Mock group created:', mockGroup)
-        return mockGroup
-      }
-
       throw error
     }
   },
@@ -111,37 +99,11 @@ export default {
   async getMyGroups() {
     try {
       console.log('🚀 Fetching my groups')
-      const response = await api.get<StudyGroupDTO[]>('/api/groups/my')
+      const response = await api.get<StudyGroupDTO[]>('/groups/my')
       console.log('✅ My groups fetched successfully:', response.data)
       return response.data
     } catch (error: any) {
       console.error('❌ Backend API failed:', error.response?.status, error.message)
-
-      // Mock response for development
-      if (import.meta.env.DEV) {
-        const mockGroups: StudyGroupDTO[] = [
-          {
-            id: 'mock-1',
-            name: 'Computer Science Study Group',
-            description: 'A group for studying computer science topics',
-            ownerId: 'mock-user-id',
-            createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-            membersCount: 5
-          },
-          {
-            id: 'mock-2',
-            name: 'Mathematics Study Group',
-            description: 'Advanced mathematics and problem solving',
-            ownerId: 'other-user-id',
-            createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
-            membersCount: 12
-          }
-        ]
-
-        console.log('✅ Mock groups loaded:', mockGroups)
-        return mockGroups
-      }
-
       throw error
     }
   },
@@ -155,32 +117,6 @@ export default {
       })
     } catch (error: any) {
       console.error('❌ Backend API failed:', error.response?.status, error.message)
-
-      // Mock response for development
-      if (import.meta.env.DEV) {
-        const mockGroups: StudyGroupDTO[] = [
-          {
-            id: 'public-1',
-            name: 'Public Study Group 1',
-            description: 'A public study group for everyone',
-            ownerId: 'public-user-id',
-            createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-            membersCount: 15
-          },
-          {
-            id: 'public-2',
-            name: 'Public Study Group 2',
-            description: 'Another public study group',
-            ownerId: 'another-user-id',
-            createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
-            membersCount: 8
-          }
-        ]
-
-        console.log('✅ Mock public groups loaded:', mockGroups)
-        return Promise.resolve(mockGroups)
-      }
-
       throw error
     }
   },
@@ -188,7 +124,7 @@ export default {
   getGroupDetails(groupId: string) {
     try {
       console.log('🚀 Fetching group details for:', groupId)
-      return api.get<GroupDetailsDTO>(`/api/groups/${groupId}`).then((res) => {
+      return api.get<GroupDetailsDTO>(`/groups/${groupId}`).then((res) => {
         console.log('✅ Group details fetched successfully:', res.data)
         return res.data
       })
@@ -268,7 +204,7 @@ export default {
   getGroupMembers(groupId: string) {
     try {
       console.log('🚀 Fetching group members for:', groupId)
-      return api.get<GroupMemberDTO[]>(`/api/groups/${groupId}/members`).then((res) => {
+      return api.get<GroupMemberDTO[]>(`/groups/${groupId}/members`).then((res) => {
         console.log('✅ Group members fetched successfully:', res.data)
         return res.data
       })
@@ -381,27 +317,31 @@ export default {
   },
 
   // Invite Management
-  generateInviteCode(groupId: string) {
+  getGroupInviteCode(groupId: string) {
     try {
-      console.log('🚀 Generating invite code for group:', groupId)
-      return api.post<GenerateInviteCodeResponse>(`/api/groups/${groupId}/invite-code`).then((res) => {
-        console.log('✅ Invite code generated successfully:', res.data)
+      console.log('🚀 Getting existing invite code for group:', groupId)
+      return api.get<GenerateInviteCodeResponse>(`/groups/${groupId}/invite-code`).then((res) => {
+        console.log('✅ Existing invite code retrieved:', res.data)
         return res.data
       })
     } catch (error: any) {
       console.error('❌ Backend API failed:', error.response?.status, error.message)
+      throw error
+    }
+  },
 
-      // Mock response for development
-      if (import.meta.env.DEV) {
-        const mockInviteCode: GenerateInviteCodeResponse = {
-          inviteCode: 'MOCK' + Math.random().toString(36).substr(2, 4).toUpperCase(),
-          inviteLink: `${window.location.origin}/join-group/${groupId}`
-        }
-
-        console.log('✅ Mock invite code generated:', mockInviteCode)
-        return Promise.resolve(mockInviteCode)
-      }
-
+  generateInviteCode(groupId: string) {
+    try {
+      console.log('🚀 Generating new invite code for group:', groupId)
+      return api.post<GenerateInviteCodeResponse>(`/groups/${groupId}/invites?expiryDays=30`).then((res) => {
+        console.log('✅ New invite code generated successfully:', res.data)
+        console.log('🔍 Response structure:', Object.keys(res.data))
+        console.log('🔍 inviteCode field:', res.data.inviteCode)
+        console.log('🔍 token field:', (res.data as any).token)
+        return res.data
+      })
+    } catch (error: any) {
+      console.error('❌ Backend API failed:', error.response?.status, error.message)
       throw error
     }
   },
@@ -409,28 +349,16 @@ export default {
   joinByCode(payload: JoinGroupByCodePayload) {
     try {
       console.log('🚀 Joining group by code:', payload.inviteCode)
-      return api.post<StudyGroupDTO>('/api/groups/join', payload).then((res) => {
+      // แปลง inviteCode เป็น token และส่งไปยัง endpoint ที่ถูกต้อง
+      const token = payload.inviteCode?.toUpperCase().trim()
+      console.log('🔍 Converted token:', token)
+      return api.post<StudyGroupDTO>('/groups/join', { token }).then((res) => {
         console.log('✅ Joined group successfully:', res.data)
         return res.data
       })
     } catch (error: any) {
       console.error('❌ Backend API failed:', error.response?.status, error.message)
-
-      // Mock response for development
-      if (import.meta.env.DEV) {
-        const mockGroup: StudyGroupDTO = {
-          id: `mock-joined-${Date.now()}`,
-          name: 'Joined Study Group',
-          description: 'You have successfully joined this study group',
-          ownerId: 'other-user-id',
-          createdAt: new Date().toISOString(),
-          membersCount: 8
-        }
-
-        console.log('✅ Mock group joined:', mockGroup)
-        return Promise.resolve(mockGroup)
-      }
-
+      console.error('❌ Error response data:', error.response?.data)
       throw error
     }
   },
@@ -444,22 +372,9 @@ export default {
       })
     } catch (error: any) {
       console.error('❌ Backend API failed:', error.response?.status, error.message)
+      console.error('❌ Error response data:', error.response?.data)
 
-      // Mock response for development
-      if (import.meta.env.DEV) {
-        const mockGroup: StudyGroupDTO = {
-          id: `mock-joined-token-${Date.now()}`,
-          name: 'Token Joined Study Group',
-          description: 'You have successfully joined this study group via token',
-          ownerId: 'other-user-id',
-          createdAt: new Date().toISOString(),
-          membersCount: 6
-        }
-
-        console.log('✅ Mock group joined via token:', mockGroup)
-        return Promise.resolve(mockGroup)
-      }
-
+      // Re-throw error เพื่อให้ component จัดการ user-friendly message
       throw error
     }
   },
@@ -468,46 +383,12 @@ export default {
   getGroupResources(groupId: string) {
     try {
       console.log('🚀 Fetching group resources for:', groupId)
-      return api.get<GroupResourceDTO[]>(`/api/groups/${groupId}/resources`).then((res) => {
+      return api.get<GroupResourceDTO[]>(`/groups/${groupId}/resources`).then((res) => {
         console.log('✅ Group resources fetched successfully:', res.data)
         return res.data
       })
     } catch (error: any) {
       console.error('❌ Backend API failed:', error.response?.status, error.message)
-
-      // Mock response for development
-      if (import.meta.env.DEV) {
-        const mockResources: GroupResourceDTO[] = [
-          {
-            id: 'resource-1',
-            groupId: groupId,
-            title: 'Introduction to Computer Science',
-            description: 'Basic concepts and fundamentals',
-            fileUrl: '/mock/file1.pdf',
-            fileType: 'pdf',
-            fileSize: 2048576,
-            uploaderId: 'mock-user-id',
-            uploaderName: 'Tawan1',
-            createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
-          },
-          {
-            id: 'resource-2',
-            groupId: groupId,
-            title: 'Mathematics Problem Set',
-            description: 'Practice problems and solutions',
-            fileUrl: '/mock/file2.pdf',
-            fileType: 'pdf',
-            fileSize: 1536000,
-            uploaderId: 'other-user-id',
-            uploaderName: 'JohnDoe',
-            createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString()
-          }
-        ]
-
-        console.log('✅ Mock group resources loaded:', mockResources)
-        return Promise.resolve(mockResources)
-      }
-
       throw error
     }
   },
@@ -530,26 +411,6 @@ export default {
       })
     } catch (error: any) {
       console.error('❌ Backend API failed:', error.response?.status, error.message)
-
-      // Mock response for development
-      if (import.meta.env.DEV) {
-        const mockResource: GroupResourceDTO = {
-          id: `resource-${Date.now()}`,
-          groupId: groupId,
-          title: payload.title,
-          description: payload.description,
-          fileUrl: '/mock/uploaded-file.pdf',
-          fileType: payload.file.type || 'application/octet-stream',
-          fileSize: payload.file.size,
-          uploaderId: 'mock-user-id',
-          uploaderName: 'Tawan1',
-          createdAt: new Date().toISOString()
-        }
-
-        console.log('✅ Mock resource uploaded:', mockResource)
-        return Promise.resolve(mockResource)
-      }
-
       throw error
     }
   },
@@ -562,13 +423,6 @@ export default {
       })
     } catch (error: any) {
       console.error('❌ Backend API failed:', error.response?.status, error.message)
-
-      // Mock response for development
-      if (import.meta.env.DEV) {
-        console.log('✅ Mock resource deleted:', { groupId, resourceId })
-        return Promise.resolve()
-      }
-
       throw error
     }
   },
