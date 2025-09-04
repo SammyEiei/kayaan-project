@@ -94,12 +94,23 @@ export const useGroupStore = defineStore('group', () => {
     }
   }
 
-  const createGroup = async (groupData: CreateGroupRequest) => {
+  const createGroup = async (groupData: CreateGroupRequest | { name: string; description: string }) => {
     loading.value = true
     error.value = null
     try {
-      const authStore = useAuthStore()
-      const response = await GroupService.createGroup(groupData)
+      console.log('🚀 Creating group with data:', groupData)
+
+      // Get auth store
+      const auth = useAuthStore()
+
+      // Convert to CreateGroupPayload format for backend
+      const payload = {
+        name: groupData.name,
+        description: groupData.description
+      }
+
+      const response = await GroupService.createGroup(payload)
+      console.log('✅ Group created successfully:', response)
 
       // Transform the response to match StudyGroup interface
       const newGroup: StudyGroup = {
@@ -110,21 +121,22 @@ export const useGroupStore = defineStore('group', () => {
         inviteLinkToken: Math.random().toString(36).substring(7),
         inviteCode: generateInviteCode(),
         createdAt: response.createdAt,
-        memberCount: 1, // Creator is the first member
-        isOwner: true,
-        userRole: 'admin', // Creator should be admin
+        memberCount: response.membersCount || 1,
+        isOwner: true, // Creator is always owner
+        userRole: 'admin', // Creator is always admin
         isPrivate: false, // Default value
         maxMembers: undefined,
         tags: []
       }
 
+      // Add to groups list
       groups.value.push(newGroup)
 
       // Add creator as member with admin role
       const creatorMember: GroupMember = {
-        userId: authStore.currentUserId?.toString() || 'unknown',
-        username: authStore.currentUserName || 'unknown',
-        email: authStore.user?.email || 'unknown',
+        userId: auth.currentUserId?.toString() || 'unknown',
+        username: auth.currentUserName || 'unknown',
+        email: auth.user?.email || 'unknown',
         role: 'admin',
         status: 'accepted',
         joinedAt: new Date().toISOString(),

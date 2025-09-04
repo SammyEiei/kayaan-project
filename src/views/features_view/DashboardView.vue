@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-slate-50">
+  <div class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
     <main class="p-6">
       <div class="max-w-7xl mx-auto space-y-8">
         <!-- Welcome Banner -->
@@ -82,14 +82,14 @@
 
           <!-- Focus Time -->
           <div
-            class="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/50 p-6 shadow-xl hover:shadow-2xl transition-all duration-300 group"
+            class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-lg transition-all duration-300 group"
           >
             <div class="flex items-center justify-between mb-4">
               <div
-                class="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300"
+                class="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300"
               >
                 <svg
-                  class="w-6 h-6 text-white"
+                  class="w-5 h-5 text-white"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -103,7 +103,7 @@
                 </svg>
               </div>
               <svg
-                class="w-6 h-6 text-blue-600"
+                class="w-5 h-5 text-blue-600"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -126,14 +126,14 @@
 
           <!-- Flashcards Reviewed -->
           <div
-            class="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/50 p-6 shadow-xl hover:shadow-2xl transition-all duration-300 group"
+            class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-lg transition-all duration-300 group"
           >
             <div class="flex items-center justify-between mb-4">
               <div
-                class="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300"
+                class="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300"
               >
                 <svg
-                  class="w-6 h-6 text-white"
+                  class="w-5 h-5 text-white"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -147,7 +147,7 @@
                 </svg>
               </div>
               <svg
-                class="w-6 h-6 text-green-600"
+                class="w-5 h-5 text-green-600"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -170,14 +170,14 @@
 
           <!-- Today's Pomodoro Streak -->
           <div
-            class="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/50 p-6 shadow-xl hover:shadow-2xl transition-all duration-300 group"
+            class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-lg transition-all duration-300 group"
           >
             <div class="flex items-center justify-between mb-4">
               <div
-                class="w-12 h-12 bg-gradient-to-r from-red-500 to-orange-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300"
+                class="w-10 h-10 bg-gradient-to-r from-red-500 to-orange-500 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300"
               >
                 <svg
-                  class="w-6 h-6 text-white"
+                  class="w-5 h-5 text-white"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -191,7 +191,7 @@
                 </svg>
               </div>
               <svg
-                class="w-6 h-6 text-red-600"
+                class="w-5 h-5 text-red-600"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -216,11 +216,11 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           <!-- Study & Learning Progress -->
           <div
-            class="lg:col-span-2 bg-white/80 backdrop-blur-sm rounded-2xl border border-white/50 p-6 shadow-xl"
+            class="lg:col-span-2 bg-white rounded-xl border border-gray-200 p-6 shadow-sm"
           >
             <div class="flex items-center gap-3 mb-6">
               <div
-                class="w-10 h-10 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-xl flex items-center justify-center"
+                class="w-10 h-10 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-lg flex items-center justify-center"
               >
                 <svg
                   class="w-5 h-5 text-white"
@@ -289,11 +289,11 @@
 
           <!-- Study Groups -->
           <div
-            class="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/50 p-6 shadow-xl"
+            class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm"
           >
             <div class="flex items-center gap-3 mb-6">
               <div
-                class="w-10 h-10 bg-gradient-to-r from-pink-500 to-rose-600 rounded-xl flex items-center justify-center"
+                class="w-10 h-10 bg-gradient-to-r from-pink-500 to-rose-600 rounded-lg flex items-center justify-center"
               >
                 <svg
                   class="w-5 h-5 text-white"
@@ -320,7 +320,7 @@
               >
                 <div class="flex items-center gap-3">
                   <div
-                    class="w-10 h-10 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold shadow-md group-hover:scale-110 transition-transform duration-200"
+                    class="w-10 h-10 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold shadow-md group-hover:scale-110 transition-transform duration-200"
                   >
                     {{ group.letter }}
                   </div>
@@ -340,7 +340,7 @@
             </div>
 
             <button
-              class="w-full mt-6 py-3 text-center text-blue-600 hover:text-blue-700 font-medium border-2 border-dashed border-blue-200 hover:border-blue-300 rounded-xl hover:bg-blue-50 transition-all duration-200"
+              class="w-full mt-6 py-3 text-center text-blue-600 hover:text-blue-700 font-medium border-2 border-dashed border-blue-200 hover:border-blue-300 rounded-lg hover:bg-blue-50 transition-all duration-200"
             >
               + Join New Group
             </button>
@@ -348,11 +348,11 @@
         </div>
 
         <!-- AI-Generated Content -->
-        <div class="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/50 p-6 shadow-xl">
+        <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
           <div class="flex items-center justify-between mb-6">
             <div class="flex items-center gap-3">
               <div
-                class="w-10 h-10 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center"
+                class="w-10 h-10 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center"
               >
                 <svg
                   class="w-5 h-5 text-white"
@@ -372,7 +372,7 @@
             </div>
             <router-link
               to="/ai-content-generator"
-              class="px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl font-medium transition-all duration-200 hover:shadow-lg transform hover:scale-105 flex items-center gap-2"
+              class="px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-lg font-medium transition-all duration-200 hover:shadow-lg transform hover:scale-105 flex items-center gap-2"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -390,11 +390,11 @@
             <div
               v-for="item in aiContent"
               :key="item.id"
-              class="group bg-gradient-to-br from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 rounded-xl p-6 transition-all duration-300 hover:shadow-lg cursor-pointer border border-blue-100 hover:border-blue-200"
+              class="group bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-6 transition-all duration-300 hover:shadow-lg cursor-pointer border border-blue-100 hover:border-blue-200"
             >
               <div class="flex items-start gap-4">
                 <div
-                  class="w-12 h-12 bg-white rounded-xl shadow-md flex items-center justify-center text-2xl group-hover:scale-110 transition-transform duration-200"
+                  class="w-12 h-12 bg-white rounded-lg shadow-md flex items-center justify-center text-2xl group-hover:scale-110 transition-transform duration-200"
                 >
                   <span v-if="item.type === 'summary'">📝</span>
                   <span v-else-if="item.type === 'flashcards'">🃏</span>

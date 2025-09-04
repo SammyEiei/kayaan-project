@@ -3,10 +3,10 @@ import { useAuthStore } from '../stores/auth'
 
 /**
  * Axios instance used across the app. The base URL comes from the
- * `VITE_BACKEND_URL` env variable to match the rest of the codebase.
+ * `VITE_API_BASE_URL` env variable to match the rest of the codebase.
  */
 const api = axios.create({
-  baseURL: import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080',
   withCredentials: false,
   headers: {
     Accept: 'application/json', // ไม่ตั้ง Content-Type เป็น default
