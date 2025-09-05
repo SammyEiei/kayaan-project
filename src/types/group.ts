@@ -35,9 +35,9 @@ export interface GroupResource {
   groupId: string
   title: string
   description: string
-  fileUrl: string
-  fileType: string
-  fileSize: number
+  fileUrl: string | null
+  fileType: string | null
+  fileSize: number | null
   uploaderId: string
   uploaderName: string
   createdAt: string
@@ -53,6 +53,18 @@ export interface GroupResource {
   contentText?: string
   commentCount?: number
   reactionCount?: number
+  // เพิ่มฟิลด์สำหรับ Share Study Content
+  contentSource?: 'file' | 'study_content'
+  contentId?: string | null
+  originalContentType?: string | null
+  contentData?: any
+  contentTitle?: string
+  contentType?: 'QUIZ' | 'FLASHCARD' | 'NOTE'
+  contentVersion?: number
+  subject?: string | null
+  difficulty?: string | null
+  isSaved?: boolean
+  deletedAt?: string | null
 }
 
 // เพิ่ม type ใหม่สำหรับ Group Post
@@ -343,4 +355,35 @@ export interface InviteRequest {
   groupId: string
   inviteType: 'username' | 'email' | 'link'
   value: string
+}
+
+// เพิ่ม type ใหม่สำหรับ Share Study Content
+export interface ShareStudyContentRequest {
+  contentId: string
+  title: string
+  description?: string
+  tags?: string[]
+}
+
+export interface ShareStudyContentResponse {
+  id: number
+  title: string
+  description: string
+  fileUrl: null
+  mimeType: null
+  fileSize: null
+  tags: string[]
+  uploaderId: number
+  createdAt: string
+  contentSource: 'study_content'
+  contentId: string
+  originalContentType: string
+  contentData: any
+}
+
+export interface ListGroupResourcesParams {
+  search?: string
+  type?: string
+  page?: number
+  size?: number
 }

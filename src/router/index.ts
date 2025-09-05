@@ -120,6 +120,11 @@ const router = createRouter({
       name: 'content-hub',
       component: () => import('../views/features_view/UnifiedContentView.vue'),
     },
+    {
+      path: '/content-viewer',
+      name: 'content-viewer',
+      component: () => import('../views/ContentViewerView.vue'),
+    },
   ],
 })
 

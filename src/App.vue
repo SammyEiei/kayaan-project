@@ -144,7 +144,7 @@
       <div :class="[isLoggedIn && !isAuthPage ? 'ml-64' : '', 'flex-1 flex flex-col']">
         <!-- Header -->
         <header
-          v-if="!isAuthPage"
+          v-if="!isAuthPage && !isStudyGroupsPage"
           class="bg-white border-b border-gray-200 shadow-sm py-4 px-6 flex justify-between items-center sticky top-0 z-30"
         >
           <!-- Mobile Logo -->
@@ -450,6 +450,9 @@ const showUserMenu = ref(false)
 
 // ระบุว่าอยู่ในหน้า auth หรือไม่ (login/register)
 const isAuthPage = computed(() => route.path === '/login' || route.path === '/register')
+
+// ระบุว่าอยู่ในหน้า Study Groups หรือไม่
+const isStudyGroupsPage = computed(() => route.path.startsWith('/study-groups'))
 
 // เมื่อ avatar เปลี่ยน ให้บังคับ reload รูปภาพ
 watch(userAvatarUrl, () => {

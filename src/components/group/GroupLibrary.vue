@@ -4,6 +4,7 @@ import { useGroupStore } from '@/stores/group'
 import ResourceCard from '@/components/group/ResourceCard.vue'
 import UploadResourceForm from '@/components/group/UploadResourceForm.vue'
 import ImportAIContent from '@/components/group/ImportAIContent.vue'
+import ShareStudyContentModal from '@/components/group/ShareStudyContentModal.vue'
 import type { GroupResource } from '@/types/group'
 
 interface Props {
@@ -15,6 +16,7 @@ const groupStore = useGroupStore()
 
 const showUploadForm = ref(false)
 const showImportForm = ref(false)
+const showShareStudyContent = ref(false)
 const selectedResourceType = ref<'all' | 'note' | 'file' | 'link' | 'imported_content'>('all')
 const searchQuery = ref('')
 
@@ -70,6 +72,20 @@ const getResourceTypeIcon = (icon: string) => {
       </div>
       <div class="flex gap-3">
         <button
+          @click="showShareStudyContent = true"
+          class="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-xl font-medium transition-all duration-200 hover:shadow-lg flex items-center gap-2"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"
+            />
+          </svg>
+          Share Study Content
+        </button>
+        <button
           @click="showImportForm = true"
           class="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white rounded-xl font-medium transition-all duration-200 hover:shadow-lg flex items-center gap-2"
         >
@@ -95,7 +111,7 @@ const getResourceTypeIcon = (icon: string) => {
               d="M12 4v16m8-8H4"
             />
           </svg>
-          Share Resource
+          Upload File
         </button>
       </div>
     </div>
@@ -206,6 +222,15 @@ const getResourceTypeIcon = (icon: string) => {
       :group-id="groupId"
       @close="showImportForm = false"
       @imported="showImportForm = false"
+    />
+
+    <!-- Share Study Content Modal -->
+    <ShareStudyContentModal
+      v-if="showShareStudyContent"
+      :group-id="groupId"
+      :group-name="groupStore.currentGroup?.name || 'this group'"
+      @close="showShareStudyContent = false"
+      @shared="showShareStudyContent = false"
     />
   </div>
 </template>

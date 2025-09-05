@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useGroupStore } from '@/stores/group'
 import type { JoinGroupByCodeRequest } from '@/types/group'
+import JoinSuccessAnimation from './JoinSuccessAnimation.vue'
 
 const router = useRouter()
 const groupStore = useGroupStore()
@@ -15,6 +16,9 @@ const emit = defineEmits<{
 const inviteCode = ref('')
 const isJoining = ref(false)
 const error = ref<string | null>(null)
+const showSuccessAnimation = ref(false)
+const joinedGroupName = ref('')
+const joinedGroupId = ref('')
 
 const joinGroup = async () => {
   if (!inviteCode.value.trim()) {
@@ -31,10 +35,12 @@ const joinGroup = async () => {
     }
 
     const group = await groupStore.joinGroupByCode(request)
+    joinedGroupName.value = group.name
+    joinedGroupId.value = group.id
+    showSuccessAnimation.value = true
     emit('joined', group.id)
 
-    // Redirect to the group
-    router.push(`/study-groups/${group.id}`)
+    // Don't redirect immediately, let animation complete first
   } catch (err: unknown) {
     // แสดง user-friendly message จาก Backend หรือ fallback message
     const errorObj = err as { userMessage?: string; response?: { data?: { message?: string } }; message?: string }
@@ -45,9 +51,20 @@ const joinGroup = async () => {
   }
 }
 
+const handleAnimationComplete = () => {
+  showSuccessAnimation.value = false
+  // Close modal and redirect to the joined group
+  emit('close')
+  // Navigate to the group that was just joined using the group ID
+  if (joinedGroupId.value) {
+    router.push(`/study-groups/${joinedGroupId.value}`)
+  }
+}
+
 const closeModal = () => {
   emit('close')
 }
+
 
 const handleKeyPress = (event: KeyboardEvent) => {
   if (event.key === 'Enter') {
@@ -57,7 +74,16 @@ const handleKeyPress = (event: KeyboardEvent) => {
 </script>
 
 <template>
-  <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+  <!-- Success Animation -->
+  <JoinSuccessAnimation
+    v-if="showSuccessAnimation"
+    :message="`Welcome to ${joinedGroupName}!`"
+    @complete="handleAnimationComplete"
+  />
+
+
+  <!-- Main Modal -->
+  <div v-else class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
     <div class="bg-white rounded-xl shadow-lg max-w-md w-full">
       <!-- Header -->
       <div class="flex items-center justify-between p-6 border-b border-gray-200">
@@ -160,6 +186,7 @@ const handleKeyPress = (event: KeyboardEvent) => {
             Cancel
           </button>
         </div>
+
       </div>
     </div>
   </div>

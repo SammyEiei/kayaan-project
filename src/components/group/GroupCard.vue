@@ -81,7 +81,7 @@ const getRoleLabel = (isOwner: boolean, userRole: string) => {
             />
           </svg>
         </div>
-        <span class="font-medium">{{ group.memberCount }} members</span>
+        <span class="font-medium">{{ group.memberCount || 0 }} members</span>
       </div>
       <div class="flex items-center gap-2">
         <div class="p-1.5 bg-green-100 rounded-lg">
@@ -140,6 +140,7 @@ const getRoleLabel = (isOwner: boolean, userRole: string) => {
 .line-clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }

@@ -73,7 +73,7 @@
     </div>
 
     <!-- Backend Integration Status -->
-    <div v-if="showBackendWarning" class="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 mb-6">
+    <!-- <div v-if="showBackendWarning" class="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 mb-6">
       <div class="flex items-start gap-3">
         <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
           <svg class="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
@@ -112,7 +112,7 @@
           </div>
         </div>
       </div>
-    </div>
+    </div> -->
 
     <!-- Manual Content Creation -->
     <div class="space-y-6">

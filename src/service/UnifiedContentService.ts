@@ -112,11 +112,45 @@ export class UnifiedContentService {
       // Try to get AI content
       let aiContent: UnifiedContentDTO[] = []
       try {
-        // AI content fetching logic here
-        // For now, we'll use an empty array
-        aiContent = []
+        // Import AIContentService dynamically to avoid circular dependency
+        const { aiContentService } = await import('./AIContentService')
+
+        if (params.contentType === 'all' || !params.contentType ||
+            ['quiz', 'flashcard', 'note'].includes(params.contentType)) {
+          try {
+            const aiContentResponse = await aiContentService.getSavedContent()
+
+            // Transform AI content to unified format
+            aiContent = aiContentResponse.content.map((content: {
+              id: number
+              contentTitle: string
+              contentType: string
+              contentData?: string
+              contentVersion: number
+              supabaseFilePath?: string
+              fileSize?: number
+              isSaved: boolean
+              createdAt: string
+            }) => ({
+              id: `ai-${content.id}`,
+              title: content.contentTitle,
+              content: content.contentData || '',
+              contentType: content.contentType as 'quiz' | 'flashcard' | 'note',
+              source: 'ai' as const,
+              createdAt: content.createdAt,
+              updatedAt: content.createdAt, // Use createdAt as fallback
+              createdByUsername: 'AI Assistant',
+              difficulty: undefined,
+              subject: undefined,
+              tags: [],
+              aiRequestId: undefined
+            }))
+          } catch (aiContentError) {
+            console.warn('AI content fetch failed:', aiContentError)
+          }
+        }
       } catch (aiError) {
-        console.warn('AI content fetch failed:', aiError)
+        console.warn('AI content service import failed:', aiError)
         console.error('❌ AI content error details:', {
           message: aiError instanceof Error ? aiError.message : 'Unknown error',
           error: aiError

@@ -38,8 +38,10 @@ const handleJoinByCode = () => {
   showJoinByCodeModal.value = true
 }
 
-const handleBackToDashboard = () => {
-  router.push('/dashboard')
+
+const handleGroupJoined = (groupId: string) => {
+  // Don't close modal immediately, let animation complete first
+  // The animation will handle the redirect and modal closing
 }
 
 // Computed properties for stats
@@ -87,6 +89,7 @@ const isDevelopmentMode = computed(() => import.meta.env.DEV)
           </div>
         </div>
       </div>
+
 
       <!-- Description Section -->
       <div class="mb-8 text-center">
@@ -274,7 +277,7 @@ const isDevelopmentMode = computed(() => import.meta.env.DEV)
     <JoinGroupByCode
       v-if="showJoinByCodeModal"
       @close="showJoinByCodeModal = false"
-      @joined="showJoinByCodeModal = false"
+      @joined="handleGroupJoined"
     />
   </div>
 </template>

@@ -587,8 +587,42 @@ async function saveAvatar(): Promise<void> {
     isEditing.value = false
     fileToUpload.value = null // Clear file after successful save
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
-    showMessage(`Error saving avatar: ${errorMessage}`, 'error')
+    console.error('❌ Avatar save error:', error)
+
+    // 🆕 Better error handling with user-friendly messages
+    let errorMessage = 'Unknown error occurred'
+
+    if (error instanceof Error) {
+      errorMessage = error.message
+
+      // Check for specific backend errors
+      if (error.message.includes('400') || error.message.includes('Bad Request')) {
+        errorMessage = 'Backend API is not ready yet. Avatar saved locally but may not persist on server.'
+      } else if (error.message.includes('401') || error.message.includes('Unauthorized')) {
+        errorMessage = 'Authentication failed. Please login again.'
+      } else if (error.message.includes('403') || error.message.includes('Forbidden')) {
+        errorMessage = 'Access denied. Please check your permissions.'
+      } else if (error.message.includes('404') || error.message.includes('Not Found')) {
+        errorMessage = 'Avatar endpoint not found. Backend may not be ready yet.'
+      } else if (error.message.includes('500') || error.message.includes('Internal Server Error')) {
+        errorMessage = 'Server error. Avatar saved locally but may not persist on server.'
+      }
+    }
+
+    // 🆕 Show warning instead of error for backend issues
+    const isBackendIssue = errorMessage.includes('Backend') || errorMessage.includes('server')
+    showMessage(
+      isBackendIssue ? `⚠️ ${errorMessage}` : `Error saving avatar: ${errorMessage}`,
+      isBackendIssue ? 'warning' : 'error'
+    )
+
+    // 🆕 Still update local state even if backend fails
+    if (selectedAvatar.value) {
+      console.log('🔄 Updating local state despite backend error...')
+      authStore.setAvatar(selectedAvatar.value)
+      isEditing.value = false
+      fileToUpload.value = null
+    }
   } finally {
     isSaving.value = false
   }

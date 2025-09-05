@@ -41,16 +41,31 @@ export interface MemberResponse {
 }
 
 export interface GroupResourceDTO {
-  id: string
+  id: string | number
   groupId: string
   title: string
   description: string
-  fileUrl: string
-  fileType: string
-  fileSize: number
-  uploaderId: string
-  uploaderName: string
+  fileUrl: string | null
+  mimeType?: string | null
+  fileType?: string | null
+  fileSize: number | null
+  uploaderId: string | number
+  uploaderName?: string
   createdAt: string
+  updatedAt?: string
+  // เพิ่มฟิลด์สำหรับ Share Study Content
+  contentSource?: 'file' | 'study_content'
+  contentId?: string | null
+  originalContentType?: string | null
+  contentData?: any
+  contentTitle?: string
+  contentType?: 'QUIZ' | 'FLASHCARD' | 'NOTE'
+  contentVersion?: number
+  subject?: string | null
+  difficulty?: string | null
+  isSaved?: boolean
+  deletedAt?: string | null
+  tags?: string[]
 }
 
 export interface CreateResourcePayload {
@@ -184,7 +199,7 @@ export default {
   deleteGroup(groupId: string) {
     try {
       console.log('🚀 Deleting group:', groupId)
-      return api.delete<void>(`/api/groups/${groupId}`).then(() => {
+      return api.delete<void>(`/groups/${groupId}`).then(() => {
         console.log('✅ Group deleted successfully')
       })
     } catch (error: any) {
@@ -297,14 +312,39 @@ export default {
     }
   },
 
-  leaveGroup(groupId: string) {
+  async leaveGroup(groupId: string, confirm: boolean = false) {
     try {
-      console.log('🚀 Leaving group:', groupId)
-      return api.post<void>(`/api/groups/${groupId}/leave`).then(() => {
-        console.log('✅ Left group successfully')
-      })
+      console.log('🚀 Leaving group:', groupId, 'confirm:', confirm)
+
+      // First attempt without confirmation to trigger 428 response
+      if (!confirm) {
+        try {
+          await api.post<void>(`/groups/${groupId}/leave`)
+          console.log('✅ Left group successfully')
+          return
+        } catch (error: any) {
+          if (error.response?.status === 428) {
+            // Confirmation required - this is expected behavior
+            throw new Error('CONFIRMATION_REQUIRED')
+          }
+          throw error
+        }
+      }
+
+      // Second attempt with confirmation
+      await api.post<void>(`/groups/${groupId}/leave?confirm=true`)
+      console.log('✅ Left group successfully with confirmation')
     } catch (error: any) {
       console.error('❌ Backend API failed:', error.response?.status, error.message)
+
+      // Handle specific error cases according to API documentation
+      if (error.response?.status === 404) {
+        throw new Error('USER_NOT_MEMBER')
+      } else if (error.response?.status === 400) {
+        throw new Error('OWNER_CANNOT_LEAVE_ALONE')
+      } else if (error.response?.status === 401) {
+        throw new Error('AUTHENTICATION_REQUIRED')
+      }
 
       // Mock response for development
       if (import.meta.env.DEV) {
@@ -380,10 +420,19 @@ export default {
   },
 
   // Resource Management
-  getGroupResources(groupId: string) {
+  getGroupResources(groupId: string, params?: { search?: string; type?: string; page?: number; size?: number }) {
     try {
-      console.log('🚀 Fetching group resources for:', groupId)
-      return api.get<GroupResourceDTO[]>(`/groups/${groupId}/resources`).then((res) => {
+      console.log('🚀 Fetching group resources for:', groupId, 'with params:', params)
+
+      const queryParams = new URLSearchParams()
+      if (params?.search) queryParams.append('search', params.search)
+      if (params?.type) queryParams.append('type', params.type)
+      if (params?.page !== undefined) queryParams.append('page', params.page.toString())
+      if (params?.size !== undefined) queryParams.append('size', params.size.toString())
+
+      const url = `/groups/${groupId}/resources${queryParams.toString() ? `?${queryParams.toString()}` : ''}`
+
+      return api.get<GroupResourceDTO[]>(url).then((res) => {
         console.log('✅ Group resources fetched successfully:', res.data)
         return res.data
       })
@@ -407,6 +456,45 @@ export default {
         },
       }).then((res) => {
         console.log('✅ Resource uploaded successfully:', res.data)
+        return res.data
+      })
+    } catch (error: any) {
+      console.error('❌ Backend API failed:', error.response?.status, error.message)
+      throw error
+    }
+  },
+
+  // Share Study Content
+  shareStudyContent(groupId: string, payload: { contentId: string; title: string; description?: string; tags?: string[] }) {
+    try {
+      console.log('🚀 Sharing study content to group:', groupId, 'with payload:', payload)
+
+      return api.post<GroupResourceDTO>(`/groups/${groupId}/resources/share-content`, payload).then((res) => {
+        console.log('✅ Study content shared successfully:', res.data)
+        return res.data
+      })
+    } catch (error: any) {
+      console.error('❌ Backend API failed:', error.response?.status, error.message)
+
+      // Handle specific error cases
+      if (error.response?.status === 400) {
+        throw new Error('INVALID_CONTENT_ID_FORMAT')
+      } else if (error.response?.status === 403) {
+        throw new Error('ACCESS_DENIED')
+      } else if (error.response?.status === 404) {
+        throw new Error('CONTENT_NOT_FOUND')
+      }
+
+      throw error
+    }
+  },
+
+  // Get individual resource
+  getGroupResource(groupId: string, resourceId: string) {
+    try {
+      console.log('🚀 Fetching group resource:', groupId, 'resource:', resourceId)
+      return api.get<GroupResourceDTO>(`/groups/${groupId}/resources/${resourceId}`).then((res) => {
+        console.log('✅ Group resource fetched successfully:', res.data)
         return res.data
       })
     } catch (error: any) {

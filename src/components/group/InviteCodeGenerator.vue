@@ -341,22 +341,6 @@ const fetchExistingInviteCode = async () => {
       <div class="p-6 space-y-6">
         <!-- Current Invite Code -->
         <div class="animate-fadeIn">
-          <!-- Debug Info -->
-          <div class="debug-info" style="background: #f0f0f0; padding: 10px; margin: 10px 0; font-size: 12px;">
-            <strong>Debug Info:</strong><br>
-            Props Group ID: {{ props.groupId }}<br>
-            Store Group ID: {{ groupStore.currentGroupId }}<br>
-            Computed Group ID: {{ currentGroupId }}<br>
-            Has Current Group: {{ hasCurrentGroup }}<br>
-            Generated Code: {{ generatedCode || 'None' }}
-            <br><br>
-            <button @click="debugAuth" class="px-2 py-1 bg-blue-500 text-white text-xs rounded">
-              Debug Auth
-            </button>
-          </div>
-
-          <!-- Token Debugger Component -->
-          <TokenDebugger />
 
           <label class="block text-sm font-medium text-gray-700 mb-3">Current Invite Code</label>
 
@@ -425,48 +409,6 @@ const fetchExistingInviteCode = async () => {
             <p class="text-red-700 text-sm">{{ errorMessage }}</p>
           </div>
 
-          <!-- Invite Link -->
-          <div class="mt-4">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Invite Link</label>
-            <div class="flex items-center gap-3">
-              <input
-                :value="inviteLink"
-                type="text"
-                readonly
-                class="flex-1 px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-sm transition-all duration-200 hover:border-gray-300"
-              />
-              <button
-                @click="copyInviteLink"
-                class="relative px-4 py-2 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg transition-all duration-200 transform hover:scale-105 active:scale-95 text-sm"
-                title="Copy invite link"
-              >
-                <transition name="fade" mode="out-in">
-                  <svg
-                    v-if="!linkCopied"
-                    class="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-                    />
-                  </svg>
-                  <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                </transition>
-              </button>
-            </div>
-          </div>
         </div>
 
         <!-- Generate New Code -->
@@ -549,9 +491,9 @@ const fetchExistingInviteCode = async () => {
             class="w-full px-4 py-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-all duration-300 flex items-center justify-center gap-2 transform hover:scale-[1.02] active:scale-[0.98] hover:shadow-lg"
           >
             <!-- Debug Info -->
-            <div class="text-xs text-white/80 mb-1">
+            <!-- <div class="text-xs text-white/80 mb-1">
               isGenerating: {{ isGenerating }}, Code: {{ generatedCode || 'None' }}
-            </div>
+            </div> -->
 
             <svg v-if="isGenerating" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
               <circle

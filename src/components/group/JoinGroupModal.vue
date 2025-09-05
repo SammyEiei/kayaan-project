@@ -1,5 +1,13 @@
 <template>
-  <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+  <!-- Success Animation -->
+  <JoinSuccessAnimation
+    v-if="showSuccessAnimation"
+    :message="`Welcome to ${joinedGroupName}!`"
+    @complete="handleAnimationComplete"
+  />
+
+  <!-- Main Modal -->
+  <div v-else class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
     <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4">
       <!-- Header -->
       <div class="flex items-center justify-between mb-4">
@@ -64,7 +72,9 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import StudyGroupService from '@/services/StudyGroupService'
+import JoinSuccessAnimation from './JoinSuccessAnimation.vue'
 
 interface Props {
   groupId?: number // Optional, for direct join
@@ -85,6 +95,9 @@ const isJoining = ref<boolean>(false)
 const message = ref<string>('')
 const messageType = ref<'success' | 'error'>('success')
 const showError = ref<boolean>(false)
+const showSuccessAnimation = ref<boolean>(false)
+const joinedGroupName = ref<string>('')
+const joinedGroupId = ref<string>('')
 
 // ตรวจสอบว่า invite code ถูกต้องหรือไม่
 const isValidInviteCode = computed(() => {
@@ -107,16 +120,12 @@ const joinGroup = async () => {
 
     const group = await studyGroupService.joinGroup(inviteCode.value.toUpperCase())
 
-    message.value = `Successfully joined "${group.name}"!`
-    messageType.value = 'success'
+    joinedGroupName.value = group.name
+    joinedGroupId.value = String(group.id)
+    showSuccessAnimation.value = true
 
     // Emit event to parent
     emit('joined', group)
-
-    // Close modal after 2 seconds
-    setTimeout(() => {
-      emit('close')
-    }, 2000)
 
   } catch (error: unknown) {
     console.error('Failed to join group:', error)
@@ -160,6 +169,17 @@ const joinGroup = async () => {
     showError.value = true
   } finally {
     isJoining.value = false
+  }
+}
+
+const router = useRouter()
+
+const handleAnimationComplete = () => {
+  showSuccessAnimation.value = false
+  emit('close')
+  // Navigate to the joined group if we have the ID
+  if (joinedGroupId.value) {
+    router.push(`/study-groups/${joinedGroupId.value}`)
   }
 }
 

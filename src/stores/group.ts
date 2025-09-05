@@ -64,6 +64,18 @@ export const useGroupStore = defineStore('group', () => {
   const memberCount = computed(() => groupMembers.value.length)
   const viewerRole = computed(() => currentGroup.value?.userRole || 'member')
 
+  // Function to update member count in groups list
+  const updateGroupMemberCount = (groupId: string, newCount: number) => {
+    const groupIndex = groups.value.findIndex(g => g.id === groupId)
+    if (groupIndex !== -1) {
+      groups.value[groupIndex].memberCount = newCount
+    }
+    // Also update current group if it matches
+    if (currentGroup.value?.id === groupId) {
+      currentGroup.value.memberCount = newCount
+    }
+  }
+
   // Actions
   const setCurrentGroup = (group: StudyGroup | null) => {
     currentGroup.value = group;
@@ -80,19 +92,33 @@ export const useGroupStore = defineStore('group', () => {
       const response = await GroupService.getMyGroups()
 
       // Transform DTO to StudyGroup interface using mapGroupDto
-      groups.value = response.map((groupDto) => {
-        const mapped = mapGroupDto(groupDto as unknown as Record<string, unknown>, auth.currentUserId ?? auth.user?.id ?? '')
+      const transformedGroups = await Promise.all(response.map(async (groupDto) => {
+        const userId = auth.currentUserId ?? auth.user?.id ?? ''
+        const mapped = mapGroupDto(groupDto as unknown as Record<string, unknown>, userId)
+
+        // Fetch actual member count for each group
+        let actualMemberCount = (groupDto as unknown as Record<string, unknown>).membersCount as number || 1
+        try {
+          const membersResponse = await GroupService.getGroupMembers(groupDto.id)
+          actualMemberCount = membersResponse.length
+        } catch (memberError) {
+          console.warn(`Failed to fetch members for group ${groupDto.id}:`, memberError)
+          // Keep the fallback value if member fetch fails
+        }
+
         return {
           ...mapped,
           inviteLinkToken: Math.random().toString(36).substring(7),
           inviteCode: generateInviteCode(),
-          memberCount: (groupDto as unknown as Record<string, unknown>).membersCount as number || 0,
-          userRole: mapped.isOwner ? 'admin' : 'member',
+          memberCount: actualMemberCount,
+          userRole: (mapped.isOwner ? 'admin' : 'member') as 'admin' | 'member',
           isPrivate: false, // Default value
           maxMembers: undefined,
           tags: []
         }
-      })
+      }))
+
+      groups.value = transformedGroups
     } catch (err) {
       error.value = 'Failed to fetch groups'
       console.error('fetchGroups error:', err)
@@ -184,7 +210,7 @@ export const useGroupStore = defineStore('group', () => {
         inviteLinkToken: Math.random().toString(36).substring(7),
         inviteCode: generateInviteCode(),
         createdAt: groupResponse.createdAt,
-        memberCount: groupResponse.membersCount || 0,
+        memberCount: membersResponse.length, // Use actual member count from members array
         isOwner: groupResponse.isOwner || false,
         userRole: groupResponse.userRole || 'member',
         isPrivate: false, // Default value
@@ -207,21 +233,27 @@ export const useGroupStore = defineStore('group', () => {
 
       // Transform resources
       groupResources.value = resourcesResponse.map((resource) => ({
-        id: resource.id,
+        id: String(resource.id),
         groupId: resource.groupId,
         title: resource.title,
         description: resource.description,
         fileUrl: resource.fileUrl,
-        fileType: resource.fileType,
+        fileType: resource.fileType || resource.mimeType || null,
         fileSize: resource.fileSize,
-        uploaderId: resource.uploaderId,
-        uploaderName: resource.uploaderName,
+        uploaderId: String(resource.uploaderId),
+        uploaderName: resource.uploaderName || 'Unknown',
         createdAt: resource.createdAt,
         comments: [],
         reactions: [],
-        type: 'file' as const, // Default type
+        type: resource.contentSource === 'study_content' ? 'imported_content' as const : 'file' as const,
         isPublic: true, // Default value
-        tags: []
+        tags: resource.tags || [],
+        // เพิ่มฟิลด์สำหรับ Share Study Content
+        contentSource: resource.contentSource,
+        contentId: resource.contentId,
+        originalContentType: resource.originalContentType,
+        contentData: resource.contentData,
+        updatedAt: resource.updatedAt
       }))
 
       return group
@@ -234,20 +266,39 @@ export const useGroupStore = defineStore('group', () => {
     }
   }
 
-  const leaveGroup = async (groupId: string) => {
+  const leaveGroup = async (groupId: string, confirm: boolean = false) => {
     loading.value = true
     error.value = null
     try {
-      await GroupService.leaveGroup(groupId)
+      await GroupService.leaveGroup(groupId, confirm)
 
-      // Remove from local state
+      // Remove from local state - SRS-163: Remove member's access to group posts and files
       groups.value = groups.value.filter((g) => g.id !== groupId)
       if (currentGroup.value?.id === groupId) {
         currentGroup.value = null
         groupMembers.value = []
         groupResources.value = []
+        groupPosts.value = []
+        resourceComments.value = []
+        resourceReactions.value = []
       }
-    } catch (err) {
+
+      // Clear any cached group data to ensure no access remains
+      console.log('✅ Group access revoked - all local data cleared')
+    } catch (err: unknown) {
+      if (err instanceof Error && err.message === 'CONFIRMATION_REQUIRED') {
+        // This is expected - user needs to confirm
+        throw new Error('CONFIRMATION_REQUIRED')
+      } else if (err instanceof Error && err.message === 'USER_NOT_MEMBER') {
+        error.value = 'You are not a member of this group'
+        throw new Error('USER_NOT_MEMBER')
+      } else if (err instanceof Error && err.message === 'OWNER_CANNOT_LEAVE_ALONE') {
+        error.value = 'Owner cannot leave the group if they are the only member. Please delete the group instead.'
+        throw new Error('OWNER_CANNOT_LEAVE_ALONE')
+      } else if (err instanceof Error && err.message === 'AUTHENTICATION_REQUIRED') {
+        error.value = 'Authentication required. Please log in again.'
+        throw new Error('AUTHENTICATION_REQUIRED')
+      }
       error.value = 'Failed to leave group'
       console.error('leaveGroup error:', err)
       throw err
@@ -315,9 +366,9 @@ export const useGroupStore = defineStore('group', () => {
       // Remove from local state
       groupMembers.value = groupMembers.value.filter(m => m.userId !== userId)
 
-      // Update member count
+      // Update member count in both current group and groups list
       if (currentGroup.value) {
-        currentGroup.value.memberCount = groupMembers.value.length
+        updateGroupMemberCount(currentGroup.value.id, groupMembers.value.length)
       }
     } catch (err) {
       error.value = 'Failed to remove member'
@@ -337,7 +388,7 @@ export const useGroupStore = defineStore('group', () => {
     error.value = null
     try {
       await GroupService.inviteMember(currentGroup.value.id, {
-        email: inviteData.email,
+        email: inviteData.email || '',
         role: inviteData.role || 'member',
       })
     } catch (err) {
@@ -398,7 +449,7 @@ export const useGroupStore = defineStore('group', () => {
       console.log('🔍 Group store received response:', response)
 
       // Handle both inviteCode and token fields from backend
-      const inviteCode = response.inviteCode || (response as any).token
+      const inviteCode = response.inviteCode || (response as { token?: string }).token
 
       if (!inviteCode) {
         throw new Error('No invite code received from backend')
@@ -430,6 +481,16 @@ export const useGroupStore = defineStore('group', () => {
     try {
       const response = await GroupService.joinByCode(request)
 
+      // Fetch actual member count for the joined group
+      let actualMemberCount = response.membersCount || 0
+      try {
+        const membersResponse = await GroupService.getGroupMembers(response.id)
+        actualMemberCount = membersResponse.length
+      } catch (memberError) {
+        console.warn(`Failed to fetch members for joined group ${response.id}:`, memberError)
+        // Keep the fallback value if member fetch fails
+      }
+
       // Transform and add to groups list
       const newGroup: StudyGroup = {
         id: response.id,
@@ -439,7 +500,7 @@ export const useGroupStore = defineStore('group', () => {
         inviteLinkToken: Math.random().toString(36).substring(7),
         inviteCode: generateInviteCode(),
         createdAt: response.createdAt,
-        memberCount: response.membersCount || 0,
+        memberCount: actualMemberCount,
         isOwner: false,
         userRole: 'member',
         isPrivate: false, // Default value
@@ -466,6 +527,10 @@ export const useGroupStore = defineStore('group', () => {
     loading.value = true
     error.value = null
     try {
+      if (!resourceData.file) {
+        throw new Error('File is required')
+      }
+
       const response = await GroupService.uploadResource(currentGroup.value.id, {
         title: resourceData.title,
         description: resourceData.description,
@@ -474,21 +539,27 @@ export const useGroupStore = defineStore('group', () => {
 
       // Transform and add to resources list
       const newResource: GroupResource = {
-        id: response.id,
+        id: String(response.id),
         groupId: response.groupId,
         title: response.title,
         description: response.description,
         fileUrl: response.fileUrl,
-        fileType: response.fileType,
+        fileType: response.fileType || response.mimeType || null,
         fileSize: response.fileSize,
-        uploaderId: response.uploaderId,
-        uploaderName: response.uploaderName,
+        uploaderId: String(response.uploaderId),
+        uploaderName: response.uploaderName || 'Unknown',
         createdAt: response.createdAt,
         comments: [],
         reactions: [],
-        type: 'file' as const, // Default type
+        type: response.contentSource === 'study_content' ? 'imported_content' as const : 'file' as const,
         isPublic: true, // Default value
-        tags: []
+        tags: response.tags || [],
+        // เพิ่มฟิลด์สำหรับ Share Study Content
+        contentSource: response.contentSource,
+        contentId: response.contentId,
+        originalContentType: response.originalContentType,
+        contentData: response.contentData,
+        updatedAt: response.updatedAt
       }
 
       groupResources.value.push(newResource)
@@ -510,6 +581,76 @@ export const useGroupStore = defineStore('group', () => {
     } catch (err) {
       error.value = 'Failed to upload resource'
       console.error('uploadResource error:', err)
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // Share Study Content
+  const shareStudyContent = async (payload: { contentId: string; title: string; description?: string; tags?: string[] }) => {
+    if (!currentGroup.value) {
+      throw new Error('No current group selected')
+    }
+
+    loading.value = true
+    error.value = null
+    try {
+      const response = await GroupService.shareStudyContent(currentGroup.value.id, payload)
+
+      // Transform and add to resources list
+      const newResource: GroupResource = {
+        id: String(response.id),
+        groupId: response.groupId,
+        title: response.title,
+        description: response.description,
+        fileUrl: response.fileUrl,
+        fileType: response.fileType || response.mimeType || null,
+        fileSize: response.fileSize,
+        uploaderId: String(response.uploaderId),
+        uploaderName: response.uploaderName || 'Unknown',
+        createdAt: response.createdAt,
+        comments: [],
+        reactions: [],
+        type: 'imported_content' as const,
+        isPublic: true,
+        tags: response.tags || [],
+        updatedAt: response.updatedAt,
+        // เพิ่มฟิลด์สำหรับ Share Study Content
+        contentSource: response.contentSource,
+        contentId: response.contentId,
+        originalContentType: response.originalContentType,
+        contentData: response.contentData
+      }
+
+      groupResources.value.push(newResource)
+
+      // Send notification to group members about new shared content
+      const notificationStore = useNotificationStore()
+
+      if (currentGroup.value) {
+        notificationStore.addNotification({
+          type: 'info',
+          title: 'Study Content Shared',
+          message: `"${payload.title}" has been shared in ${currentGroup.value.name}`,
+          groupId: currentGroup.value.id,
+          resourceId: newResource.id
+        })
+      }
+
+      return newResource
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+      if (errorMessage === 'INVALID_CONTENT_ID_FORMAT') {
+        error.value = 'Invalid content ID format'
+      } else if (errorMessage === 'ACCESS_DENIED') {
+        error.value = 'Access denied: You are not a member of this group or content does not belong to you'
+      } else if (errorMessage === 'CONTENT_NOT_FOUND') {
+        error.value = 'Content not found'
+      } else {
+        error.value = 'Failed to share study content'
+      }
+      console.error('shareStudyContent error:', err)
       throw err
     } finally {
       loading.value = false
@@ -548,7 +689,7 @@ export const useGroupStore = defineStore('group', () => {
       // Mock comment
       const newComment: ResourceComment = {
         id: Date.now().toString(),
-        resourceId: commentData.resourceId,
+        resourceId: commentData.resourceId || '',
         userId: 'current-user',
         username: 'Current User',
         content: commentData.content,
@@ -589,9 +730,9 @@ export const useGroupStore = defineStore('group', () => {
       // Mock reaction
       const newReaction: ResourceReaction = {
         id: Date.now().toString(),
-        resourceId: reactionData.resourceId,
+        resourceId: reactionData.resourceId || '',
         userId: 'current-user',
-        reactionType: reactionData.reactionType,
+        reactionType: (reactionData.reactionType as 'like' | 'dislike' | 'heart' | 'star') || 'like',
         createdAt: new Date().toISOString(),
       }
       resourceReactions.value.push(newReaction)
@@ -752,7 +893,7 @@ export const useGroupStore = defineStore('group', () => {
       // Create new comment
       const newComment: PostComment = {
         id: Date.now().toString(),
-        postId: commentData.postId,
+        postId: commentData.postId || '',
         authorId: 'current-user',
         authorName: 'Current User',
         authorAvatar: undefined,
@@ -837,7 +978,7 @@ export const useGroupStore = defineStore('group', () => {
       }
 
       // Apply filters
-      if (request.filters.query) {
+      if (request.filters?.query) {
         const query = request.filters.query.toLowerCase()
         results = results.filter(item => {
           if ('content' in item) {
@@ -853,22 +994,22 @@ export const useGroupStore = defineStore('group', () => {
         })
       }
 
-      if (request.filters.type && request.filters.type !== 'all') {
+      if (request.filters?.type && request.filters.type !== 'all') {
         results = results.filter(item => {
           if ('contentType' in item) {
             // GroupPost
-            return item.contentType === request.filters.type
+            return item.contentType === request.filters?.type
           } else {
             // GroupResource
-            return item.type === request.filters.type
+            return item.type === request.filters?.type
           }
         })
       }
 
       // Sort results
-      if (request.filters.sortBy === 'recent') {
+      if (request.filters?.sortBy === 'recent') {
         results.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      } else if (request.filters.sortBy === 'popular') {
+      } else if (request.filters?.sortBy === 'popular') {
         results.sort((a, b) => {
           const aLikes = 'likes' in a ? a.likes : 0
           const bLikes = 'likes' in b ? b.likes : 0
@@ -903,8 +1044,8 @@ export const useGroupStore = defineStore('group', () => {
       if (currentGroup.value && currentGroup.value.id === groupId) {
         currentGroup.value = {
           ...currentGroup.value,
-          isPrivate: settings.isPrivate,
-          maxMembers: settings.maxMembers
+          isPrivate: settings.isPrivate ?? currentGroup.value.isPrivate,
+          maxMembers: settings.maxMembers ?? currentGroup.value.maxMembers
         }
       }
 
@@ -989,12 +1130,14 @@ export const useGroupStore = defineStore('group', () => {
     deleteGroup,
     updateMemberRole,
     removeMember,
+    updateGroupMemberCount,
     inviteMember,
     getGroupInviteCode,
     getExistingInviteCode,
     generateNewInviteCode,
     joinGroupByCode,
     uploadResource,
+    shareStudyContent,
     deleteResource,
     addComment,
     addReaction,

@@ -66,10 +66,56 @@ onMounted(async () => {
 
 const handleLeaveGroup = async () => {
   try {
-    await groupStore.leaveGroup(groupId.value)
+    // First attempt without confirmation
+    await groupStore.leaveGroup(groupId.value, false)
     router.push('/study-groups')
-  } catch (error) {
+  } catch (error: any) {
+    if (error.message === 'CONFIRMATION_REQUIRED') {
+      // Show confirmation modal - this is handled by the modal component
+      console.log('Confirmation required for leaving group')
+      return
+    } else if (error.message === 'OWNER_CANNOT_LEAVE_ALONE') {
+      // Show error message and suggest delete group instead
+      alert('Owner cannot leave the group if they are the only member. Please delete the group instead.')
+      return
+    } else if (error.message === 'USER_NOT_MEMBER') {
+      alert('You are not a member of this group.')
+      router.push('/study-groups')
+      return
+    } else if (error.message === 'AUTHENTICATION_REQUIRED') {
+      alert('Authentication required. Please log in again.')
+      // TODO: Redirect to login page
+      return
+    }
     console.error('Failed to leave group:', error)
+    alert('Failed to leave group. Please try again.')
+  }
+}
+
+const handleConfirmLeaveGroup = async () => {
+  try {
+    // Second attempt with confirmation
+    await groupStore.leaveGroup(groupId.value, true)
+    showLeaveModal.value = false
+    router.push('/study-groups')
+  } catch (error: any) {
+    if (error.message === 'OWNER_CANNOT_LEAVE_ALONE') {
+      alert('Owner cannot leave the group if they are the only member. Please delete the group instead.')
+      showLeaveModal.value = false
+      return
+    } else if (error.message === 'USER_NOT_MEMBER') {
+      alert('You are not a member of this group.')
+      showLeaveModal.value = false
+      router.push('/study-groups')
+      return
+    } else if (error.message === 'AUTHENTICATION_REQUIRED') {
+      alert('Authentication required. Please log in again.')
+      showLeaveModal.value = false
+      // TODO: Redirect to login page
+      return
+    }
+    console.error('Failed to leave group with confirmation:', error)
+    alert('Failed to leave group. Please try again.')
   }
 }
 
@@ -167,7 +213,7 @@ const handleBackToDashboard = () => {
         <!-- Overview Tab -->
         <div v-if="activeTab === 'overview'" class="space-y-8">
           <!-- Welcome Section -->
-          <div class="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl p-8 text-white shadow-lg">
+          <!-- <div class="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl p-8 text-white shadow-lg">
             <div class="flex items-center gap-4 mb-4">
               <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
                 <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -193,7 +239,7 @@ const handleBackToDashboard = () => {
                 Created {{ new Date(currentGroup?.createdAt || '').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) }}
               </span>
             </div>
-          </div>
+          </div> -->
 
           <!-- Statistics Cards -->
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -478,7 +524,10 @@ const handleBackToDashboard = () => {
 
         <!-- Security Tab -->
         <div v-else-if="activeTab === 'security'">
-          <GroupSecurity :groupId="groupId" />
+          <GroupSecurity
+            :groupId="groupId"
+            @leave-group="showLeaveModal = true"
+          />
         </div>
 
         <!-- Invite Tab -->
@@ -493,7 +542,7 @@ const handleBackToDashboard = () => {
       v-if="showLeaveModal"
       :group="currentGroup"
       @close="showLeaveModal = false"
-      @leave="handleLeaveGroup"
+      @leave="handleConfirmLeaveGroup"
     />
     <DeleteGroupModal
       v-if="showDeleteModal"

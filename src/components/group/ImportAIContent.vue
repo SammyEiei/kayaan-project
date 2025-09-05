@@ -1,21 +1,25 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useGroupStore } from '@/stores/group'
-import type { UploadResourceRequest } from '@/types/group'
+import { useAIContentStore } from '@/stores/aiContent'
+import type { AIGeneratedContent } from '@/service/AIContentService'
 
 interface Props {
   groupId: string
 }
 
-const props = defineProps<Props>()
+defineProps<Props>()
+const router = useRouter()
 const groupStore = useGroupStore()
+const aiStore = useAIContentStore()
 
 const emit = defineEmits<{
   close: []
   imported: []
 }>()
 
-const userAIContent = ref<any[]>([])
+const userAIContent = ref<AIGeneratedContent[]>([])
 const selectedContent = ref<string[]>([])
 const isImporting = ref(false)
 const isLoading = ref(false)
@@ -51,14 +55,19 @@ const mockAIContent = [
 onMounted(async () => {
   isLoading.value = true
   try {
-    // TODO: Replace with actual API call
-    // const response = await aiContentService.getUserContent()
-    // userAIContent.value = response.data
+    // Load AI content from store
+    await aiStore.loadSavedContent()
+    userAIContent.value = aiStore.getSavedContent
 
-    // Mock data
-    userAIContent.value = mockAIContent
+    // If no content in store, use mock data for demo
+    if (userAIContent.value.length === 0) {
+      console.log('No AI content found, using mock data for demo')
+      userAIContent.value = mockAIContent as AIGeneratedContent[]
+    }
   } catch (error) {
     console.error('Failed to load AI content:', error)
+    // Fallback to mock data
+    userAIContent.value = mockAIContent as AIGeneratedContent[]
   } finally {
     isLoading.value = false
   }
@@ -67,8 +76,10 @@ onMounted(async () => {
 const getContentTypeIcon = (type: string) => {
   switch (type) {
     case 'summary':
+    case 'note':
       return 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'
     case 'flashcards':
+    case 'flashcard':
       return 'M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2'
     case 'quiz':
       return 'M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
@@ -80,8 +91,10 @@ const getContentTypeIcon = (type: string) => {
 const getContentTypeColor = (type: string) => {
   switch (type) {
     case 'summary':
+    case 'note':
       return 'from-blue-500 to-indigo-600'
     case 'flashcards':
+    case 'flashcard':
       return 'from-green-500 to-emerald-600'
     case 'quiz':
       return 'from-purple-500 to-pink-600'
@@ -93,8 +106,10 @@ const getContentTypeColor = (type: string) => {
 const getContentTypeLabel = (type: string) => {
   switch (type) {
     case 'summary':
-      return 'Summary'
+    case 'note':
+      return 'Note'
     case 'flashcards':
+    case 'flashcard':
       return 'Flashcards'
     case 'quiz':
       return 'Quiz'
@@ -121,7 +136,7 @@ const toggleContentSelection = (contentId: string) => {
 }
 
 const selectAll = () => {
-  selectedContent.value = userAIContent.value.map((content) => content.id)
+  selectedContent.value = userAIContent.value.map((content) => String(content.id))
 }
 
 const deselectAll = () => {
@@ -134,15 +149,15 @@ const importSelectedContent = async () => {
   isImporting.value = true
   try {
     for (const contentId of selectedContent.value) {
-      const content = userAIContent.value.find((c) => c.id === contentId)
+      const content = userAIContent.value.find((c) => String(c.id) === contentId)
       if (content) {
-        const resourceData: UploadResourceRequest = {
-          groupId: props.groupId,
-          type: 'imported_content',
+        // Use Share Study Content API instead of upload resource
+        await groupStore.shareStudyContent({
+          contentId: `ai-${content.id}`, // AI content ID format
           title: content.title,
-          contentText: content.content,
-        }
-        await groupStore.uploadResource(resourceData)
+          description: content.content.substring(0, 200) + (content.content.length > 200 ? '...' : ''),
+          tags: [content.outputFormat]
+        })
       }
     }
 
@@ -157,6 +172,16 @@ const importSelectedContent = async () => {
 
 const closeModal = () => {
   emit('close')
+}
+
+const goToAIContent = () => {
+  emit('close')
+  router.push('/ai-content-generator?tab=saved')
+}
+
+const goToAIGeneration = () => {
+  emit('close')
+  router.push('/ai-content-generator?tab=chat')
 }
 </script>
 
@@ -178,7 +203,21 @@ const closeModal = () => {
               />
             </svg>
           </div>
-          <h3 class="text-lg font-bold text-gray-900">Import AI Content</h3>
+          <div>
+            <h3 class="text-lg font-bold text-gray-900">Import AI Content</h3>
+            <p class="text-sm text-gray-500">Select content from your AI-generated library</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button
+            @click="goToAIContent"
+            class="px-3 py-2 text-sm bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg transition-colors flex items-center gap-2"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-5l-2-2H5a2 2 0 00-2 2z" />
+            </svg>
+            View All Content
+          </button>
         </div>
         <button
           @click="closeModal"
@@ -251,9 +290,29 @@ const closeModal = () => {
             </svg>
           </div>
           <h3 class="text-lg font-medium text-gray-900 mb-2">No AI content found</h3>
-          <p class="text-gray-500">
+          <p class="text-gray-500 mb-4">
             Create some AI-generated content first to import it to your group
           </p>
+          <div class="flex gap-3 justify-center">
+            <button
+              @click="goToAIContent"
+              class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+              Go to My Content
+            </button>
+            <button
+              @click="goToAIGeneration"
+              class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+              </svg>
+              Create AI Content
+            </button>
+          </div>
         </div>
 
         <!-- Content List -->
@@ -263,24 +322,24 @@ const closeModal = () => {
             :key="content.id"
             class="flex items-start gap-4 p-4 border border-gray-200 rounded-xl hover:border-purple-300 transition-colors cursor-pointer"
             :class="
-              selectedContent.includes(content.id)
+              selectedContent.includes(String(content.id))
                 ? 'bg-purple-50 border-purple-300'
                 : 'hover:bg-gray-50'
             "
-            @click="toggleContentSelection(content.id)"
+            @click="toggleContentSelection(String(content.id))"
           >
             <!-- Checkbox -->
             <div class="flex-shrink-0 mt-1">
               <div
                 class="w-5 h-5 rounded border-2 flex items-center justify-center transition-colors"
                 :class="
-                  selectedContent.includes(content.id)
+                  selectedContent.includes(String(content.id))
                     ? 'bg-purple-500 border-purple-500'
                     : 'border-gray-300'
                 "
               >
                 <svg
-                  v-if="selectedContent.includes(content.id)"
+                  v-if="selectedContent.includes(String(content.id))"
                   class="w-3 h-3 text-white"
                   fill="currentColor"
                   viewBox="0 0 20 20"
@@ -299,14 +358,14 @@ const closeModal = () => {
               <div class="flex items-center gap-3 mb-2">
                 <div
                   class="w-8 h-8 rounded-lg flex items-center justify-center text-white"
-                  :class="`bg-gradient-to-r ${getContentTypeColor(content.type)}`"
+                  :class="`bg-gradient-to-r ${getContentTypeColor(content.outputFormat)}`"
                 >
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       stroke-linecap="round"
                       stroke-linejoin="round"
                       stroke-width="2"
-                      :d="getContentTypeIcon(content.type)"
+                      :d="getContentTypeIcon(content.outputFormat)"
                     />
                   </svg>
                 </div>
@@ -314,14 +373,14 @@ const closeModal = () => {
                   <h5 class="font-medium text-gray-900">{{ content.title }}</h5>
                   <div class="flex items-center gap-2 text-sm text-gray-500">
                     <span class="px-2 py-1 bg-gray-100 rounded-full text-xs">
-                      {{ getContentTypeLabel(content.type) }}
+                      {{ getContentTypeLabel(content.outputFormat) }}
                     </span>
                     <span>{{ formatDate(content.createdAt) }}</span>
                   </div>
                 </div>
               </div>
               <p class="text-sm text-gray-600 line-clamp-2">{{ content.content }}</p>
-              <p class="text-xs text-gray-400 mt-1">Source: {{ content.source }}</p>
+              <p class="text-xs text-gray-400 mt-1">Source: AI Generated</p>
             </div>
           </div>
         </div>
@@ -366,6 +425,7 @@ const closeModal = () => {
 .line-clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }

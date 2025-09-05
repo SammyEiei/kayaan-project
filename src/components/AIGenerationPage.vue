@@ -970,7 +970,7 @@ onMounted(() => {
     </div>
 
     <!-- Backend Status Warning for Manual Content Integration -->
-    <div v-if="showBackendIntegrationWarning" class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
+    <!-- <div v-if="showBackendIntegrationWarning" class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
       <div class="flex">
         <div class="flex-shrink-0">
           <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
@@ -985,7 +985,7 @@ onMounted(() => {
           </p>
         </div>
       </div>
-    </div>
+    </div> -->
 
     <!-- Development Mode Controls -->
     <!-- <div v-if="isDevelopment" class="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
