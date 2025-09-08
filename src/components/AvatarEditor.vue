@@ -375,10 +375,10 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { watchEffect } from 'vue'
-import { useAvatarStore } from '../service/AvatarService'
+// import { useAvatarStore } from '../service/AvatarService' // ไม่ใช้แล้ว เพราะใช้ DiceBear endpoint โดยตรง
 import { useAuthStore } from '../stores/auth'
 
-const avatarStore = useAvatarStore()
+// const avatarStore = useAvatarStore() // ไม่ใช้แล้ว เพราะใช้ DiceBear endpoint โดยตรง
 const authStore = useAuthStore()
 const avatarStyles = [
   'avataaars',
@@ -570,11 +570,8 @@ async function saveAvatar(): Promise<void> {
       // Use new signed URL upload flow
       await uploadAvatarFile(userId.value, fileToUpload.value, rotation.value)
     } else if (selectedAvatar.value) {
-      // Use updateAvatarUrl for URLs (generated avatars)
-      await avatarStore.updateAvatarUrl(userId.value, {
-        avatarUrl: selectedAvatar.value,
-        rotation: rotation.value,
-      })
+      // 🆕 Use DiceBear endpoint for generated avatars
+      await saveDiceBearAvatar(userId.value, selectedAvatar.value, rotation.value)
     }
 
     // 🆕 Refresh user info to ensure everything is synced
@@ -609,12 +606,8 @@ async function saveAvatar(): Promise<void> {
       }
     }
 
-    // 🆕 Show warning instead of error for backend issues
-    const isBackendIssue = errorMessage.includes('Backend') || errorMessage.includes('server')
-    showMessage(
-      isBackendIssue ? `⚠️ ${errorMessage}` : `Error saving avatar: ${errorMessage}`,
-      isBackendIssue ? 'warning' : 'error'
-    )
+    // 🆕 Show error message
+    showMessage(`Error saving avatar: ${errorMessage}`, 'error')
 
     // 🆕 Still update local state even if backend fails
     if (selectedAvatar.value) {
@@ -625,6 +618,37 @@ async function saveAvatar(): Promise<void> {
     }
   } finally {
     isSaving.value = false
+  }
+}
+
+// 🆕 New function for DiceBear avatar - ไม่ผ่าน Supabase storage
+async function saveDiceBearAvatar(userId: number, diceBearUrl: string, rotation: number): Promise<void> {
+  // Import the generateDiceBearAvatar function
+  const { generateDiceBearAvatar } = await import('../services/avatarService')
+
+  try {
+    console.log('🎨 Saving DiceBear avatar:', { userId, diceBearUrl, rotation })
+
+    // Extract style and seed from DiceBear URL
+    const urlParts = diceBearUrl.match(/api\.dicebear\.com\/7\.x\/([^\/]+)\/svg\?seed=([^&]+)/)
+    if (!urlParts) {
+      throw new Error('Invalid DiceBear URL format')
+    }
+
+    const style = urlParts[1]
+    const seed = urlParts[2]
+
+    console.log('🎨 DiceBear style:', style)
+    console.log('🌱 DiceBear seed:', seed)
+
+    // Use DiceBear endpoint - ไม่ผ่าน Supabase storage
+    const result = await generateDiceBearAvatar(userId, style, seed)
+
+    console.log('✅ DiceBear avatar saved:', result)
+
+  } catch (error) {
+    console.error('❌ DiceBear avatar save error:', error)
+    throw error
   }
 }
 

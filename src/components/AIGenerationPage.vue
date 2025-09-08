@@ -1519,7 +1519,7 @@ onMounted(() => {
           </button>
 
           <!-- Debug: Manual Test Navigation Button -->
-          <button
+          <!-- <button
             @click="testNavigation"
             class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2 mx-auto mt-3 text-sm"
           >
@@ -1528,7 +1528,7 @@ onMounted(() => {
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
             Test Navigation
-          </button>
+          </button> -->
         </div>
 
         <!-- Success Information -->

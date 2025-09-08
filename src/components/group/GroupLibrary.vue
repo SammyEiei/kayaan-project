@@ -5,19 +5,18 @@ import ResourceCard from '@/components/group/ResourceCard.vue'
 import UploadResourceForm from '@/components/group/UploadResourceForm.vue'
 import ImportAIContent from '@/components/group/ImportAIContent.vue'
 import ShareStudyContentModal from '@/components/group/ShareStudyContentModal.vue'
-import type { GroupResource } from '@/types/group'
-
 interface Props {
   groupId: string
 }
 
-const props = defineProps<Props>()
+defineProps<Props>()
 const groupStore = useGroupStore()
 
 const showUploadForm = ref(false)
 const showImportForm = ref(false)
 const showShareStudyContent = ref(false)
 const selectedResourceType = ref<'all' | 'note' | 'file' | 'link' | 'imported_content'>('all')
+const selectedFormat = ref<'all' | 'quiz' | 'note' | 'flashcard'>('all')
 const searchQuery = ref('')
 
 const resources = computed(() => {
@@ -26,6 +25,35 @@ const resources = computed(() => {
   // Filter by type
   if (selectedResourceType.value !== 'all') {
     filtered = filtered.filter((r) => r.type === selectedResourceType.value)
+  }
+
+  // Filter by format (study content type only)
+  if (selectedFormat.value !== 'all') {
+    filtered = filtered.filter((r) => {
+      // Only filter imported content (AI generated study materials)
+      if (r.type === 'imported_content') {
+        // Check if resource has contentType property
+        if (r.contentType) {
+          return r.contentType === selectedFormat.value
+        }
+        // Fallback: check if title or description contains format keywords
+        const title = r.title.toLowerCase()
+        const description = r.description?.toLowerCase() || ''
+        const searchText = `${title} ${description}`
+
+        switch (selectedFormat.value) {
+          case 'quiz':
+            return searchText.includes('quiz') || searchText.includes('question') || searchText.includes('test')
+          case 'note':
+            return searchText.includes('note') || searchText.includes('summary') || searchText.includes('study')
+          case 'flashcard':
+            return searchText.includes('flashcard') || searchText.includes('card') || searchText.includes('memory')
+          default:
+            return false
+        }
+      }
+      return false
+    })
   }
 
   // Filter by search query
@@ -45,6 +73,13 @@ const resourceTypeOptions = [
   { value: 'file', label: 'Files', icon: 'document' },
   { value: 'link', label: 'Links', icon: 'link' },
   { value: 'imported_content', label: 'AI Content', icon: 'sparkles' },
+]
+
+const formatOptions = [
+  { value: 'all', label: 'All Study Content', icon: 'List' },
+  { value: 'quiz', label: 'Quiz', icon: 'HelpCircle' },
+  { value: 'note', label: 'Study Notes', icon: 'FileText' },
+  { value: 'flashcard', label: 'Flashcards', icon: 'Cards' },
 ]
 
 const getResourceTypeIcon = (icon: string) => {
@@ -118,7 +153,7 @@ const getResourceTypeIcon = (icon: string) => {
 
     <!-- Filters -->
     <div class="bg-white/60 backdrop-blur-sm rounded-xl border border-white/50 p-4">
-      <div class="flex flex-col md:flex-row gap-4">
+      <div class="flex flex-col gap-4">
         <!-- Search -->
         <div class="flex-1">
           <div class="relative">
@@ -144,29 +179,62 @@ const getResourceTypeIcon = (icon: string) => {
           </div>
         </div>
 
-        <!-- Type Filter -->
-        <div class="flex gap-2">
-          <button
-            v-for="option in resourceTypeOptions"
-            :key="option.value"
-            @click="selectedResourceType = option.value"
-            class="flex items-center gap-2 px-3 py-2 rounded-lg font-medium text-sm transition-all duration-200"
-            :class="
-              selectedResourceType === option.value
-                ? 'bg-blue-100 text-blue-700 border border-blue-200'
-                : 'bg-white/60 text-gray-600 hover:bg-white/80 border border-gray-200'
-            "
-          >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                :d="getResourceTypeIcon(option.icon)"
-              />
-            </svg>
-            <span class="hidden sm:inline">{{ option.label }}</span>
-          </button>
+        <!-- Filters Row -->
+        <div class="flex flex-col lg:flex-row gap-4">
+          <!-- Type Filter -->
+          <div class="flex-1">
+            <label class="block text-sm font-medium text-slate-700 mb-2">Type Filter</label>
+            <div class="flex flex-wrap gap-2">
+              <button
+                v-for="option in resourceTypeOptions"
+                :key="option.value"
+                @click="selectedResourceType = option.value as any"
+                :class="
+                  selectedResourceType === option.value
+                    ? 'bg-blue-100 text-blue-700 border-blue-300'
+                    : 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200'
+                "
+                class="flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition-colors"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    :d="getResourceTypeIcon(option.icon)"
+                  />
+                </svg>
+                {{ option.label }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Format Filter -->
+          <div class="flex-1">
+            <label class="block text-sm font-medium text-slate-700 mb-2">Study Content Type</label>
+            <div class="flex flex-wrap gap-2">
+              <button
+                v-for="option in formatOptions"
+                :key="option.value"
+                @click="selectedFormat = option.value as any"
+                :class="
+                  selectedFormat === option.value
+                    ? 'bg-blue-100 text-blue-700 border-blue-300'
+                    : 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200'
+                "
+                class="flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition-colors"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path v-if="option.icon === 'List'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                  <path v-else-if="option.icon === 'FileText'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  <path v-else-if="option.icon === 'HelpCircle'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  <path v-else-if="option.icon === 'Cards'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                  <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                {{ option.label }}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -186,8 +254,8 @@ const getResourceTypeIcon = (icon: string) => {
       <h3 class="text-lg font-medium text-gray-900 mb-2">No resources found</h3>
       <p class="text-gray-500 mb-4">
         {{
-          searchQuery || selectedResourceType !== 'all'
-            ? 'Try adjusting your search or filters'
+          searchQuery || selectedResourceType !== 'all' || selectedFormat !== 'all'
+            ? 'No resources match your current filters. Try adjusting your search or filter criteria.'
             : 'Be the first to share a resource with your group'
         }}
       </p>

@@ -62,12 +62,12 @@ onMounted(async () => {
     // If no content in store, use mock data for demo
     if (userAIContent.value.length === 0) {
       console.log('No AI content found, using mock data for demo')
-      userAIContent.value = mockAIContent as AIGeneratedContent[]
+      userAIContent.value = mockAIContent as unknown as AIGeneratedContent[]
     }
   } catch (error) {
     console.error('Failed to load AI content:', error)
     // Fallback to mock data
-    userAIContent.value = mockAIContent as AIGeneratedContent[]
+    userAIContent.value = mockAIContent as unknown as AIGeneratedContent[]
   } finally {
     isLoading.value = false
   }
@@ -126,6 +126,48 @@ const formatDate = (dateString: string) => {
   })
 }
 
+const getContentTitle = (content: AIGeneratedContent) => {
+  try {
+    const parsedContent = JSON.parse(content.content)
+
+    // Use topic as title if available
+    if (parsedContent.topic) {
+      return parsedContent.topic
+    }
+
+    // Fallback to original title
+    return content.title
+  } catch {
+    // If parsing fails, return original title
+    return content.title
+  }
+}
+
+const getContentPreview = (content: AIGeneratedContent) => {
+  try {
+    const parsedContent = JSON.parse(content.content)
+
+    // Create preview based on content type
+    if (parsedContent.topic) {
+      if (parsedContent.flashcards && Array.isArray(parsedContent.flashcards)) {
+        return `Flashcard set with ${parsedContent.flashcards.length} cards covering ${parsedContent.topic}`
+      } else if (parsedContent.questions && Array.isArray(parsedContent.questions)) {
+        return `Quiz with ${parsedContent.questions.length} questions covering ${parsedContent.topic}`
+      } else if (parsedContent.content && Array.isArray(parsedContent.content)) {
+        return `Study notes covering ${parsedContent.topic} with ${parsedContent.content.length} key points`
+      } else {
+        return `Content covering ${parsedContent.topic}`
+      }
+    }
+
+    // Fallback to original content if no topic
+    return content.content.substring(0, 100) + (content.content.length > 100 ? '...' : '')
+  } catch {
+    // If parsing fails, return truncated original content
+    return content.content.substring(0, 100) + (content.content.length > 100 ? '...' : '')
+  }
+}
+
 const toggleContentSelection = (contentId: string) => {
   const index = selectedContent.value.indexOf(contentId)
   if (index > -1) {
@@ -151,12 +193,78 @@ const importSelectedContent = async () => {
     for (const contentId of selectedContent.value) {
       const content = userAIContent.value.find((c) => String(c.id) === contentId)
       if (content) {
-        // Use Share Study Content API instead of upload resource
-        await groupStore.shareStudyContent({
+        // Determine content type and prepare content data
+        let contentType: 'flashcard' | 'quiz' | 'note' = 'note'
+        let contentData = content.content
+
+        // Try to parse content to determine type
+        try {
+          const parsedContent = JSON.parse(content.content)
+          if (parsedContent.type) {
+            switch (parsedContent.type.toLowerCase()) {
+              case 'flashcard':
+                contentType = 'flashcard'
+                break
+              case 'quiz':
+                contentType = 'quiz'
+                break
+              case 'note':
+                contentType = 'note'
+                break
+              default:
+                contentType = 'note'
+            }
+          } else if (parsedContent.questions && Array.isArray(parsedContent.questions)) {
+            contentType = 'quiz'
+          } else if (parsedContent.flashcards && Array.isArray(parsedContent.flashcards)) {
+            contentType = 'flashcard'
+          } else if (parsedContent.cards && Array.isArray(parsedContent.cards)) {
+            contentType = 'flashcard'
+          }
+        } catch {
+          // If parsing fails, create a basic content structure
+          contentData = JSON.stringify({
+            type: contentType,
+            topic: content.title,
+            content: [content.content]
+          })
+        }
+
+        // Create better title and description
+        let finalTitle = content.title
+        let finalDescription = ''
+
+        // Try to extract better description from parsed content
+        try {
+          const parsedContent = JSON.parse(content.content)
+          if (parsedContent.topic) {
+            finalTitle = parsedContent.topic
+          }
+
+          // Create description based on content type
+          if (contentType === 'flashcard' && parsedContent.flashcards) {
+            finalDescription = `Flashcard set with ${parsedContent.flashcards.length} cards covering ${parsedContent.topic || 'various topics'}`
+          } else if (contentType === 'quiz' && parsedContent.questions) {
+            finalDescription = `Quiz with ${parsedContent.questions.length} questions covering ${parsedContent.topic || 'various topics'}`
+          } else if (contentType === 'note' && parsedContent.content) {
+            const contentItems = Array.isArray(parsedContent.content) ? parsedContent.content : [parsedContent.content]
+            finalDescription = `Study notes covering ${parsedContent.topic || 'various topics'} with ${contentItems.length} key points`
+          } else {
+            finalDescription = `${contentType.charAt(0).toUpperCase() + contentType.slice(1)} content covering ${parsedContent.topic || 'various topics'}`
+          }
+        } catch {
+          // Fallback to original content if parsing fails
+          finalDescription = content.content.substring(0, 150) + (content.content.length > 150 ? '...' : '')
+        }
+
+        // Use new shareInteractiveContent API
+        await groupStore.shareInteractiveContent({
           contentId: `ai-${content.id}`, // AI content ID format
-          title: content.title,
-          description: content.content.substring(0, 200) + (content.content.length > 200 ? '...' : ''),
-          tags: [content.outputFormat]
+          title: finalTitle,
+          description: finalDescription,
+          tags: [content.outputFormat || contentType],
+          contentType: contentType,
+          contentData: contentData
         })
       }
     }
@@ -370,7 +478,7 @@ const goToAIGeneration = () => {
                   </svg>
                 </div>
                 <div>
-                  <h5 class="font-medium text-gray-900">{{ content.title }}</h5>
+                  <h5 class="font-medium text-gray-900">{{ getContentTitle(content) }}</h5>
                   <div class="flex items-center gap-2 text-sm text-gray-500">
                     <span class="px-2 py-1 bg-gray-100 rounded-full text-xs">
                       {{ getContentTypeLabel(content.outputFormat) }}
@@ -379,7 +487,7 @@ const goToAIGeneration = () => {
                   </div>
                 </div>
               </div>
-              <p class="text-sm text-gray-600 line-clamp-2">{{ content.content }}</p>
+              <p class="text-sm text-gray-600 line-clamp-2">{{ getContentPreview(content) }}</p>
               <p class="text-xs text-gray-400 mt-1">Source: AI Generated</p>
             </div>
           </div>

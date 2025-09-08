@@ -46,9 +46,6 @@ const getQuestionTypeDisplay = (type: string) => {
   }
 }
 
-const isOpenEnded = (type: string) => {
-  return type === 'open-ended'
-}
 
 const shouldShowOptions = (question: QuizQuestion) => {
   return question.type === 'multiple-choice' || question.type === 'true-false'
@@ -239,6 +236,11 @@ function getQuestionType(question: Record<string, unknown>): string {
   if (question.type === 'open-ended' || question.type === 'open_ended') {
     console.log('🔍 Type is open-ended, returning open-ended')
     return 'open-ended'
+  }
+
+  if (question.type === 'true-false' || question.type === 'true_false') {
+    console.log('🔍 Type is true-false, returning true-false')
+    return 'true-false'
   }
 
   if (question.type === 'multiple-choice' || question.type === 'multiple_choice') {
@@ -458,7 +460,7 @@ const parseJsonQuiz = (jsonData: Record<string, unknown>): QuizQuestion[] => {
         const questionType = q.type as string
         if (questionType === 'multiple-choice') {
           // Safe access to options with fallback
-          const questionOptions = (q as any).options
+            const questionOptions = (q as { options?: Array<{ id: string; text: string; correct: boolean }> }).options
           return (questionOptions && questionOptions.length > 0) ? questionOptions : [
             { id: 'A', text: 'Option A', correct: false },
             { id: 'B', text: 'Option B', correct: false },
@@ -609,7 +611,7 @@ const parseJsonQuiz = (jsonData: Record<string, unknown>): QuizQuestion[] => {
           const questionType = q.type as string
           if (questionType === 'multiple-choice') {
             // Safe access to options with fallback
-            const questionOptions = (q as any).options
+            const questionOptions = (q as { options?: Array<{ id: string; text: string; correct: boolean }> }).options
             return (questionOptions && questionOptions.length > 0) ? questionOptions : [
               { id: 'A', text: 'Option A', correct: false },
               { id: 'B', text: 'Option B', correct: false },
@@ -654,12 +656,9 @@ const correctAnswers = computed(() => {
     const userAnswer = userAnswers.value[id]
 
     if (question && userAnswer) {
-      if (Array.isArray(question.correctAnswer)) {
-        if (Array.isArray(userAnswer) && userAnswer.length === question.correctAnswer.length) {
-          correct += question.correctAnswer.every(ans => userAnswer.includes(ans)) ? 1 : 0
-        }
-      } else {
-        correct += userAnswer === question.correctAnswer ? 1 : 0
+      // ✅ ใช้ฟังก์ชัน isAnswerCorrect ที่มี case-insensitive logic
+      if (isAnswerCorrect(id, userAnswer)) {
+        correct += 1
       }
     }
   })
@@ -767,6 +766,23 @@ const isAnswerCorrect = (questionId: number, answer: string | string[]) => {
   if (Array.isArray(question.correctAnswer)) {
     return question.correctAnswer.includes(answer as string)
   }
+
+  // ✅ สำหรับ true/false questions ให้เปรียบเทียบแบบ case-insensitive
+  if (question.type === 'true-false') {
+    const userAnswer = String(answer).toLowerCase()
+    const correctAnswer = String(question.correctAnswer).toLowerCase()
+
+    // ✅ ตรวจสอบทั้ง "true"/"false" และ "True"/"False"
+    if (userAnswer === 'true' && correctAnswer === 'true') return true
+    if (userAnswer === 'false' && correctAnswer === 'false') return true
+
+    // ✅ ตรวจสอบ boolean values
+    if (userAnswer === 'true' && question.correctAnswer === true) return true
+    if (userAnswer === 'false' && question.correctAnswer === false) return true
+
+    return false
+  }
+
   return question.correctAnswer === answer
 }
 
@@ -787,13 +803,27 @@ const getUserAnswer = (questionId: number) => {
 }
 
 const getCorrectAnswerDisplay = (question: QuizQuestion) => {
+  // ✅ ตรวจสอบ correctAnswer ที่เป็น null, undefined, หรือค่าว่าง
+  if (question.correctAnswer == null || question.correctAnswer === '') {
+    return 'No correct answer provided'
+  }
+
   if (Array.isArray(question.correctAnswer)) {
     return question.correctAnswer.join(', ')
   }
 
   // ✅ สำหรับ true/false ให้แปลงเป็น "True"/"False"
   if (question.type === 'true-false') {
-    return question.correctAnswer === 'true' ? 'True' : question.correctAnswer === 'false' ? 'False' : String(question.correctAnswer)
+    // ✅ ตรวจสอบ boolean values
+    if (question.correctAnswer === true) return 'True'
+    if (question.correctAnswer === false) return 'False'
+
+    // ✅ ตรวจสอบ string values
+    const answerStr = String(question.correctAnswer).toLowerCase()
+    if (answerStr === 'true') return 'True'
+    if (answerStr === 'false') return 'False'
+
+    return String(question.correctAnswer)
   }
 
   // ✅ สำหรับ question types อื่นๆ แสดง correctAnswer โดยตรง

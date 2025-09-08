@@ -31,6 +31,34 @@ import type {
 } from '@/types/group'
 
 export const useGroupStore = defineStore('group', () => {
+  // Get auth store instance
+  const authStore = useAuthStore()
+
+
+  // Helper function to get uploader name from uploaderId (fallback only)
+  const getUploaderName = (uploaderId: string | number): string => {
+    const currentUserId = authStore.userId
+    const uploaderIdStr = String(uploaderId)
+
+    // If the uploader is the current user, use current user's name
+    if (currentUserId && String(currentUserId) === uploaderIdStr) {
+      return authStore.user?.username || authStore.user?.firstname || 'You'
+    }
+
+    // Try to find the user in group members
+    if (currentGroup.value?.members && Array.isArray(currentGroup.value.members)) {
+      const member = currentGroup.value.members.find((m: GroupMember) => String(m.userId) === uploaderIdStr)
+      if (member) {
+        return member.username || member.displayName || `User ${uploaderIdStr}`
+      }
+    }
+
+    // Fallback: return generic name
+    return `User ${uploaderIdStr}`
+  }
+
+
+
   // Helper function to generate invite code
   const generateInviteCode = (length: number = 6): string => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
@@ -231,8 +259,17 @@ export const useGroupStore = defineStore('group', () => {
         joinedAt: member.joinedAt,
       }))
 
-      // Transform resources
-      groupResources.value = resourcesResponse.map((resource) => ({
+      // Transform resources - อัปเดตเพื่อรองรับ contentType และ contentData
+      console.log('🔍 Raw resources from Backend:', resourcesResponse)
+      groupResources.value = resourcesResponse.map((resource) => {
+        console.log('🔍 Processing resource:', {
+          id: resource.id,
+          title: resource.title,
+          contentType: resource.contentType,
+          contentData: resource.contentData,
+          contentSource: resource.contentSource
+        })
+        return {
         id: String(resource.id),
         groupId: resource.groupId,
         title: resource.title,
@@ -241,20 +278,26 @@ export const useGroupStore = defineStore('group', () => {
         fileType: resource.fileType || resource.mimeType || null,
         fileSize: resource.fileSize,
         uploaderId: String(resource.uploaderId),
-        uploaderName: resource.uploaderName || 'Unknown',
+        uploaderName: resource.uploaderName || getUploaderName(resource.uploaderId),
         createdAt: resource.createdAt,
         comments: [],
         reactions: [],
         type: resource.contentSource === 'study_content' ? 'imported_content' as const : 'file' as const,
         isPublic: true, // Default value
         tags: resource.tags || [],
-        // เพิ่มฟิลด์สำหรับ Share Study Content
+
+        // เพิ่มฟิลด์ใหม่สำหรับ interactive content
+        contentType: resource.contentType || null,  // 'flashcard', 'quiz', 'note', หรือ null
+        contentData: resource.contentData || null,  // JSON string ของ interactive content
+
+        // Existing fields
         contentSource: resource.contentSource,
         contentId: resource.contentId,
         originalContentType: resource.originalContentType,
-        contentData: resource.contentData,
         updatedAt: resource.updatedAt
-      }))
+      }
+      })
+
 
       return group
     } catch (err) {
@@ -547,7 +590,7 @@ export const useGroupStore = defineStore('group', () => {
         fileType: response.fileType || response.mimeType || null,
         fileSize: response.fileSize,
         uploaderId: String(response.uploaderId),
-        uploaderName: response.uploaderName || 'Unknown',
+        uploaderName: response.uploaderName || getUploaderName(response.uploaderId),
         createdAt: response.createdAt,
         comments: [],
         reactions: [],
@@ -608,7 +651,7 @@ export const useGroupStore = defineStore('group', () => {
         fileType: response.fileType || response.mimeType || null,
         fileSize: response.fileSize,
         uploaderId: String(response.uploaderId),
-        uploaderName: response.uploaderName || 'Unknown',
+        uploaderName: response.uploaderName || getUploaderName(response.uploaderId),
         createdAt: response.createdAt,
         comments: [],
         reactions: [],
@@ -651,6 +694,90 @@ export const useGroupStore = defineStore('group', () => {
         error.value = 'Failed to share study content'
       }
       console.error('shareStudyContent error:', err)
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  const shareInteractiveContent = async (payload: {
+    contentId: string;
+    title: string;
+    description?: string;
+    tags?: string[];
+    contentType: 'flashcard' | 'quiz' | 'note';
+    contentData: string;
+  }) => {
+    if (!currentGroup.value) {
+      throw new Error('No current group selected')
+    }
+
+    loading.value = true
+    error.value = null
+    try {
+      const response = await GroupService.shareInteractiveContent(currentGroup.value.id, payload)
+
+      // Transform and add to resources list
+      const newResource: GroupResource = {
+        id: String(response.id),
+        groupId: response.groupId,
+        title: response.title,
+        description: response.description,
+        fileUrl: response.fileUrl,
+        fileType: response.fileType || response.mimeType || null,
+        fileSize: response.fileSize,
+        uploaderId: String(response.uploaderId),
+        uploaderName: response.uploaderName || getUploaderName(response.uploaderId),
+        createdAt: response.createdAt,
+        comments: [],
+        reactions: [],
+        type: 'imported_content' as const,
+        isPublic: true,
+        tags: response.tags || [],
+        updatedAt: response.updatedAt,
+
+        // Interactive content fields
+        contentType: response.contentType,
+        contentData: response.contentData,
+
+        // Existing fields
+        contentSource: response.contentSource,
+        contentId: response.contentId,
+        originalContentType: response.originalContentType
+      }
+
+      groupResources.value.push(newResource)
+
+      // Send notification to group members about new shared content
+      const notificationStore = useNotificationStore()
+
+      if (currentGroup.value) {
+        notificationStore.addNotification({
+          type: 'info',
+          title: 'Interactive Content Shared',
+          message: `"${payload.title}" has been shared in ${currentGroup.value.name}`,
+          groupId: currentGroup.value.id,
+          resourceId: newResource.id
+        })
+      }
+
+      return newResource
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+      if (errorMessage === 'INVALID_CONTENT_TYPE') {
+        error.value = 'Invalid content type. Please select a valid content type.'
+      } else if (errorMessage === 'INVALID_CONTENT_DATA') {
+        error.value = 'Invalid content data. Please check your content format.'
+      } else if (errorMessage === 'INVALID_CONTENT_ID_FORMAT') {
+        error.value = 'Invalid content ID format'
+      } else if (errorMessage === 'ACCESS_DENIED') {
+        error.value = 'Access denied: You are not a member of this group or content does not belong to you'
+      } else if (errorMessage === 'CONTENT_NOT_FOUND') {
+        error.value = 'Content not found'
+      } else {
+        error.value = 'Failed to share interactive content'
+      }
+      console.error('shareInteractiveContent error:', err)
       throw err
     } finally {
       loading.value = false
@@ -1097,6 +1224,75 @@ export const useGroupStore = defineStore('group', () => {
     }
   }
 
+  // Get specific resource
+  const getResource = async (groupId: string, resourceId: string) => {
+    loading.value = true
+    error.value = null
+    try {
+      const response = await GroupService.getResource(groupId, resourceId)
+
+      // Transform resource to match our interface
+      const resource: GroupResource = {
+        id: String(response.id),
+        groupId: response.groupId,
+        title: response.title,
+        description: response.description,
+        fileUrl: response.fileUrl,
+        fileType: response.fileType || response.mimeType || null,
+        fileSize: response.fileSize,
+        uploaderId: String(response.uploaderId),
+        uploaderName: response.uploaderName || getUploaderName(response.uploaderId),
+        createdAt: response.createdAt,
+        comments: [],
+        reactions: [],
+        type: response.contentSource === 'study_content' ? 'imported_content' as const : 'file' as const,
+        isPublic: true,
+        tags: response.tags || [],
+
+        // Interactive content fields
+        contentType: response.contentType,
+        contentData: response.contentData,
+
+        // Existing fields
+        contentSource: response.contentSource,
+        contentId: response.contentId,
+        originalContentType: response.originalContentType,
+        updatedAt: response.updatedAt
+      }
+
+      return resource
+    } catch (err) {
+      error.value = 'Failed to fetch resource'
+      console.error('getResource error:', err)
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // Computed properties for interactive content
+  const interactiveResources = computed(() =>
+    groupResources.value.filter(resource =>
+      resource.contentType && resource.contentData
+    )
+  )
+
+  const flashcardResources = computed(() =>
+    groupResources.value.filter(resource => resource.contentType === 'flashcard')
+  )
+
+  const quizResources = computed(() =>
+    groupResources.value.filter(resource => resource.contentType === 'quiz')
+  )
+
+  const noteResources = computed(() =>
+    groupResources.value.filter(resource => resource.contentType === 'note')
+  )
+
+  const fileResources = computed(() =>
+    groupResources.value.filter(resource => !resource.contentType)
+  )
+
   return {
     // State
     groups,
@@ -1121,6 +1317,13 @@ export const useGroupStore = defineStore('group', () => {
     memberCount,
     viewerRole,
 
+    // Interactive content getters
+    interactiveResources,
+    flashcardResources,
+    quizResources,
+    noteResources,
+    fileResources,
+
     // Actions
     setCurrentGroup,
     fetchGroups,
@@ -1138,6 +1341,8 @@ export const useGroupStore = defineStore('group', () => {
     joinGroupByCode,
     uploadResource,
     shareStudyContent,
+    shareInteractiveContent,
+    getResource,
     deleteResource,
     addComment,
     addReaction,
@@ -1151,5 +1356,8 @@ export const useGroupStore = defineStore('group', () => {
     updateGroupSettings,
     approveJoinRequest,
     revokeInvite,
+
+    // Helper functions
+    getUploaderName,
   }
 })

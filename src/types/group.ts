@@ -57,9 +57,9 @@ export interface GroupResource {
   contentSource?: 'file' | 'study_content'
   contentId?: string | null
   originalContentType?: string | null
-  contentData?: any
+  contentData?: string | null  // JSON string ของ interactive content
   contentTitle?: string
-  contentType?: 'QUIZ' | 'FLASHCARD' | 'NOTE'
+  contentType?: 'flashcard' | 'quiz' | 'note' | null  // lowercase เพื่อความสอดคล้อง
   contentVersion?: number
   subject?: string | null
   difficulty?: string | null

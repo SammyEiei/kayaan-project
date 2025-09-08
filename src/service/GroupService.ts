@@ -57,9 +57,9 @@ export interface GroupResourceDTO {
   contentSource?: 'file' | 'study_content'
   contentId?: string | null
   originalContentType?: string | null
-  contentData?: any
+  contentData?: string | null  // JSON string ของ interactive content
   contentTitle?: string
-  contentType?: 'QUIZ' | 'FLASHCARD' | 'NOTE'
+  contentType?: 'flashcard' | 'quiz' | 'note' | null  // lowercase เพื่อความสอดคล้อง
   contentVersion?: number
   subject?: string | null
   difficulty?: string | null
@@ -434,6 +434,14 @@ export default {
 
       return api.get<GroupResourceDTO[]>(url).then((res) => {
         console.log('✅ Group resources fetched successfully:', res.data)
+        console.log('🔍 First resource sample:', res.data[0])
+        if (res.data[0]) {
+          console.log('🔍 Resource fields check:', {
+            contentType: res.data[0].contentType,
+            contentData: res.data[0].contentData,
+            contentSource: res.data[0].contentSource
+          })
+        }
         return res.data
       })
     } catch (error: any) {
@@ -489,18 +497,65 @@ export default {
     }
   },
 
+  // New method for sharing interactive content with contentType and contentData
+  shareInteractiveContent(groupId: string, payload: {
+    contentId: string;
+    title: string;
+    description?: string;
+    tags?: string[];
+    contentType: 'flashcard' | 'quiz' | 'note';
+    contentData: string;
+  }) {
+    try {
+      console.log('🚀 Sharing interactive content to group:', groupId, 'with payload:', payload)
+
+      return api.post<GroupResourceDTO>(`/groups/${groupId}/resources/share-content`, payload).then((res) => {
+        console.log('✅ Interactive content shared successfully:', res.data)
+        return res.data
+      })
+    } catch (error: any) {
+      console.error('❌ Backend API failed:', error.response?.status, error.message)
+
+      // Handle specific error cases
+      if (error.response?.status === 400) {
+        if (error.response?.data?.message?.includes('contentType')) {
+          throw new Error('INVALID_CONTENT_TYPE')
+        } else if (error.response?.data?.message?.includes('contentData')) {
+          throw new Error('INVALID_CONTENT_DATA')
+        }
+        throw new Error('INVALID_CONTENT_ID_FORMAT')
+      } else if (error.response?.status === 403) {
+        throw new Error('ACCESS_DENIED')
+      } else if (error.response?.status === 404) {
+        throw new Error('CONTENT_NOT_FOUND')
+      }
+
+      throw error
+    }
+  },
+
   // Get individual resource
   getGroupResource(groupId: string, resourceId: string) {
     try {
       console.log('🚀 Fetching group resource:', groupId, 'resource:', resourceId)
       return api.get<GroupResourceDTO>(`/groups/${groupId}/resources/${resourceId}`).then((res) => {
         console.log('✅ Group resource fetched successfully:', res.data)
+        console.log('🔍 Resource details:', {
+          contentType: res.data.contentType,
+          contentData: res.data.contentData,
+          contentSource: res.data.contentSource
+        })
         return res.data
       })
     } catch (error: any) {
       console.error('❌ Backend API failed:', error.response?.status, error.message)
       throw error
     }
+  },
+
+  // Get specific resource (alias for getGroupResource)
+  getResource(groupId: string, resourceId: string) {
+    return this.getGroupResource(groupId, resourceId)
   },
 
   deleteResource(groupId: string, resourceId: string) {

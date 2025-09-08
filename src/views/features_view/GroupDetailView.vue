@@ -301,205 +301,286 @@ const handleBackToDashboard = () => {
           </div>
 
           <!-- Main Content Grid -->
-          <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <!-- Group Information -->
-            <div class="lg:col-span-2 space-y-6">
-              <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-                <h3 class="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  Group Information
-                </h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div class="space-y-4">
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-1">Group Name</label>
-                      <p class="text-gray-900 font-medium">{{ currentGroup?.name }}</p>
-                    </div>
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                      <p class="text-gray-600">{{ currentGroup?.description || 'No description provided' }}</p>
-                    </div>
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-1">Created Date</label>
-                      <p class="text-gray-600">{{ new Date(currentGroup?.createdAt || '').toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) }}</p>
+          <div class="grid grid-cols-1 xl:grid-cols-4 gap-8">
+            <!-- Group Information - Main Content -->
+            <div class="xl:col-span-3 space-y-8">
+              <!-- Group Overview Card -->
+              <div class="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
+                <div class="flex items-center gap-3 mb-6">
+                  <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <h3 class="text-2xl font-bold text-gray-900">Group Information</h3>
+                </div>
+
+                <!-- Improved Grid Layout with Better Organization -->
+                <div class="max-w-7xl mx-auto">
+                  <!-- Primary Information Section -->
+                  <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      <!-- Group Identity -->
+                      <div class="space-y-4">
+                        <div>
+                          <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Group Name</label>
+                          <h2 class="text-2xl font-bold text-gray-900">{{ currentGroup?.name }}</h2>
+                        </div>
+                        <div>
+                          <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Description</label>
+                          <p class="text-gray-600 leading-relaxed">{{ currentGroup?.description || 'No description provided' }}</p>
+                        </div>
+                      </div>
+
+                      <!-- Quick Stats -->
+                      <div class="grid grid-cols-2 gap-4 lg:pl-6">
+                        <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4">
+                          <label class="block text-xs font-medium text-blue-600 uppercase tracking-wider mb-1">Members</label>
+                          <p class="text-3xl font-bold text-blue-900">{{ memberCountLocal }}</p>
+                        </div>
+                        <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4">
+                          <label class="block text-xs font-medium text-green-600 uppercase tracking-wider mb-1">Status</label>
+                          <div class="flex items-center mt-2">
+                            <div class="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse mr-2"></div>
+                            <span class="text-lg font-semibold text-green-800">Active</span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  <div class="space-y-4">
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-1">Total Members</label>
-                      <p class="text-gray-900 font-medium">{{ memberCountLocal }}</p>
+
+                  <!-- Secondary Information Section -->
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- Group Type Card -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow">
+                      <div class="flex items-start justify-between">
+                        <div>
+                          <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Privacy</label>
+                          <span class="inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium bg-purple-100 text-purple-700">
+                            <svg class="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
+                              <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
+                            </svg>
+                            Private Group
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-1">Group Type</label>
-                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        {{ currentGroup?.isPrivate ? 'Private' : 'Public' }}
-                      </span>
-              </div>
-              <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        Active
-                      </span>
+
+                    <!-- Created Date Card -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow">
+                      <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Established</label>
+                      <div class="space-y-1">
+                        <p class="text-sm font-semibold text-gray-900">
+                          {{ new Date(currentGroup?.createdAt || '').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) }}
+                        </p>
+                        <p class="text-xs text-gray-500">
+                          {{ new Date(currentGroup?.createdAt || '').toLocaleDateString('en-US', { weekday: 'long' }) }}
+                        </p>
+                      </div>
+                    </div>
+
+                    <!-- Activity Indicator Card -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow">
+                      <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Activity</label>
+                      <div class="flex items-center space-x-3">
+                        <div class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                        <span class="text-sm font-medium text-gray-700">Active</span>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
 
               <!-- Recent Activity -->
-              <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-                <h3 class="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                  Recent Activity
-                </h3>
+              <div class="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
+                <div class="flex items-center gap-3 mb-6">
+                  <div class="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
+                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                  </div>
+                  <h3 class="text-2xl font-bold text-gray-900">Recent Activity</h3>
+                </div>
+
                 <div class="space-y-4">
-                  <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                    <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                      <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <!-- Activity Item 1 -->
+                  <div class="flex items-center gap-4 p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl border border-blue-200">
+                    <div class="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center shadow-sm">
+                      <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
                       </svg>
                     </div>
                     <div class="flex-1">
-                      <p class="text-sm text-gray-900"><span class="font-medium">New member</span> joined the group</p>
-                      <p class="text-xs text-gray-500">2 hours ago</p>
+                      <p class="text-base font-semibold text-gray-900">New member joined</p>
+                      <p class="text-sm text-gray-600">A new member has joined the group</p>
+                      <p class="text-xs text-blue-600 font-medium mt-1">2 hours ago</p>
                     </div>
                   </div>
-                  <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                    <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                      <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+
+                  <!-- Activity Item 2 -->
+                  <div class="flex items-center gap-4 p-4 bg-gradient-to-r from-green-50 to-green-100 rounded-xl border border-green-200">
+                    <div class="w-12 h-12 bg-green-500 rounded-xl flex items-center justify-center shadow-sm">
+                      <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>
                     </div>
                     <div class="flex-1">
-                      <p class="text-sm text-gray-900"><span class="font-medium">New resource</span> was uploaded</p>
-                      <p class="text-xs text-gray-500">5 hours ago</p>
+                      <p class="text-base font-semibold text-gray-900">New resource uploaded</p>
+                      <p class="text-sm text-gray-600">A new study resource was shared</p>
+                      <p class="text-xs text-green-600 font-medium mt-1">5 hours ago</p>
                     </div>
                   </div>
-                  <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                    <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-                      <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+
+                  <!-- Activity Item 3 -->
+                  <div class="flex items-center gap-4 p-4 bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl border border-purple-200">
+                    <div class="w-12 h-12 bg-purple-500 rounded-xl flex items-center justify-center shadow-sm">
+                      <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                       </svg>
                     </div>
                     <div class="flex-1">
-                      <p class="text-sm text-gray-900"><span class="font-medium">New discussion</span> was started</p>
-                      <p class="text-xs text-gray-500">1 day ago</p>
+                      <p class="text-base font-semibold text-gray-900">New discussion started</p>
+                      <p class="text-sm text-gray-600">A new topic was created for discussion</p>
+                      <p class="text-xs text-purple-600 font-medium mt-1">1 day ago</p>
                     </div>
                   </div>
                 </div>
-                <div class="mt-4 pt-4 border-t border-gray-200">
-                  <button class="text-blue-600 hover:text-blue-700 text-sm font-medium">
-                    View all activity →
+
+                <div class="mt-6 pt-6 border-t border-gray-200">
+                  <button class="w-full flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors duration-200 font-semibold">
+                    <span>View all activity</span>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
                   </button>
                 </div>
               </div>
             </div>
 
             <!-- Right Sidebar -->
-            <div class="space-y-6">
+            <div class="space-y-8">
               <!-- Your Role Card -->
-              <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                  Your Role
-                </h3>
+              <div class="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
+                <div class="flex items-center gap-3 mb-6">
+                  <div class="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
+                    <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  </div>
+                  <h3 class="text-xl font-bold text-gray-900">Your Role</h3>
+                </div>
+
                 <div class="text-center">
-                  <span
+                  <div
                     :class="
                       viewerRoleLocal === 'admin'
                         ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white'
                         : 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white'
                     "
-                    class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-full"
+                    class="inline-flex items-center px-6 py-3 text-base font-semibold rounded-xl shadow-sm"
                   >
-                    <svg v-if="viewerRoleLocal === 'admin'" class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg v-if="viewerRoleLocal === 'admin'" class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                     </svg>
-                    <svg v-else class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg v-else class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
                     {{ viewerRoleLocal === 'admin' ? 'Administrator' : 'Member' }}
-                  </span>
-                  <p class="text-sm text-gray-600 mt-2">
-                    {{ viewerRoleLocal === 'admin' ? 'You have full control over this group' : 'You can participate and contribute to the group' }}
+                  </div>
+                  <p class="text-sm text-gray-600 mt-4 leading-relaxed">
+                    {{ viewerRoleLocal === 'admin' ? 'You have full control over this group and can manage all settings and members.' : 'You can participate in discussions, share resources, and contribute to the group activities.' }}
                   </p>
                 </div>
               </div>
 
               <!-- Quick Actions -->
-              <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                  Quick Actions
-                </h3>
-                <div class="space-y-3">
+              <div class="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
+                <div class="flex items-center gap-3 mb-6">
+                  <div class="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
+                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                  </div>
+                  <h3 class="text-xl font-bold text-gray-900">Quick Actions</h3>
+                </div>
+
+                <div class="space-y-4">
                   <button
                     @click="handleGenerateInviteCode"
-                    class="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
+                    class="w-full flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 font-semibold shadow-sm"
                   >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                     </svg>
-                    Invite Members
+                    <span>Invite Members</span>
                   </button>
-                  <button
+
+                  <!-- <button
                     @click="handleEditGroup"
-                    class="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors duration-200"
+                    class="w-full flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-xl hover:from-gray-700 hover:to-gray-800 transition-all duration-200 font-semibold shadow-sm"
                   >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                     </svg>
-                    Edit Group
-                  </button>
+                    <span>Edit Group</span>
+                  </button> -->
+
                   <button
                     v-if="viewerRoleLocal === 'admin'"
                     @click="showDeleteModal = true"
-                    class="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200"
+                    class="w-full flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl hover:from-red-700 hover:to-red-800 transition-all duration-200 font-semibold shadow-sm"
                   >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                     </svg>
-                    Delete Group
+                    <span>Delete Group</span>
                   </button>
                 </div>
               </div>
 
               <!-- Group Stats -->
-              <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
-                  Group Stats
-                </h3>
-                <div class="space-y-3">
-                  <div class="flex justify-between items-center">
-                    <span class="text-sm text-gray-600">Weekly Activity</span>
-                    <span class="text-sm font-medium text-gray-900">85%</span>
+              <div class="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
+                <div class="flex items-center gap-3 mb-6">
+                  <div class="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center">
+                    <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
                   </div>
-                  <div class="w-full bg-gray-200 rounded-full h-2">
-                    <div class="bg-blue-600 h-2 rounded-full" style="width: 85%"></div>
+                  <h3 class="text-xl font-bold text-gray-900">Group Stats</h3>
+                </div>
+
+                <div class="space-y-6">
+                  <!-- Weekly Activity -->
+                  <div class="bg-blue-50 rounded-xl p-4">
+                    <div class="flex justify-between items-center mb-2">
+                      <span class="text-sm font-semibold text-blue-700">Weekly Activity</span>
+                      <span class="text-lg font-bold text-blue-900">85%</span>
+                    </div>
+                    <div class="w-full bg-blue-200 rounded-full h-3">
+                      <div class="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-500" style="width: 85%"></div>
+                    </div>
                   </div>
-                  <div class="flex justify-between items-center">
-                    <span class="text-sm text-gray-600">Member Engagement</span>
-                    <span class="text-sm font-medium text-gray-900">72%</span>
+
+                  <!-- Member Engagement -->
+                  <div class="bg-green-50 rounded-xl p-4">
+                    <div class="flex justify-between items-center mb-2">
+                      <span class="text-sm font-semibold text-green-700">Member Engagement</span>
+                      <span class="text-lg font-bold text-green-900">72%</span>
+                    </div>
+                    <div class="w-full bg-green-200 rounded-full h-3">
+                      <div class="bg-gradient-to-r from-green-500 to-green-600 h-3 rounded-full transition-all duration-500" style="width: 72%"></div>
+                    </div>
                   </div>
-                  <div class="w-full bg-gray-200 rounded-full h-2">
-                    <div class="bg-green-600 h-2 rounded-full" style="width: 72%"></div>
-                  </div>
-                  <div class="flex justify-between items-center">
-                    <span class="text-sm text-gray-600">Resource Quality</span>
-                    <span class="text-sm font-medium text-gray-900">94%</span>
-                  </div>
-                  <div class="w-full bg-gray-200 rounded-full h-2">
-                    <div class="bg-purple-600 h-2 rounded-full" style="width: 94%"></div>
+
+                  <!-- Resource Quality -->
+                  <div class="bg-purple-50 rounded-xl p-4">
+                    <div class="flex justify-between items-center mb-2">
+                      <span class="text-sm font-semibold text-purple-700">Resource Quality</span>
+                      <span class="text-lg font-bold text-purple-900">94%</span>
+                    </div>
+                    <div class="w-full bg-purple-200 rounded-full h-3">
+                      <div class="bg-gradient-to-r from-purple-500 to-purple-600 h-3 rounded-full transition-all duration-500" style="width: 94%"></div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -559,6 +640,7 @@ const handleBackToDashboard = () => {
     />
   </div>
 </template>
+
 
 <style scoped>
 .backdrop-blur-sm {

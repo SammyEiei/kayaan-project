@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import type { GroupResource } from '@/types/group'
 
@@ -11,85 +11,52 @@ interface Props {
 const props = defineProps<Props>()
 const router = useRouter()
 
-const showComments = ref(false)
-const showActions = ref(false)
 
-const getResourceIcon = (type: string) => {
-  switch (type) {
-    case 'note':
-      return 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'
-    case 'file':
-      return 'M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z'
-    case 'link':
-      return 'M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1'
-    case 'imported_content':
-      return 'M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z'
-    default:
-      return 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'
+// Debug: Log resource data when component mounts
+console.log('🔍 ResourceCard mounted with resource:', props.resource)
+
+// Computed property to determine the correct resource type for display
+const displayResourceType = computed(() => {
+  // Use contentType from Backend for Interactive Content
+  if (props.resource.contentType &&
+      ['flashcard', 'quiz', 'note'].includes(props.resource.contentType) &&
+      props.resource.contentData &&
+      props.resource.contentData !== '0' &&
+      props.resource.contentData !== 'null') {
+    return props.resource.contentType
   }
+
+  // Fallback to resource.type for Regular Files
+  return props.resource.type
+})
+
+
+
+// ฟังก์ชันใหม่ที่สอดคล้องกับ My Content card
+const getTypeColor = (type: string) => {
+  const colors = {
+    quiz: 'bg-green-100 text-green-700',
+    flashcard: 'bg-purple-100 text-purple-700',
+    note: 'bg-orange-100 text-orange-700',
+    file: 'bg-blue-100 text-blue-700',
+    link: 'bg-indigo-100 text-indigo-700',
+    imported_content: 'bg-yellow-100 text-yellow-700'
+  }
+  return colors[type as keyof typeof colors] || 'bg-gray-100 text-gray-700'
 }
 
-const getResourceColor = (type: string) => {
-  switch (type) {
-    case 'note':
-      return 'from-blue-500 to-indigo-600'
-    case 'file':
-      return 'from-green-500 to-emerald-600'
-    case 'link':
-      return 'from-purple-500 to-pink-600'
-    case 'imported_content':
-      return 'from-yellow-400 to-orange-500'
-    default:
-      return 'from-gray-500 to-gray-600'
+const getTypeLabel = (type: string) => {
+  const labels = {
+    quiz: 'Quiz',
+    flashcard: 'Flashcard',
+    note: 'Note',
+    file: 'File',
+    link: 'Link',
+    imported_content: 'Study Content'
   }
+  return labels[type as keyof typeof labels] || type
 }
 
-const getResourceTypeLabel = (type: string) => {
-  switch (type) {
-    case 'note':
-      return 'Note'
-    case 'file':
-      return 'File'
-    case 'link':
-      return 'Link'
-    case 'imported_content':
-      return 'Study Content'
-    default:
-      return 'Resource'
-  }
-}
-
-const getContentTypeLabel = () => {
-  if (props.resource.contentSource === 'study_content') {
-    // ใช้ contentType จาก backend response ก่อน
-    if (props.resource.contentType) {
-      switch (props.resource.contentType) {
-        case 'QUIZ':
-          return 'Quiz'
-        case 'FLASHCARD':
-          return 'Flashcard'
-        case 'NOTE':
-          return 'Note'
-        default:
-          return 'Study Content'
-      }
-    }
-    // fallback ไปใช้ originalContentType
-    if (props.resource.originalContentType) {
-      switch (props.resource.originalContentType) {
-        case 'quiz':
-          return 'Quiz'
-        case 'flashcard':
-          return 'Flashcard'
-        case 'note':
-          return 'Note'
-        default:
-          return 'Study Content'
-      }
-    }
-  }
-  return getResourceTypeLabel(props.resource.type)
-}
 
 const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleDateString('en-US', {
@@ -106,27 +73,153 @@ const downloadResource = () => {
 }
 
 const viewStudyContent = () => {
-  if (props.resource.contentSource === 'study_content' && props.resource.contentData) {
-    // Navigate to content viewer with the shared content
-    const contentData = {
-      id: props.resource.contentId,
-      title: props.resource.title,
-      content: props.resource.contentData,
-      contentType: props.resource.contentType || props.resource.originalContentType,
-      source: 'shared'
+  console.log('🔍 View Study Content Debug:', {
+    contentSource: props.resource.contentSource,
+    contentData: props.resource.contentData,
+    contentId: props.resource.contentId,
+    contentType: props.resource.contentType,
+    originalContentType: props.resource.originalContentType,
+    resourceType: props.resource.type
+  })
+
+  // Check if we have content data (prioritize new Backend fields)
+  const hasContentData = (props.resource.contentData &&
+                         props.resource.contentData !== '0' &&
+                         props.resource.contentData !== 'null') ||
+                        props.resource.description
+
+  if (hasContentData) {
+    try {
+      // Parse content from Backend contentData field first
+      let parsedContent: unknown = null
+      if (props.resource.contentData &&
+          props.resource.contentData !== '0' &&
+          props.resource.contentData !== 'null') {
+        try {
+          parsedContent = JSON.parse(props.resource.contentData)
+          console.log('✅ Parsed content from Backend contentData field:', parsedContent)
+        } catch (parseError) {
+          console.warn('⚠️ Could not parse Backend contentData as JSON:', parseError)
+        }
+      }
+
+      // Fallback: Parse from description if contentData is not available (Legacy)
+      if (!parsedContent && props.resource.description) {
+        try {
+          parsedContent = JSON.parse(props.resource.description)
+          console.log('✅ Parsed content from description (Legacy):', parsedContent)
+        } catch (parseError) {
+          console.warn('⚠️ Could not parse description as JSON:', parseError)
+          // If it's not JSON, create a simple content structure
+          parsedContent = {
+            type: 'note',
+            topic: props.resource.title,
+            content: props.resource.description
+          }
+        }
+      }
+
+      // Determine content type (prioritize new contentType field)
+      let detectedContentType = 'note'
+      if (props.resource.contentType) {
+        // Use contentType from new fields
+        detectedContentType = props.resource.contentType.toLowerCase()
+        console.log('✅ Using contentType from new fields:', detectedContentType)
+      } else if (parsedContent && typeof parsedContent === 'object' && parsedContent !== null) {
+        // Fallback: detect from content structure
+        const contentObj = parsedContent as Record<string, unknown>
+        if (contentObj.type && typeof contentObj.type === 'string') {
+          detectedContentType = contentObj.type.toLowerCase()
+        } else if (contentObj.questions && Array.isArray(contentObj.questions)) {
+          detectedContentType = 'quiz'
+        } else if (contentObj.flashcards && Array.isArray(contentObj.flashcards)) {
+          detectedContentType = 'flashcard'
+        } else if (contentObj.cards && Array.isArray(contentObj.cards)) {
+          detectedContentType = 'flashcard'
+        } else if (contentObj.content && Array.isArray(contentObj.content)) {
+          detectedContentType = 'note'
+        }
+        console.log('✅ Detected content type from structure:', detectedContentType)
+      } else {
+        // Fallback: detect from title/description
+        const title = props.resource.title.toLowerCase()
+        const description = props.resource.description.toLowerCase()
+
+        if (title.includes('flashcard') || description.includes('flashcard')) {
+          detectedContentType = 'flashcard'
+        } else if (title.includes('quiz') || description.includes('quiz') || description.includes('question')) {
+          detectedContentType = 'quiz'
+        } else if (title.includes('note') || description.includes('note')) {
+          detectedContentType = 'note'
+        }
+        console.log('✅ Detected content type from title/description:', detectedContentType)
+      }
+
+      console.log('🔍 Final detected content type:', detectedContentType)
+
+      // Create fallback content if no parsedContent
+      let finalContent = parsedContent
+      if (!finalContent) {
+        // Create a basic content structure based on detected type
+        if (detectedContentType === 'flashcard') {
+          finalContent = {
+            type: 'flashcard',
+            topic: props.resource.title,
+            flashcards: [{
+              question: 'Sample Question',
+              answer: 'This is a sample flashcard. The actual content is not available yet.'
+            }]
+          }
+        } else if (detectedContentType === 'quiz') {
+          finalContent = {
+            type: 'quiz',
+            topic: props.resource.title,
+            questions: [{
+              question: 'Sample Question',
+              options: ['Option 1', 'Option 2', 'Option 3', 'Option 4'],
+              answer: 0
+            }]
+          }
+        } else {
+          finalContent = {
+            type: 'note',
+            topic: props.resource.title,
+            content: [props.resource.description || 'Content not available yet.']
+          }
+        }
+        console.log('✅ Created fallback content:', finalContent)
+      }
+
+      // Navigate to content viewer with the shared content
+      const contentData = {
+        id: props.resource.contentId || props.resource.id,
+        title: props.resource.title,
+        content: finalContent,
+        contentType: detectedContentType,
+        source: 'shared'
+      }
+
+      console.log('✅ Content data prepared:', contentData)
+
+      // Store content data for viewing
+      localStorage.setItem('sharedContentToView', JSON.stringify(contentData))
+
+      // Navigate to content viewer
+      router.push('/content-viewer')
+    } catch (error) {
+      console.error('❌ Error preparing content data:', error)
+      alert('เกิดข้อผิดพลาดในการเปิด content กรุณาลองใหม่อีกครั้ง')
     }
-
-    // Store content data for viewing
-    localStorage.setItem('sharedContentToView', JSON.stringify(contentData))
-
-    // Navigate to content viewer
-    router.push('/content-viewer')
   } else if (props.resource.contentUrl) {
     window.open(props.resource.contentUrl, '_blank')
+  } else {
+    console.warn('⚠️ No content data available for viewing')
+    alert('ไม่สามารถเปิด content ได้ เนื่องจากไม่มีข้อมูล content')
   }
 }
 
 const getContentTopic = () => {
+  // สำหรับ manual content ที่ import จาก Feat AI
   if (props.resource.contentSource === 'study_content' && props.resource.contentData) {
     try {
       const contentData = typeof props.resource.contentData === 'string'
@@ -172,6 +265,8 @@ const getContentTopic = () => {
       return props.resource.title
     }
   }
+
+  // สำหรับ AI content ที่สร้างผ่าน API
   return props.resource.title
 }
 
@@ -207,203 +302,131 @@ const getContentPreview = () => {
   return 'Click to view content'
 }
 
-const copyLink = async () => {
-  try {
-    const link = props.resource.contentUrl || window.location.href
-    await navigator.clipboard.writeText(link)
-    // TODO: Show success toast
-  } catch (error) {
-    console.error('Failed to copy link:', error)
-  }
-}
 
-const toggleComments = () => {
-  showComments.value = !showComments.value
+
+const handleViewClick = () => {
+  console.log('🔍 View button clicked!')
+  console.log('🔍 Resource data:', props.resource)
+  console.log('🔍 Content source:', props.resource.contentSource)
+  console.log('🔍 Resource type:', props.resource.type)
+  console.log('🔍 Content type:', props.resource.contentType)
+  console.log('🔍 Content data exists:', !!props.resource.contentData)
+
+  // Check if this is interactive study content using new Backend fields
+  const isInteractiveContent = props.resource.contentType &&
+                              ['flashcard', 'quiz', 'note'].includes(props.resource.contentType) &&
+                              props.resource.contentData &&
+                              props.resource.contentData !== '0' &&
+                              props.resource.contentData !== 'null'
+
+  // Check if this is a regular file (no interactive content)
+  const isRegularFile = !props.resource.contentType ||
+                       props.resource.contentType === null ||
+                       !props.resource.contentData ||
+                       props.resource.contentData === '0' ||
+                       props.resource.contentData === 'null'
+
+  // Fallback: Check legacy criteria for backward compatibility (only if new fields are not available)
+  const hasJsonDescription = props.resource.description &&
+                            (props.resource.description.includes('"type":') ||
+                             props.resource.description.includes('"topic":') ||
+                             props.resource.description.includes('"content":'))
+
+  const isLegacyStudyContent = !props.resource.contentType && (
+                              props.resource.contentSource === 'study_content' ||
+                              props.resource.type === 'imported_content' ||
+                              hasJsonDescription
+                            )
+
+  // Additional fallback: Check if title/description suggests interactive content (only for legacy)
+  const titleSuggestsInteractive = !props.resource.contentType && (
+                                  props.resource.title.toLowerCase().includes('flashcard') ||
+                                  props.resource.title.toLowerCase().includes('quiz') ||
+                                  props.resource.title.toLowerCase().includes('note')
+                                )
+
+  const descriptionSuggestsInteractive = !props.resource.contentType && (
+                                        props.resource.description.toLowerCase().includes('flashcard') ||
+                                        props.resource.description.toLowerCase().includes('quiz') ||
+                                        props.resource.description.toLowerCase().includes('question') ||
+                                        props.resource.description.toLowerCase().includes('answer')
+                                      )
+
+  const isStudyContent = isInteractiveContent || isLegacyStudyContent ||
+                        (titleSuggestsInteractive && descriptionSuggestsInteractive)
+
+  console.log('🔍 Is interactive content:', isInteractiveContent)
+  console.log('🔍 Is regular file:', isRegularFile)
+  console.log('🔍 Is legacy study content:', isLegacyStudyContent)
+  console.log('🔍 Title suggests interactive:', titleSuggestsInteractive)
+  console.log('🔍 Description suggests interactive:', descriptionSuggestsInteractive)
+  console.log('🔍 Is study content:', isStudyContent)
+
+  if (isStudyContent) {
+    console.log('🔍 Calling viewStudyContent()')
+    viewStudyContent()
+  } else {
+    console.log('🔍 Calling downloadResource()')
+    downloadResource()
+  }
 }
 </script>
 
 <template>
   <div
-    class="group bg-white/80 backdrop-blur-sm rounded-2xl border border-white/50 p-6 shadow-xl hover:shadow-2xl transition-all duration-300"
+    class="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer"
+    @click="handleViewClick"
   >
     <!-- Header -->
     <div class="flex items-start justify-between mb-4">
-      <div class="flex items-center gap-3">
-        <div
-          class="w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-md"
-          :class="`bg-gradient-to-r ${getResourceColor(resource.type)}`"
+      <div class="flex items-center gap-2">
+        <span
+          :class="getTypeColor(displayResourceType)"
+          class="px-2 py-1 text-xs font-medium rounded-full"
         >
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              :d="getResourceIcon(resource.type)"
-            />
-          </svg>
-        </div>
-        <div>
-          <span
-            class="px-2 py-1 text-xs font-medium rounded-full text-white"
-            :class="`bg-gradient-to-r ${getResourceColor(resource.type)}`"
-          >
-            {{ getContentTypeLabel() }}
-          </span>
-          <span
-            v-if="resource.contentSource === 'study_content'"
-            class="ml-2 px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800"
-          >
-            Shared
-          </span>
-        </div>
+          {{ getTypeLabel(displayResourceType) }}
+        </span>
+        <span
+          v-if="resource.contentSource === 'study_content'"
+          class="inline-flex items-center px-2 py-1 text-xs font-medium bg-green-100 text-green-700 rounded-full"
+        >
+          Shared
+        </span>
       </div>
 
-      <!-- Actions Menu -->
-      <div class="relative">
-        <button
-          @click="showActions = !showActions"
-          class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-        >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
-            />
-          </svg>
-        </button>
-
-        <div
-          v-if="showActions"
-          class="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 z-10"
-        >
-          <div class="py-2">
-            <button
-              @click="resource.contentSource === 'study_content' ? viewStudyContent() : downloadResource()"
-              class="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  :d="resource.contentSource === 'study_content'
-                    ? 'M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z'
-                    : 'M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'"
-                />
-              </svg>
-              {{ resource.contentSource === 'study_content' ? 'View Content' : 'Download' }}
-            </button>
-            <button
-              @click="copyLink"
-              class="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-                />
-              </svg>
-              Copy Link
-            </button>
-            <hr class="my-1" />
-            <button
-              class="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                />
-              </svg>
-              Delete
-            </button>
-          </div>
-        </div>
-      </div>
     </div>
 
     <!-- Content -->
     <div class="mb-4">
-      <h4 class="font-semibold text-gray-800 mb-2 line-clamp-2">{{ getContentTopic() }}</h4>
-      <p v-if="resource.description" class="text-sm text-gray-600 line-clamp-3 mb-3">
-        {{ resource.description }}
-      </p>
-      <p v-else-if="resource.contentText" class="text-sm text-gray-600 line-clamp-3 mb-3">
-        {{ resource.contentText }}
-      </p>
+      <h3 class="font-medium text-gray-900 mb-2 line-clamp-2">
+        {{ getContentTopic() }}
+        <span v-if="resource.contentType === 'flashcard' && getContentPreview().includes('cards')" class="text-sm text-blue-600 font-normal">
+          ({{ getContentPreview().match(/\d+/)?.[0] || '0' }} cards)
+        </span>
+        <span v-if="resource.contentType === 'quiz' && getContentPreview().includes('questions')" class="text-sm text-blue-600 font-normal">
+          ({{ getContentPreview().match(/\d+/)?.[0] || '0' }} questions)
+        </span>
+      </h3>
 
-      <!-- Show content preview for study content -->
-      <div v-if="resource.contentSource === 'study_content' && resource.contentData" class="mt-3 p-3 bg-gray-50 rounded-lg">
-        <div class="flex items-center gap-2 mb-2">
-          <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <span class="text-xs font-medium text-gray-600">Content Preview</span>
-        </div>
-        <p class="text-xs text-gray-500">
-          {{ getContentPreview() }}
-        </p>
-      </div>
-    </div>
-
-    <!-- Meta Info -->
-    <div class="flex items-center justify-between text-sm text-gray-500 mb-4">
-      <div class="flex items-center gap-4">
-        <span>by {{ resource.uploaderName }}</span>
+      <div class="flex items-center gap-4 text-sm text-gray-500 mb-4">
+        <span class="font-medium text-gray-700">Shared by <span class="font-semibold text-gray-900">{{ resource.uploaderName }}</span></span>
         <span>{{ formatDate(resource.createdAt) }}</span>
       </div>
-    </div>
 
-    <!-- Stats & Actions -->
-    <div class="flex items-center justify-between pt-4 border-t border-gray-100">
-      <div class="flex items-center gap-4">
-        <button
-          @click="toggleComments"
-          class="flex items-center gap-1 text-sm text-gray-500 hover:text-blue-600 transition-colors"
+      <div v-if="resource.tags && resource.tags.length > 0" class="flex flex-wrap gap-1">
+        <span
+          v-for="tag in resource.tags.slice(0, 3)"
+          :key="tag"
+          class="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded"
         >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-            />
-          </svg>
-          {{ resource.commentCount }}
-        </button>
-        <div class="flex items-center gap-1 text-sm text-gray-500">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-            />
-          </svg>
-          {{ resource.reactionCount }}
-        </div>
-      </div>
-
-      <button
-        @click="resource.contentSource === 'study_content' ? viewStudyContent() : downloadResource()"
-        class="px-3 py-1 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg text-sm font-medium transition-colors"
-      >
-        {{ resource.contentSource === 'study_content' ? 'View Content' : 'View' }}
-      </button>
-    </div>
-
-    <!-- Comments Section (Collapsible) -->
-    <div v-if="showComments" class="mt-4 pt-4 border-t border-gray-100">
-      <div class="bg-gray-50 rounded-lg p-3">
-        <p class="text-sm text-gray-500">Comments feature coming soon...</p>
+          {{ tag }}
+        </span>
+        <span v-if="resource.tags.length > 3" class="px-2 py-1 text-xs text-gray-500">
+          +{{ resource.tags.length - 3 }} more
+        </span>
       </div>
     </div>
+
   </div>
 </template>
 

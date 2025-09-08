@@ -38,3 +38,16 @@ export async function uploadAvatar(userId: number, file: File): Promise<AvatarRe
   await uploadViaBackendProxy(signedUrl, file)
   return await saveAvatarUrl(userId, path)
 }
+
+// 🆕 Function สำหรับ DiceBear avatar - ไม่ผ่าน Supabase storage
+export async function generateDiceBearAvatar(userId: number, style: string, seed: string): Promise<AvatarResponse> {
+  console.log('🎨 Generating DiceBear avatar:', { userId, style, seed })
+
+  const { data } = await api.post(`/users/${userId}/avatar/dicebear`, {
+    style,
+    seed
+  })
+
+  console.log('✅ DiceBear avatar generated:', data)
+  return data
+}
