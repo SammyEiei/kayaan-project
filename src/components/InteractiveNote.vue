@@ -206,7 +206,8 @@ const tableOfContents = computed(() =>
 )
 
 const contentStyle = computed(() => ({
-  fontSize: `${fontSize.value}px`,
+  '--font-size': `${fontSize.value}px`,
+  '--line-height': lineHeight.value,
   lineHeight: lineHeight.value,
 }))
 
@@ -316,7 +317,7 @@ onUnmounted(() => {
               title="Decrease line height"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8l4-4 4 4M7 16l4 4 4-4" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
               </svg>
             </button>
             <span class="text-sm font-medium text-slate-700">{{ lineHeight.toFixed(1) }}</span>
@@ -326,7 +327,7 @@ onUnmounted(() => {
               title="Increase line height"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16l4-4 4 4M7 8l4 4 4-4" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
               </svg>
             </button>
           </div>
@@ -506,7 +507,7 @@ onUnmounted(() => {
         </article>
 
         <!-- Reading Progress -->
-        <div class="fixed bottom-8 right-8 bg-white rounded-lg shadow-lg p-4 border border-slate-200">
+        <!-- <div class="fixed bottom-8 right-8 bg-white rounded-lg shadow-lg p-4 border border-slate-200">
           <div class="text-sm font-medium text-slate-700 mb-2">Read {{ readingProgress }}%</div>
           <div class="w-32 h-2 bg-slate-200 rounded-full overflow-hidden">
             <div
@@ -517,7 +518,7 @@ onUnmounted(() => {
           <div v-if="activeSection" class="text-xs text-slate-500 mt-2 truncate max-w-[128px]">
             Reading: {{ activeSection }}
           </div>
-        </div>
+        </div> -->
       </div>
     </div>
   </div>
@@ -543,5 +544,28 @@ onUnmounted(() => {
 .prose p {
   margin-top: 0;
   margin-bottom: 0;
+}
+
+/* Font size and line height control */
+.prose {
+  font-size: var(--font-size, 16px) !important;
+  line-height: var(--line-height, 1.6) !important;
+}
+
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4,
+.prose h5,
+.prose h6 {
+  font-size: var(--font-size, 16px) !important;
+  line-height: var(--line-height, 1.6) !important;
+}
+
+.prose p,
+.prose li,
+.prose blockquote {
+  font-size: var(--font-size, 16px) !important;
+  line-height: var(--line-height, 1.6) !important;
 }
 </style>

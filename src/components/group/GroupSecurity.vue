@@ -742,7 +742,7 @@ onMounted(() => {
     </div>
 
     <!-- Join Requests Section -->
-    <div v-if="joinRequests.length > 0" class="bg-white rounded-xl border border-gray-200 shadow-sm">
+    <!-- <div v-if="joinRequests.length > 0" class="bg-white rounded-xl border border-gray-200 shadow-sm">
       <div class="p-6 border-b border-gray-200">
         <h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
           <svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -802,6 +802,6 @@ onMounted(() => {
           </div>
         </div>
       </div>
-    </div>
+    </div> -->
   </div>
 </template>

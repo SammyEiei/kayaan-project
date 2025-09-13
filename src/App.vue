@@ -34,16 +34,31 @@
         >
           <div class="relative">
             <div
-              class="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg"
+              class="w-12 h-12 rounded-3xl flex items-center justify-center shadow-sm kayaan-logo border border-pink-100"
+              :class="{ 'loading': isAIGenerating }"
               style="background: linear-gradient(135deg, #3b82f6, #6366f1)"
             >
-              <svg class="w-7 h-7 text-white" viewBox="0 0 32 32" fill="currentColor">
-                <path d="M7 6c0-1.1.9-2 2-2s2 .9 2 2v20c0 1.1-.9 2-2 2s-2-.9-2-2V6z" />
-                <path
-                  d="M11 16c0-.6.4-1 1-1h.5c.3 0 .6.1.8.3l6.4 6.4c.8.8 2.1.8 2.8 0 .8-.8.8-2.1 0-2.8L16.8 13c-.2-.2-.3-.5-.3-.8V12c0-.3.1-.6.3-.8l5.7-5.7c.8-.8.8-2.1 0-2.8-.8-.8-2.1-.8-2.8 0L13.3 9.1c-.2.2-.5.3-.8.3H12c-.6 0-1 .4-1 1v5z"
-                />
-                <circle cx="22" cy="16" r="2.5" opacity="0.4" />
-              </svg>
+              <!-- Kayaan Minimal Face Logo -->
+              <div class="w-10 h-10 bg-white rounded-full flex items-center justify-center kayaan-face relative">
+                <!-- Sparkles -->
+                <div class="absolute top-1 right-1 w-1 h-1 bg-yellow-300 rounded-full opacity-70 kayaan-sparkle"></div>
+                <div class="absolute bottom-1 left-1 w-0.5 h-0.5 bg-pink-300 rounded-full opacity-60 kayaan-sparkle-small"></div>
+
+                <!-- Cheeks -->
+                <div class="absolute left-1 bottom-4 w-1 h-1 bg-pink-300 rounded-full opacity-60 kayaan-blush"></div>
+                <div class="absolute right-1 bottom-4 w-1 h-1 bg-pink-300 rounded-full opacity-60 kayaan-blush"></div>
+
+                <!-- Minimal Face -->
+                <div class="relative kayaan-eye-container">
+                  <!-- Eyes -->
+                  <div class="flex gap-1.5 mb-1">
+                    <div class="w-2 h-2 bg-slate-600 rounded-full kayaan-eye"></div>
+                    <div class="w-2 h-2 bg-slate-600 rounded-full kayaan-eye"></div>
+                  </div>
+                  <!-- Smile -->
+                  <div class="w-4 h-2 border-b-2 border-slate-600 rounded-full kayaan-smile"></div>
+                </div>
+              </div>
             </div>
           </div>
           <div class="ml-4">
@@ -88,7 +103,7 @@
         </nav>
 
         <!-- User Section -->
-        <div class="p-4 border-t border-gray-200">
+        <!-- <div class="p-4 border-t border-gray-200">
           <div class="rounded-xl p-4 mb-3 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100">
             <div class="flex items-center gap-3">
               <div class="relative">
@@ -106,9 +121,9 @@
                   <span v-else class="font-semibold">
                     {{ (authStore.user?.username || 'U').charAt(0).toUpperCase() }}
                   </span>
-                </div>
+                </div> -->
                 <!-- Premium badge -->
-                <div class="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center">
+                <!-- <div class="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center">
                   <svg class="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                   </svg>
@@ -137,14 +152,14 @@
             </svg>
             Sign Out
           </button>
-        </div>
+        </div> -->
       </aside>
 
       <!-- Main Content -->
       <div :class="[isLoggedIn && !isAuthPage ? 'ml-64' : '', 'flex-1 flex flex-col']">
         <!-- Header -->
         <header
-          v-if="!isAuthPage && !isStudyGroupsPage"
+          v-if="!isAuthPage"
           class="bg-white border-b border-gray-200 shadow-sm py-4 px-6 flex justify-between items-center sticky top-0 z-30"
         >
           <!-- Mobile Logo -->
@@ -433,11 +448,13 @@ import PomodoroWidget from '@/components/PomodoroWidget.vue'
 import NotificationToast from '@/components/NotificationToast.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useThemeStore } from '@/stores/theme'
+import { useAIGenerationStore } from '@/stores/aiGeneration'
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const themeStore = useThemeStore()
+const aiGenerationStore = useAIGenerationStore()
 
 // 🆕 Add reactive key for forcing image reload
 const avatarKey = ref(0)
@@ -460,6 +477,9 @@ watch(userAvatarUrl, () => {
 })
 
 const isLoggedIn = computed(() => !!authStore.token)
+
+// AI Generation loading state
+const isAIGenerating = computed(() => aiGenerationStore.isGenerating)
 
 const menuItems = [
   { to: '/dashboard', icon: 'grid', label: 'Dashboard' },
@@ -717,5 +737,102 @@ button:focus,
 a:focus {
   outline: 2px solid rgba(59, 130, 246, 0.5);
   outline-offset: 2px;
+}
+
+/* Kayaan Logo - Minimal Version */
+.kayaan-logo {
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.kayaan-logo:hover {
+  transform: scale(1.02);
+  border-color: #f472b6;
+  box-shadow: 0 4px 12px rgba(244, 114, 182, 0.15);
+}
+
+.kayaan-face {
+  /* No default animation for minimal look */
+}
+
+.kayaan-eye-container {
+  animation: eye-movement 8s ease-in-out infinite;
+}
+
+.kayaan-eye {
+  animation: blink 3s infinite;
+}
+
+@keyframes blink {
+  0%, 90%, 100% { opacity: 1; }
+  95% { opacity: 0.3; }
+}
+
+@keyframes eye-movement {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(0.5px); }
+  50% { transform: translateX(0); }
+  75% { transform: translateX(-0.5px); }
+}
+
+.kayaan-smile {
+  /* No animation for minimal look */
+}
+
+/* Sparkle Animations */
+.kayaan-sparkle {
+  animation: sparkle-pulse 2s ease-in-out infinite;
+}
+
+.kayaan-sparkle-small {
+  animation: sparkle-pulse 2s ease-in-out infinite;
+  animation-delay: 1s;
+}
+
+@keyframes sparkle-pulse {
+  0%, 100% {
+    transform: scale(0.8);
+    opacity: 0.4;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+}
+
+/* Blush Animation */
+.kayaan-blush {
+  animation: blush-glow 4s ease-in-out infinite;
+}
+
+@keyframes blush-glow {
+  0%, 100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+/* Loading State - Minimal */
+.kayaan-logo.loading {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  background: linear-gradient(135deg, #3b82f6, #6366f1) !important;
+  border-color: #ec4899;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.02);
+  }
+}
+
+.kayaan-logo.loading .kayaan-eye {
+  animation: blink 2s infinite;
 }
 </style>

@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useGroupStore } from '@/stores/group'
 import type { StudyGroup } from '@/types/group'
 
 interface Props {
@@ -13,12 +15,26 @@ const emit = defineEmits<{
   delete: []
 }>()
 
+const router = useRouter()
+const groupStore = useGroupStore()
 const isLoading = ref(false)
 
 const handleDelete = async () => {
+  if (!props.group?.id) {
+    console.error('No group ID provided')
+    return
+  }
+
   isLoading.value = true
   try {
+    await groupStore.deleteGroup(props.group.id)
+    console.log('✅ Group deleted successfully, closing modal and redirecting...')
     emit('delete')
+    router.push('/study-groups')
+  } catch (error) {
+    console.error('Failed to delete group:', error)
+    // Show error message to user
+    alert('Failed to delete group. Please try again.')
   } finally {
     isLoading.value = false
   }

@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useGroupStore } from '@/stores/group'
 import type { JoinGroupByCodeRequest } from '@/types/group'
-import JoinSuccessAnimation from './JoinSuccessAnimation.vue'
+import PinkKayaanLoading from './PinkKayaanLoading.vue'
 
 const router = useRouter()
 const groupStore = useGroupStore()
@@ -16,9 +16,6 @@ const emit = defineEmits<{
 const inviteCode = ref('')
 const isJoining = ref(false)
 const error = ref<string | null>(null)
-const showSuccessAnimation = ref(false)
-const joinedGroupName = ref('')
-const joinedGroupId = ref('')
 
 const joinGroup = async () => {
   if (!inviteCode.value.trim()) {
@@ -34,34 +31,36 @@ const joinGroup = async () => {
       inviteCode: inviteCode.value.trim().toUpperCase(),
     }
 
-    const group = await groupStore.joinGroupByCode(request)
-    joinedGroupName.value = group.name
-    joinedGroupId.value = group.id
-    showSuccessAnimation.value = true
+    // Add minimum loading time to show animation properly
+    const [group] = await Promise.all([
+      groupStore.joinGroupByCode(request),
+      new Promise(resolve => setTimeout(resolve, 3000)) // Minimum 3 seconds
+    ])
+
+    // Hide loading animation and navigate directly to group
+    isJoining.value = false
+    emit('close')
     emit('joined', group.id)
 
-    // Don't redirect immediately, let animation complete first
+    // Navigate to the joined group
+    router.push(`/study-groups/${group.id}`)
+
   } catch (err: unknown) {
     // แสดง user-friendly message จาก Backend หรือ fallback message
     const errorObj = err as { userMessage?: string; response?: { data?: { message?: string } }; message?: string }
     error.value = errorObj.userMessage || errorObj.response?.data?.message || errorObj.message || 'Failed to join group. Please check your invite code.'
     console.error('Join group error:', err)
-  } finally {
     isJoining.value = false
   }
 }
 
-const handleAnimationComplete = () => {
-  showSuccessAnimation.value = false
-  // Close modal and redirect to the joined group
-  emit('close')
-  // Navigate to the group that was just joined using the group ID
-  if (joinedGroupId.value) {
-    router.push(`/study-groups/${joinedGroupId.value}`)
-  }
-}
 
 const closeModal = () => {
+  emit('close')
+}
+
+const handleCancelJoining = () => {
+  isJoining.value = false
   emit('close')
 }
 
@@ -74,13 +73,11 @@ const handleKeyPress = (event: KeyboardEvent) => {
 </script>
 
 <template>
-  <!-- Success Animation -->
-  <JoinSuccessAnimation
-    v-if="showSuccessAnimation"
-    :message="`Welcome to ${joinedGroupName}!`"
-    @complete="handleAnimationComplete"
+  <!-- Pink Kayaan Loading Animation -->
+  <PinkKayaanLoading
+    v-if="isJoining"
+    @cancel="handleCancelJoining"
   />
-
 
   <!-- Main Modal -->
   <div v-else class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -154,11 +151,10 @@ const handleKeyPress = (event: KeyboardEvent) => {
         <div class="flex gap-3 pt-2">
           <button
             @click="joinGroup"
-            :disabled="isJoining || !inviteCode.trim()"
+            :disabled="!inviteCode.trim()"
             class="flex-1 px-4 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 disabled:from-gray-400 disabled:to-gray-500 text-white rounded-lg font-medium transition-all duration-200 hover:shadow-md disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             <svg
-              v-if="!isJoining"
               class="w-4 h-4"
               fill="none"
               stroke="currentColor"
@@ -171,16 +167,10 @@ const handleKeyPress = (event: KeyboardEvent) => {
                 d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
               />
             </svg>
-            <div
-              v-else
-              class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"
-            ></div>
-            <span v-if="!isJoining">Join Group</span>
-            <span v-else>Joining...</span>
+            <span>Join Group</span>
           </button>
           <button
             @click="closeModal"
-            :disabled="isJoining"
             class="px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-150 font-medium"
           >
             Cancel

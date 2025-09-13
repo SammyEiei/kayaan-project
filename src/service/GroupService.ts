@@ -105,9 +105,25 @@ export default {
       const response = await api.post<StudyGroupDTO>('/groups', payload)
       console.log('✅ Group created successfully:', response.data)
       return response.data
-    } catch (error: any) {
-      console.error('❌ Backend API failed:', error.response?.status, error.message)
-      throw error
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { status?: number; data?: unknown }; message?: string }
+      console.error('❌ Backend API failed:', axiosError.response?.status, axiosError.message)
+
+      // Mock response เฉพาะเมื่อ API ล้มเหลวใน development mode
+      if (import.meta.env.DEV) {
+        const mockGroup: StudyGroupDTO = {
+          id: 'mock-group-id',
+          name: payload.name,
+          description: payload.description,
+          ownerId: 'mock-user-id',
+          createdAt: new Date().toISOString(),
+          membersCount: 1
+        }
+        console.log('✅ Mock group created:', mockGroup)
+        return mockGroup
+      }
+
+      throw axiosError
     }
   },
 
@@ -117,22 +133,66 @@ export default {
       const response = await api.get<StudyGroupDTO[]>('/groups/my')
       console.log('✅ My groups fetched successfully:', response.data)
       return response.data
-    } catch (error: any) {
-      console.error('❌ Backend API failed:', error.response?.status, error.message)
-      throw error
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { status?: number; data?: unknown }; message?: string }
+      console.error('❌ Backend API failed:', axiosError.response?.status, axiosError.message)
+
+      // Mock response เฉพาะเมื่อ API ล้มเหลวใน development mode
+      if (import.meta.env.DEV) {
+        const mockGroups: StudyGroupDTO[] = [
+          {
+            id: 'mock-group-1',
+            name: 'Mock Study Group 1',
+            description: 'This is a mock study group for development',
+            ownerId: 'mock-user-id',
+            createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+            membersCount: 5
+          },
+          {
+            id: 'mock-group-2',
+            name: 'Mock Study Group 2',
+            description: 'Another mock study group for development',
+            ownerId: 'mock-user-id',
+            createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+            membersCount: 3
+          }
+        ]
+        console.log('✅ Mock groups loaded:', mockGroups)
+        return mockGroups
+      }
+
+      throw axiosError
     }
   },
 
   getAllGroups() {
     try {
       console.log('🚀 Fetching all public groups')
-      return api.get<StudyGroupDTO[]>('/api/groups').then((res) => {
+      return api.get<StudyGroupDTO[]>('/groups').then((res) => {
         console.log('✅ All groups fetched successfully:', res.data)
         return res.data
       })
-    } catch (error: any) {
-      console.error('❌ Backend API failed:', error.response?.status, error.message)
-      throw error
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { status?: number; data?: unknown }; message?: string }
+      console.error('❌ Backend API failed:', axiosError.response?.status, axiosError.message)
+
+      // Mock response เฉพาะเมื่อ API ล้มเหลวใน development mode
+      if (import.meta.env.DEV) {
+        const mockGroups: StudyGroupDTO[] = [
+          {
+            id: 'public-group-1',
+            name: 'Public Study Group 1',
+            description: 'A public study group for everyone',
+            ownerId: 'other-user-id',
+            createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+            membersCount: 8
+          }
+        ]
+        console.log('✅ Mock public groups loaded:', mockGroups)
+        return Promise.resolve(mockGroups)
+      }
+
+      throw axiosError
     }
   },
 
@@ -143,10 +203,11 @@ export default {
         console.log('✅ Group details fetched successfully:', res.data)
         return res.data
       })
-    } catch (error: any) {
-      console.error('❌ Backend API failed:', error.response?.status, error.message)
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { status?: number; data?: unknown }; message?: string }
+      console.error('❌ Backend API failed:', axiosError.response?.status, axiosError.message)
 
-      // Mock response for development
+      // Mock response เฉพาะเมื่อ API ล้มเหลวใน development mode
       if (import.meta.env.DEV) {
         const mockGroupDetails: GroupDetailsDTO = {
           id: groupId,
@@ -163,21 +224,22 @@ export default {
         return Promise.resolve(mockGroupDetails)
       }
 
-      throw error
+      throw axiosError
     }
   },
 
   updateGroup(groupId: string, payload: Partial<CreateGroupPayload>) {
     try {
       console.log('🚀 Updating group:', groupId, 'with payload:', payload)
-      return api.put<StudyGroupDTO>(`/api/groups/${groupId}`, payload).then((res) => {
+      return api.put<StudyGroupDTO>(`/groups/${groupId}`, payload).then((res) => {
         console.log('✅ Group updated successfully:', res.data)
         return res.data
       })
-    } catch (error: any) {
-      console.error('❌ Backend API failed:', error.response?.status, error.message)
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { status?: number; data?: unknown }; message?: string }
+      console.error('❌ Backend API failed:', axiosError.response?.status, axiosError.message)
 
-      // Mock response for development
+      // Mock response เฉพาะเมื่อ API ล้มเหลวใน development mode
       if (import.meta.env.DEV) {
         const mockGroup: StudyGroupDTO = {
           id: groupId,
@@ -192,26 +254,29 @@ export default {
         return Promise.resolve(mockGroup)
       }
 
-      throw error
+      throw axiosError
     }
   },
 
   deleteGroup(groupId: string) {
     try {
       console.log('🚀 Deleting group:', groupId)
-      return api.delete<void>(`/groups/${groupId}`).then(() => {
+
+      // เรียก API จริงก่อนเสมอ
+      return api.delete<void>(`/groups/${groupId}?confirm=true`).then(() => {
         console.log('✅ Group deleted successfully')
       })
-    } catch (error: any) {
-      console.error('❌ Backend API failed:', error.response?.status, error.message)
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { status?: number; data?: unknown }; message?: string }
+      console.error('❌ Backend API failed:', axiosError.response?.status, axiosError.message)
 
-      // Mock response for development
+      // Mock response เฉพาะเมื่อ API ล้มเหลวใน development mode
       if (import.meta.env.DEV) {
-        console.log('✅ Mock group deleted:', groupId)
+        console.log('✅ Mock group deleted (fallback):', groupId)
         return Promise.resolve()
       }
 
-      throw error
+      throw axiosError
     }
   },
 
@@ -223,10 +288,11 @@ export default {
         console.log('✅ Group members fetched successfully:', res.data)
         return res.data
       })
-    } catch (error: any) {
-      console.error('❌ Backend API failed:', error.response?.status, error.message)
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { status?: number; data?: unknown }; message?: string }
+      console.error('❌ Backend API failed:', axiosError.response?.status, axiosError.message)
 
-      // Mock response for development
+      // Mock response เฉพาะเมื่อ API ล้มเหลวใน development mode
       if (import.meta.env.DEV) {
         const mockMembers: GroupMemberDTO[] = [
           {
@@ -251,64 +317,67 @@ export default {
         return Promise.resolve(mockMembers)
       }
 
-      throw error
+      throw axiosError
     }
   },
 
   inviteMember(groupId: string, payload: InviteMemberPayload) {
     try {
       console.log('🚀 Inviting member to group:', groupId, 'with payload:', payload)
-      return api.post<void>(`/api/groups/${groupId}/invite`, payload).then(() => {
+      return api.post<void>(`/groups/${groupId}/invite`, payload).then(() => {
         console.log('✅ Member invited successfully')
       })
-    } catch (error: any) {
-      console.error('❌ Backend API failed:', error.response?.status, error.message)
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { status?: number; data?: unknown }; message?: string }
+      console.error('❌ Backend API failed:', axiosError.response?.status, axiosError.message)
 
-      // Mock response for development
+      // Mock response เฉพาะเมื่อ API ล้มเหลวใน development mode
       if (import.meta.env.DEV) {
         console.log('✅ Mock member invited:', payload)
         return Promise.resolve()
       }
 
-      throw error
+      throw axiosError
     }
   },
 
   updateMemberRole(groupId: string, payload: UpdateMemberRoleRequest) {
     try {
       console.log('🚀 Updating member role in group:', groupId, 'with payload:', payload)
-      return api.put<void>(`/api/groups/${groupId}/members/${payload.userId}/role`, { role: payload.role }).then(() => {
+      return api.put<void>(`/groups/${groupId}/members/${payload.userId}/role`, { role: payload.role }).then(() => {
         console.log('✅ Member role updated successfully')
       })
-    } catch (error: any) {
-      console.error('❌ Backend API failed:', error.response?.status, error.message)
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { status?: number; data?: unknown }; message?: string }
+      console.error('❌ Backend API failed:', axiosError.response?.status, axiosError.message)
 
-      // Mock response for development
+      // Mock response เฉพาะเมื่อ API ล้มเหลวใน development mode
       if (import.meta.env.DEV) {
         console.log('✅ Mock member role updated:', payload)
         return Promise.resolve()
       }
 
-      throw error
+      throw axiosError
     }
   },
 
   removeMember(groupId: string, userId: string) {
     try {
       console.log('🚀 Removing member from group:', groupId, 'user:', userId)
-      return api.delete<void>(`/api/groups/${groupId}/members/${userId}`).then(() => {
+      return api.delete<void>(`/groups/${groupId}/members/${userId}`).then(() => {
         console.log('✅ Member removed successfully')
       })
-    } catch (error: any) {
-      console.error('❌ Backend API failed:', error.response?.status, error.message)
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { status?: number; data?: unknown }; message?: string }
+      console.error('❌ Backend API failed:', axiosError.response?.status, axiosError.message)
 
-      // Mock response for development
+      // Mock response เฉพาะเมื่อ API ล้มเหลวใน development mode
       if (import.meta.env.DEV) {
         console.log('✅ Mock member removed:', { groupId, userId })
         return Promise.resolve()
       }
 
-      throw error
+      throw axiosError
     }
   },
 
@@ -322,37 +391,39 @@ export default {
           await api.post<void>(`/groups/${groupId}/leave`)
           console.log('✅ Left group successfully')
           return
-        } catch (error: any) {
-          if (error.response?.status === 428) {
+        } catch (error: unknown) {
+          const axiosError = error as { response?: { status?: number; data?: unknown }; message?: string }
+          if (axiosError.response?.status === 428) {
             // Confirmation required - this is expected behavior
             throw new Error('CONFIRMATION_REQUIRED')
           }
-          throw error
+          throw axiosError
         }
       }
 
       // Second attempt with confirmation
       await api.post<void>(`/groups/${groupId}/leave?confirm=true`)
       console.log('✅ Left group successfully with confirmation')
-    } catch (error: any) {
-      console.error('❌ Backend API failed:', error.response?.status, error.message)
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { status?: number; data?: unknown }; message?: string }
+      console.error('❌ Backend API failed:', axiosError.response?.status, axiosError.message)
 
       // Handle specific error cases according to API documentation
-      if (error.response?.status === 404) {
+      if (axiosError.response?.status === 404) {
         throw new Error('USER_NOT_MEMBER')
-      } else if (error.response?.status === 400) {
+      } else if (axiosError.response?.status === 400) {
         throw new Error('OWNER_CANNOT_LEAVE_ALONE')
-      } else if (error.response?.status === 401) {
+      } else if (axiosError.response?.status === 401) {
         throw new Error('AUTHENTICATION_REQUIRED')
       }
 
-      // Mock response for development
+      // Mock response เฉพาะเมื่อ API ล้มเหลวใน development mode
       if (import.meta.env.DEV) {
         console.log('✅ Mock group left:', groupId)
         return Promise.resolve()
       }
 
-      throw error
+      throw axiosError
     }
   },
 
@@ -364,9 +435,10 @@ export default {
         console.log('✅ Existing invite code retrieved:', res.data)
         return res.data
       })
-    } catch (error: any) {
-      console.error('❌ Backend API failed:', error.response?.status, error.message)
-      throw error
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { status?: number; data?: unknown }; message?: string }
+      console.error('❌ Backend API failed:', axiosError.response?.status, axiosError.message)
+      throw axiosError
     }
   },
 
@@ -377,12 +449,13 @@ export default {
         console.log('✅ New invite code generated successfully:', res.data)
         console.log('🔍 Response structure:', Object.keys(res.data))
         console.log('🔍 inviteCode field:', res.data.inviteCode)
-        console.log('🔍 token field:', (res.data as any).token)
+        console.log('🔍 token field:', (res.data as { token?: string }).token)
         return res.data
       })
-    } catch (error: any) {
-      console.error('❌ Backend API failed:', error.response?.status, error.message)
-      throw error
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { status?: number; data?: unknown }; message?: string }
+      console.error('❌ Backend API failed:', axiosError.response?.status, axiosError.message)
+      throw axiosError
     }
   },
 
@@ -396,26 +469,28 @@ export default {
         console.log('✅ Joined group successfully:', res.data)
         return res.data
       })
-    } catch (error: any) {
-      console.error('❌ Backend API failed:', error.response?.status, error.message)
-      console.error('❌ Error response data:', error.response?.data)
-      throw error
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { status?: number; data?: unknown }; message?: string }
+      console.error('❌ Backend API failed:', axiosError.response?.status, axiosError.message)
+      console.error('❌ Error response data:', axiosError.response?.data)
+      throw axiosError
     }
   },
 
   joinByToken(token: string) {
     try {
       console.log('🚀 Joining group by token:', token)
-      return api.post<StudyGroupDTO>('/api/groups/join', { token }).then((res) => {
+      return api.post<StudyGroupDTO>('/groups/join', { token }).then((res) => {
         console.log('✅ Joined group by token successfully:', res.data)
         return res.data
       })
-    } catch (error: any) {
-      console.error('❌ Backend API failed:', error.response?.status, error.message)
-      console.error('❌ Error response data:', error.response?.data)
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { status?: number; data?: unknown }; message?: string }
+      console.error('❌ Backend API failed:', axiosError.response?.status, axiosError.message)
+      console.error('❌ Error response data:', axiosError.response?.data)
 
       // Re-throw error เพื่อให้ component จัดการ user-friendly message
-      throw error
+      throw axiosError
     }
   },
 
@@ -444,9 +519,10 @@ export default {
         }
         return res.data
       })
-    } catch (error: any) {
-      console.error('❌ Backend API failed:', error.response?.status, error.message)
-      throw error
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { status?: number; data?: unknown }; message?: string }
+      console.error('❌ Backend API failed:', axiosError.response?.status, axiosError.message)
+      throw axiosError
     }
   },
 
@@ -458,7 +534,7 @@ export default {
       formData.append('description', payload.description)
       formData.append('file', payload.file)
 
-      return api.post<GroupResourceDTO>(`/api/groups/${groupId}/resources`, formData, {
+      return api.post<GroupResourceDTO>(`/groups/${groupId}/resources`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -466,9 +542,10 @@ export default {
         console.log('✅ Resource uploaded successfully:', res.data)
         return res.data
       })
-    } catch (error: any) {
-      console.error('❌ Backend API failed:', error.response?.status, error.message)
-      throw error
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { status?: number; data?: unknown }; message?: string }
+      console.error('❌ Backend API failed:', axiosError.response?.status, axiosError.message)
+      throw axiosError
     }
   },
 
@@ -481,19 +558,20 @@ export default {
         console.log('✅ Study content shared successfully:', res.data)
         return res.data
       })
-    } catch (error: any) {
-      console.error('❌ Backend API failed:', error.response?.status, error.message)
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { status?: number; data?: unknown }; message?: string }
+      console.error('❌ Backend API failed:', axiosError.response?.status, axiosError.message)
 
       // Handle specific error cases
-      if (error.response?.status === 400) {
+      if (axiosError.response?.status === 400) {
         throw new Error('INVALID_CONTENT_ID_FORMAT')
-      } else if (error.response?.status === 403) {
+      } else if (axiosError.response?.status === 403) {
         throw new Error('ACCESS_DENIED')
-      } else if (error.response?.status === 404) {
+      } else if (axiosError.response?.status === 404) {
         throw new Error('CONTENT_NOT_FOUND')
       }
 
-      throw error
+      throw axiosError
     }
   },
 
@@ -513,24 +591,26 @@ export default {
         console.log('✅ Interactive content shared successfully:', res.data)
         return res.data
       })
-    } catch (error: any) {
-      console.error('❌ Backend API failed:', error.response?.status, error.message)
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { status?: number; data?: unknown }; message?: string }
+      console.error('❌ Backend API failed:', axiosError.response?.status, axiosError.message)
 
       // Handle specific error cases
-      if (error.response?.status === 400) {
-        if (error.response?.data?.message?.includes('contentType')) {
+      if (axiosError.response?.status === 400) {
+        const errorData = axiosError.response?.data as { message?: string }
+        if (errorData?.message?.includes('contentType')) {
           throw new Error('INVALID_CONTENT_TYPE')
-        } else if (error.response?.data?.message?.includes('contentData')) {
+        } else if (errorData?.message?.includes('contentData')) {
           throw new Error('INVALID_CONTENT_DATA')
         }
         throw new Error('INVALID_CONTENT_ID_FORMAT')
-      } else if (error.response?.status === 403) {
+      } else if (axiosError.response?.status === 403) {
         throw new Error('ACCESS_DENIED')
-      } else if (error.response?.status === 404) {
+      } else if (axiosError.response?.status === 404) {
         throw new Error('CONTENT_NOT_FOUND')
       }
 
-      throw error
+      throw axiosError
     }
   },
 
@@ -547,9 +627,10 @@ export default {
         })
         return res.data
       })
-    } catch (error: any) {
-      console.error('❌ Backend API failed:', error.response?.status, error.message)
-      throw error
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { status?: number; data?: unknown }; message?: string }
+      console.error('❌ Backend API failed:', axiosError.response?.status, axiosError.message)
+      throw axiosError
     }
   },
 
@@ -561,12 +642,13 @@ export default {
   deleteResource(groupId: string, resourceId: string) {
     try {
       console.log('🚀 Deleting resource from group:', groupId, 'resource:', resourceId)
-      return api.delete<void>(`/api/groups/${groupId}/resources/${resourceId}`).then(() => {
+      return api.delete<void>(`/groups/${groupId}/resources/${resourceId}`).then(() => {
         console.log('✅ Resource deleted successfully')
       })
-    } catch (error: any) {
-      console.error('❌ Backend API failed:', error.response?.status, error.message)
-      throw error
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { status?: number; data?: unknown }; message?: string }
+      console.error('❌ Backend API failed:', axiosError.response?.status, axiosError.message)
+      throw axiosError
     }
   },
 }

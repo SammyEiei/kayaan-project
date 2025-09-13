@@ -126,15 +126,43 @@
               </svg>
             </div>
 
-          <select
-            v-model="selectedFormat"
-            class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="all">All Types</option>
-            <option value="quiz">Quizzes</option>
-            <option value="flashcard">Flashcards</option>
-            <option value="note">Notes</option>
-          </select>
+          <div class="flex flex-wrap gap-2">
+            <button
+              v-for="option in formatOptions"
+              :key="option.value"
+              @click="selectedFormat = option.value"
+              :class="
+                selectedFormat === option.value
+                  ? 'bg-blue-100 text-blue-700 border-blue-300'
+                  : 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200'
+              "
+              class="flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition-colors"
+            >
+              <!-- All Resource Icon -->
+              <svg v-if="option.icon === 'Cards'" class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V6h5.17l2 2H20v10zm-2-6H6v-2h12v2zm-4 4H6v-2h8v2z"/>
+              </svg>
+              <!-- Quiz Icon -->
+              <svg v-else-if="option.icon === 'List'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5">
+                  <path d="M7.5 3.5c-1.556.047-2.483.22-3.125.862c-.879.88-.879 2.295-.879 5.126v6.506c0 2.832 0 4.247.879 5.127C5.253 22 6.668 22 9.496 22h5c2.829 0 4.243 0 5.121-.88c.88-.879.88-2.294.88-5.126V9.488c0-2.83 0-4.246-.88-5.126c-.641-.642-1.569-.815-3.125-.862"/>
+                  <path d="M7.496 3.75c0-.966.784-1.75 1.75-1.75h5.5a1.75 1.75 0 1 1 0 3.5h-5.5a1.75 1.75 0 0 1-1.75-1.75M6.5 10h4m3 1s.5 0 1 1c0 0 1.588-2.5 3-3m-11 7h4m3 1s.5 0 1 1c0 0 1.588-2.5 3-3"/>
+                </g>
+              </svg>
+              <!-- Note Icon -->
+              <svg v-else-if="option.icon === 'FileText'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5">
+                  <path d="M16.5 4H8a4 4 0 0 0-4 4v8.5a4 4 0 0 0 4 4h6.843a4 4 0 0 0 2.829-1.172l1.656-1.656a4 4 0 0 0 1.172-2.829V8a4 4 0 0 0-4-4"/>
+                  <path d="M20.5 14H17a3 3 0 0 0-3 3v3.5M8 8h7.5M8 12h5"/>
+                </g>
+              </svg>
+              <!-- Flashcard Icon -->
+              <svg v-else-if="option.icon === 'HelpCircle'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M2 16c0 2.21 0 3.316.702 4.054q.169.178.37.327C3.908 21 5.16 21 7.667 21h.666c2.506 0 3.759 0 4.595-.62q.201-.147.37-.326C14 19.316 14 18.211 14 16c0-2.21 0-3.316-.702-4.054a3 3 0 0 0-.37-.327C12.092 11 10.84 11 8.333 11h-.666c-2.506 0-3.759 0-4.595.62a3 3 0 0 0-.37.326C2 12.684 2 13.789 2 16m8-8c0-2.21 0-3.316.702-4.054q.168-.178.37-.327C11.908 3 13.16 3 15.667 3h.666c2.506 0 3.759 0 4.595.62q.201.148.37.326C22 4.684 22 5.789 22 8c0 2.21 0 3.316-.702 4.054a3 3 0 0 1-.37.327c-.758.562-1.86.614-3.928.618M2 15h12m-4-8h12M2 9c0-3.317 2.683-6 6-6l-.857 1.714M22 15c0 3.317-2.683 6-6 6l.857-1.714"/>
+              </svg>
+              {{ option.label }}
+            </button>
+          </div>
         </div>
 
         <div class="flex items-center gap-2">
@@ -188,11 +216,14 @@
                   class="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200"
                   title="Interactive View"
                 >
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h.01M19 10a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                    <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" color="currentColor">
+                      <path d="m8.533 13.653l1.967 1.72V6.5a1.5 1.5 0 0 1 3.001-.002l.004 4.764l2.636.427c1.702.26 2.553.389 3.152.753C20.283 13.044 21 14 21 15.266c0 .918-.224 1.534-.768 3.19c-.345 1.05-.518 1.575-.8 1.99a3.53 3.53 0 0 1-1.934 1.414c-.478.14-1.024.14-2.115.14h-.926c-1.452 0-2.177 0-2.824-.27a4 4 0 0 1-.339-.164c-.614-.338-1.072-.91-1.987-2.052l-2.963-3.698a1.57 1.57 0 0 1-.008-1.954a1.52 1.52 0 0 1 2.197-.21"/>
+                      <path d="M7 8h-.824C4.68 8 3.93 8 3.466 7.56C3 7.122 3 6.415 3 5s0-2.121.465-2.56S4.68 2 6.176 2h11.647c1.498 0 2.247 0 2.712.44C21 2.878 21 3.585 21 5s0 2.121-.465 2.56S19.32 8 17.823 8H17"/>
+                    </g>
+                  </svg>
                 </button>
-                <button
+                <!-- <button
                   @click.stop="emitEdit(item, item.type)"
                   class="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200"
                   title="Edit"
@@ -200,7 +231,7 @@
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                   </svg>
-                </button>
+                </button> -->
                 <button
                   @click.stop="emitDelete(item)"
                   class="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
@@ -348,8 +379,11 @@
           <div class="flex items-center justify-between p-6 border-b border-gray-200">
             <div class="flex items-center gap-3">
               <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                <svg class="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 16 16">
-                  <path d="M8.5 1.5A1.5 1.5 0 0 0 7 3v3.5a.5.5 0 0 1-1 0V1.5a1.5 1.5 0 0 0-3 0V12a.5.5 0 0 1-.5.5H1a.5.5 0 0 1 0-1h1V3a1.5 1.5 0 0 0-3 0v8a5 5 0 0 0 10 0V3a1.5 1.5 0 0 0-1.5-1.5z"/>
+                <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                  <g fill="none" stroke="currentColor">
+                    <path d="M20 12v5c0 1.886 0 2.828-.586 3.414C18.828 21 17.886 21 16 21H6.5a2.5 2.5 0 0 1 0-5H16c1.886 0 2.828 0 3.414-.586C20 14.828 20 13.886 20 12V7c0-1.886 0-2.828-.586-3.414C18.828 3 17.886 3 16 3H8c-1.886 0-2.828 0-3.414.586C4 4.172 4 5.114 4 7v11.5"/>
+                    <path stroke-linecap="round" d="M9 8h6"/>
+                  </g>
                 </svg>
               </div>
               <div>
@@ -491,6 +525,13 @@ const router = useRouter()
 const searchQuery = ref('')
 const selectedFormat = ref<string>('all')
 const viewMode = ref<'grid' | 'list'>('grid')
+
+const formatOptions = [
+  { value: 'all', label: 'All Types', icon: 'Cards' },
+  { value: 'quiz', label: 'Quizzes', icon: 'List' },
+  { value: 'note', label: 'Notes', icon: 'FileText' },
+  { value: 'flashcard', label: 'Flashcards', icon: 'HelpCircle' },
+]
 
 
 // Modal state

@@ -177,6 +177,7 @@ export interface AIGeneratedContent {
   requestId: number
   createdAt: string
   updatedAt: string
+  isNew?: boolean
 }
 
 export interface AIJob {

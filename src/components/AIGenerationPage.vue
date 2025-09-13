@@ -268,9 +268,9 @@ const getCurrentPrompts = () => {
 
 // Content type options
 const outputFormats = [
-  { value: 'note', label: 'Study Notes', icon: 'Edit', description: 'Organized study notes in English' },
-  { value: 'quiz', label: 'Quiz', icon: 'HelpCircle', description: 'Interactive quiz questions in English' },
-  { value: 'flashcard', label: 'Flashcards', icon: 'Cards', description: 'Study flashcards in English' }
+  { value: 'note', label: 'Notes', icon: 'FileText', description: 'Organized study notes in English' },
+  { value: 'quiz', label: 'Quiz', icon: 'List', description: 'Interactive quiz questions in English' },
+  { value: 'flashcard', label: 'Flashcards', icon: 'HelpCircle', description: 'Study flashcards in English' }
 ]
 
 // Helper function to check if content is primarily in English (optional enhancement)
@@ -592,6 +592,40 @@ const testNavigation = async () => {
   }
 }
 
+// Test navigation with window.location
+const testNavigationWithLocation = () => {
+  console.log('🧪 Testing navigation with window.location...')
+  const currentUrl = new URL(window.location.href)
+  currentUrl.searchParams.set('tab', 'saved')
+  currentUrl.searchParams.set('_t', Date.now().toString())
+  console.log('🔄 Redirecting to:', currentUrl.toString())
+  window.location.href = currentUrl.toString()
+}
+
+// Test direct navigation to saved content
+const testDirectNavigation = () => {
+  console.log('🧪 Testing direct navigation to saved content...')
+  console.log('📍 Current route:', router.currentRoute.value.fullPath)
+  console.log('📍 Current route name:', router.currentRoute.value.name)
+  console.log('📍 Current route params:', router.currentRoute.value.params)
+  console.log('📍 Current route query:', router.currentRoute.value.query)
+
+  // Try to navigate to the same route but with different query
+  router.push({
+    name: 'ai-content-generator',
+    query: {
+      tab: 'saved',
+      test: 'direct',
+      timestamp: Date.now()
+    }
+  }).then(() => {
+    console.log('✅ Direct navigation completed')
+    console.log('📍 New route:', router.currentRoute.value.fullPath)
+  }).catch((error) => {
+    console.error('❌ Direct navigation failed:', error)
+  })
+}
+
 // Cancel auto-redirect
 const cancelAutoRedirect = () => {
   if (redirectTimeoutId.value) {
@@ -766,7 +800,7 @@ const handleGenerate = async () => {
                 }
               }, 300)
 
-                        } catch (error) {
+            } catch (error) {
               console.error('❌ Auto-redirect with replace failed:', error)
 
               // Method 2: Try with push and force reload
@@ -928,7 +962,7 @@ onMounted(() => {
 
     <!-- Progress Steps -->
     <div class="mb-8">
-      <div class="flex items-center justify-between">
+      <div class="flex items-center justify-center">
         <div class="flex items-center space-x-4">
            <div
             v-for="(step, index) in ['Prompt', 'Preview', 'Generating', 'Result']"
@@ -1027,14 +1061,31 @@ onMounted(() => {
                 <div class="p-3 rounded-lg"
                      :class="outputFormat === format.value ? 'bg-blue-100' : 'bg-slate-100 group-hover:bg-blue-50'"
                 >
-                  <svg class="w-8 h-8"
-                       :class="outputFormat === format.value ? 'text-blue-600' : 'text-slate-600 group-hover:text-blue-500'"
-                       fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                  >
-                    <path v-if="format.icon === 'FileText'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    <path v-else-if="format.icon === 'HelpCircle'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    <path v-else-if="format.icon === 'Cards'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                    <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  <!-- All Resource Icon -->
+                  <svg v-if="format.icon === 'Cards'" class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"
+                       :class="outputFormat === format.value ? 'text-blue-600' : 'text-slate-600 group-hover:text-blue-500'">
+                    <path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V6h5.17l2 2H20v10zm-2-6H6v-2h12v2zm-4 4H6v-2h8v2z"/>
+                  </svg>
+                  <!-- Quiz Icon -->
+                  <svg v-else-if="format.icon === 'List'" class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"
+                       :class="outputFormat === format.value ? 'text-blue-600' : 'text-slate-600 group-hover:text-blue-500'">
+                    <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5">
+                      <path d="M7.5 3.5c-1.556.047-2.483.22-3.125.862c-.879.88-.879 2.295-.879 5.126v6.506c0 2.832 0 4.247.879 5.127C5.253 22 6.668 22 9.496 22h5c2.829 0 4.243 0 5.121-.88c.88-.879.88-2.294.88-5.126V9.488c0-2.83 0-4.246-.88-5.126c-.641-.642-1.569-.815-3.125-.862"/>
+                      <path d="M7.496 3.75c0-.966.784-1.75 1.75-1.75h5.5a1.75 1.75 0 1 1 0 3.5h-5.5a1.75 1.75 0 0 1-1.75-1.75M6.5 10h4m3 1s.5 0 1 1c0 0 1.588-2.5 3-3m-11 7h4m3 1s.5 0 1 1c0 0 1.588-2.5 3-3"/>
+                    </g>
+                  </svg>
+                  <!-- Note Icon -->
+                  <svg v-else-if="format.icon === 'FileText'" class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"
+                       :class="outputFormat === format.value ? 'text-blue-600' : 'text-slate-600 group-hover:text-blue-500'">
+                    <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5">
+                      <path d="M16.5 4H8a4 4 0 0 0-4 4v8.5a4 4 0 0 0 4 4h6.843a4 4 0 0 0 2.829-1.172l1.656-1.656a4 4 0 0 0 1.172-2.829V8a4 4 0 0 0-4-4"/>
+                      <path d="M20.5 14H17a3 3 0 0 0-3 3v3.5M8 8h7.5M8 12h5"/>
+                    </g>
+                  </svg>
+                  <!-- Flashcard Icon -->
+                  <svg v-else-if="format.icon === 'HelpCircle'" class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"
+                       :class="outputFormat === format.value ? 'text-blue-600' : 'text-slate-600 group-hover:text-blue-500'">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M2 16c0 2.21 0 3.316.702 4.054q.169.178.37.327C3.908 21 5.16 21 7.667 21h.666c2.506 0 3.759 0 4.595-.62q.201-.147.37-.326C14 19.316 14 18.211 14 16c0-2.21 0-3.316-.702-4.054a3 3 0 0 0-.37-.327C12.092 11 10.84 11 8.333 11h-.666c-2.506 0-3.759 0-4.595.62a3 3 0 0 0-.37.326C2 12.684 2 13.789 2 16m8-8c0-2.21 0-3.316.702-4.054q.168-.178.37-.327C11.908 3 13.16 3 15.667 3h.666c2.506 0 3.759 0 4.595.62q.201.148.37.326C22 4.684 22 5.789 22 8c0 2.21 0 3.316-.702 4.054a3 3 0 0 1-.37.327c-.758.562-1.86.614-3.928.618M2 15h12m-4-8h12M2 9c0-3.317 2.683-6 6-6l-.857 1.714M22 15c0 3.317-2.683 6-6 6l.857-1.714"/>
                   </svg>
                 </div>
                 <div>
@@ -1518,17 +1569,28 @@ onMounted(() => {
             Generate New Content
           </button>
 
-          <!-- Debug: Manual Test Navigation Button -->
-          <!-- <button
-            @click="testNavigation"
-            class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2 mx-auto mt-3 text-sm"
-          >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            Test Navigation
-          </button> -->
+          <!-- Debug: Manual Test Navigation Buttons -->
+          <!-- <div class="flex gap-2 justify-center mt-3">
+            <button
+              @click="testNavigation"
+              class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2 text-sm"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              Test Router
+            </button>
+            <button
+              @click="testNavigationWithLocation"
+              class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors flex items-center gap-2 text-sm"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+              </svg>
+              Test Location
+            </button>
+          </div> -->
         </div>
 
         <!-- Success Information -->

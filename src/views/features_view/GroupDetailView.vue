@@ -64,33 +64,33 @@ onMounted(async () => {
   }
 })
 
-const handleLeaveGroup = async () => {
-  try {
-    // First attempt without confirmation
-    await groupStore.leaveGroup(groupId.value, false)
-    router.push('/study-groups')
-  } catch (error: any) {
-    if (error.message === 'CONFIRMATION_REQUIRED') {
-      // Show confirmation modal - this is handled by the modal component
-      console.log('Confirmation required for leaving group')
-      return
-    } else if (error.message === 'OWNER_CANNOT_LEAVE_ALONE') {
-      // Show error message and suggest delete group instead
-      alert('Owner cannot leave the group if they are the only member. Please delete the group instead.')
-      return
-    } else if (error.message === 'USER_NOT_MEMBER') {
-      alert('You are not a member of this group.')
-      router.push('/study-groups')
-      return
-    } else if (error.message === 'AUTHENTICATION_REQUIRED') {
-      alert('Authentication required. Please log in again.')
-      // TODO: Redirect to login page
-      return
-    }
-    console.error('Failed to leave group:', error)
-    alert('Failed to leave group. Please try again.')
-  }
-}
+// const handleLeaveGroup = async () => {
+//   try {
+//     // First attempt without confirmation
+//     await groupStore.leaveGroup(groupId.value, false)
+//     router.push('/study-groups')
+//   } catch (error: any) {
+//     if (error.message === 'CONFIRMATION_REQUIRED') {
+//       // Show confirmation modal - this is handled by the modal component
+//       console.log('Confirmation required for leaving group')
+//       return
+//     } else if (error.message === 'OWNER_CANNOT_LEAVE_ALONE') {
+//       // Show error message and suggest delete group instead
+//       alert('Owner cannot leave the group if they are the only member. Please delete the group instead.')
+//       return
+//     } else if (error.message === 'USER_NOT_MEMBER') {
+//       alert('You are not a member of this group.')
+//       router.push('/study-groups')
+//       return
+//     } else if (error.message === 'AUTHENTICATION_REQUIRED') {
+//       alert('Authentication required. Please log in again.')
+//       // TODO: Redirect to login page
+//       return
+//     }
+//     console.error('Failed to leave group:', error)
+//     alert('Failed to leave group. Please try again.')
+//   }
+// }
 
 const handleConfirmLeaveGroup = async () => {
   try {
@@ -98,17 +98,18 @@ const handleConfirmLeaveGroup = async () => {
     await groupStore.leaveGroup(groupId.value, true)
     showLeaveModal.value = false
     router.push('/study-groups')
-  } catch (error: any) {
-    if (error.message === 'OWNER_CANNOT_LEAVE_ALONE') {
+  } catch (error: unknown) {
+    const errorObj = error as { message?: string }
+    if (errorObj.message === 'OWNER_CANNOT_LEAVE_ALONE') {
       alert('Owner cannot leave the group if they are the only member. Please delete the group instead.')
       showLeaveModal.value = false
       return
-    } else if (error.message === 'USER_NOT_MEMBER') {
+    } else if (errorObj.message === 'USER_NOT_MEMBER') {
       alert('You are not a member of this group.')
       showLeaveModal.value = false
       router.push('/study-groups')
       return
-    } else if (error.message === 'AUTHENTICATION_REQUIRED') {
+    } else if (errorObj.message === 'AUTHENTICATION_REQUIRED') {
       alert('Authentication required. Please log in again.')
       showLeaveModal.value = false
       // TODO: Redirect to login page
@@ -187,10 +188,10 @@ const handleBackToDashboard = () => {
             <button
               v-for="tab in [
                 { id: 'overview', label: 'Overview', icon: 'Home' },
-                { id: 'content', label: 'Content', icon: 'Document' },
+                { id: 'content', label: 'Community', icon: 'Document' },
                 { id: 'library', label: 'Library', icon: 'BookOpen' },
                 { id: 'members', label: 'Members', icon: 'Users' },
-                { id: 'security', label: 'Security', icon: 'ShieldCheck' },
+                // { id: 'security', label: 'Security', icon: 'ShieldCheck' },
                 { id: 'invite', label: 'Invite', icon: 'UserPlus' }
               ]"
               :key="tab.id"
@@ -246,8 +247,8 @@ const handleBackToDashboard = () => {
             <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200">
               <div class="flex items-center gap-3">
                 <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                  <svg class="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M3.5 7a5 5 0 1 1 10 0a5 5 0 0 1-10 0M5 14a5 5 0 0 0-5 5v2h17v-2a5 5 0 0 0-5-5zm19 7h-5v-2c0-1.959-.804-3.73-2.1-5H19a5 5 0 0 1 5 5zm-8.5-9a5 5 0 0 1-1.786-.329A6.97 6.97 0 0 0 15.5 7a6.97 6.97 0 0 0-1.787-4.671A5 5 0 1 1 15.5 12"/>
                   </svg>
                 </div>
                 <div>
@@ -406,8 +407,8 @@ const handleBackToDashboard = () => {
                   <!-- Activity Item 1 -->
                   <div class="flex items-center gap-4 p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl border border-blue-200">
                     <div class="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center shadow-sm">
-                      <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                      <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M3.5 7a5 5 0 1 1 10 0a5 5 0 0 1-10 0M5 14a5 5 0 0 0-5 5v2h17v-2a5 5 0 0 0-5-5zm19 7h-5v-2c0-1.959-.804-3.73-2.1-5H19a5 5 0 0 1 5 5zm-8.5-9a5 5 0 0 1-1.786-.329A6.97 6.97 0 0 0 15.5 7a6.97 6.97 0 0 0-1.787-4.671A5 5 0 1 1 15.5 12"/>
                       </svg>
                     </div>
                     <div class="flex-1">
