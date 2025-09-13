@@ -178,6 +178,7 @@ export interface AIGeneratedContent {
   createdAt: string
   updatedAt: string
   isNew?: boolean
+  hasBeenViewed?: boolean
 }
 
 export interface AIJob {

@@ -51,6 +51,16 @@ onMounted(async () => {
     user: useAuthStore().user,
     currentUserId: useAuthStore().currentUserId
   })
+
+  // ตรวจสอบ query parameter สำหรับ tab
+  if (route.query.tab && typeof route.query.tab === 'string') {
+    const validTabs = ['overview', 'content', 'security', 'members', 'library', 'invite']
+    if (validTabs.includes(route.query.tab)) {
+      activeTab.value = route.query.tab as 'overview' | 'content' | 'security' | 'members' | 'library' | 'invite'
+      console.log('🔍 Set active tab from query:', route.query.tab)
+    }
+  }
+
   if (groupId.value) {
     console.log('🔍 Calling fetchGroupDetails...')
     try {
@@ -151,6 +161,16 @@ const handleBackToGroups = () => {
 const handleBackToDashboard = () => {
   router.push('/dashboard')
 }
+
+const handleTabChange = (tabId: 'overview' | 'content' | 'security' | 'members' | 'library' | 'invite') => {
+  activeTab.value = tabId
+  // อัปเดต URL เพื่อให้สอดคล้องกับ tab ที่เปิดอยู่
+  router.replace({
+    name: 'group-detail',
+    params: { id: groupId.value },
+    query: { tab: tabId }
+  })
+}
 </script>
 
 <template>
@@ -195,7 +215,7 @@ const handleBackToDashboard = () => {
                 { id: 'invite', label: 'Invite', icon: 'UserPlus' }
               ]"
               :key="tab.id"
-              @click="activeTab = tab.id as any"
+              @click="handleTabChange(tab.id as any)"
               :class="
                 activeTab === tab.id
                   ? 'border-blue-500 text-blue-600'

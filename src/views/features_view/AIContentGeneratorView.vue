@@ -44,6 +44,13 @@ const tabs = [
   { id: 'history', label: 'History', icon: 'Clock', description: 'View generation history' },
   { id: 'saved', label: 'My Content', icon: 'Folder', description: 'Saved content library' },
 ]
+
+// Handle tab switch from child component
+const handleTabSwitch = (tab: 'chat' | 'history' | 'saved') => {
+  console.log('🔄 Tab switch requested from child:', tab)
+  activeTab.value = tab
+  console.log('✅ Tab switched to:', activeTab.value)
+}
 </script>
 
 <template>
@@ -89,7 +96,7 @@ const tabs = [
 
     <!-- Tab Content -->
     <div class="flex-1">
-      <AIGenerationPage v-if="activeTab === 'chat'" />
+      <AIGenerationPage v-if="activeTab === 'chat'" @switch-tab="handleTabSwitch" />
       <GenerationHistory v-else-if="activeTab === 'history'" />
       <SavedContentPage v-else-if="activeTab === 'saved'" :key="'saved-' + route.query._t" />
     </div>

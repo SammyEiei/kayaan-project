@@ -249,6 +249,8 @@ export const useAIContentStore = defineStore('aiContent', () => {
         requestId: data.requestId,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
+        isNew: true, // เนื้อหาใหม่ที่เพิ่งบันทึก
+        hasBeenViewed: false // ยังไม่ได้ดู
       }
 
       savedContent.value.unshift(newContent)
@@ -355,15 +357,31 @@ export const useAIContentStore = defineStore('aiContent', () => {
     try {
       const response = await aiContentService.getSavedContent()
             // Extract content array from response
-      savedContent.value = response.content.map(item => ({
-        id: item.id,
-        title: item.contentTitle,
-        content: item.contentData || '', // ใช้ content data จาก response
-        outputFormat: item.contentType as 'flashcard' | 'quiz' | 'note' | 'summary',
-        requestId: 0, // Not available in this response
-        createdAt: item.createdAt,
-        updatedAt: item.createdAt
-      }))
+      savedContent.value = response.content.map(item => {
+        // ตรวจสอบจาก localStorage ว่าเนื้อหานี้เคยถูกดูหรือไม่
+        const viewedContentIds = JSON.parse(localStorage.getItem('viewedContentIds') || '[]')
+        const hasBeenViewed = viewedContentIds.includes(item.id)
+
+        // ตรวจสอบวันที่สร้างเพื่อกำหนดว่าเป็นเนื้อหาเก่าหรือไม่
+        const createdAt = new Date(item.createdAt)
+        const now = new Date()
+        const daysDiff = Math.floor((now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24))
+
+        // เนื้อหาเก่าที่สร้างเกิน 2 วันจะถือว่าไม่ใช่ "ใหม่" แม้ว่าจะยังไม่ได้ดู
+        const isOldContent = daysDiff > 2
+
+        return {
+          id: item.id,
+          title: item.contentTitle,
+          content: item.contentData || '', // ใช้ content data จาก response
+          outputFormat: item.contentType as 'flashcard' | 'quiz' | 'note' | 'summary',
+          requestId: 0, // Not available in this response
+          createdAt: item.createdAt,
+          updatedAt: item.createdAt,
+          isNew: !hasBeenViewed && !isOldContent, // ใหม่ = ยังไม่ได้ดู และไม่ใช่เนื้อหาเก่า
+          hasBeenViewed: hasBeenViewed
+        }
+      })
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to load saved content'
       throw err
@@ -389,6 +407,37 @@ export const useAIContentStore = defineStore('aiContent', () => {
 
   const setCurrentContent = (content: AIContent | null) => {
     currentContent.value = content
+  }
+
+  const markContentAsViewed = (contentId: number): void => {
+    // อัปเดตสถานะใน store
+    const content = savedContent.value.find(c => c.id === contentId)
+    if (content) {
+      content.hasBeenViewed = true
+      content.isNew = false
+    }
+
+    // บันทึกใน localStorage
+    const viewedContentIds = JSON.parse(localStorage.getItem('viewedContentIds') || '[]')
+    if (!viewedContentIds.includes(contentId)) {
+      viewedContentIds.push(contentId)
+      localStorage.setItem('viewedContentIds', JSON.stringify(viewedContentIds))
+    }
+  }
+
+  const resetViewedStatus = (): void => {
+    // ลบข้อมูลการดูทั้งหมดจาก localStorage
+    localStorage.removeItem('viewedContentIds')
+
+    // รีเซ็ตสถานะใน store
+    savedContent.value.forEach(content => {
+      content.hasBeenViewed = false
+      // ตรวจสอบวันที่สร้างเพื่อกำหนด isNew
+      const createdAt = new Date(content.createdAt)
+      const now = new Date()
+      const daysDiff = Math.floor((now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24))
+      content.isNew = daysDiff <= 2 // ใหม่ = สร้างภายใน 2 วัน
+    })
   }
 
   const clearError = () => {
@@ -428,6 +477,8 @@ export const useAIContentStore = defineStore('aiContent', () => {
     previewContent,
     setCurrentRequest,
     setCurrentContent,
+    markContentAsViewed,
+    resetViewedStatus,
     clearError,
   }
 })

@@ -74,8 +74,10 @@ export interface GroupPost {
   authorId: string
   authorName: string
   authorAvatar?: string
+  title: string
+  description: string
   content: string
-  contentType: 'text' | 'image' | 'file' | 'mixed'
+  contentType: 'TEXT' | 'MARKDOWN' | 'IMAGE' | 'FILE' | 'MIXED'
   attachments?: PostAttachment[]
   tags?: string[]
   createdAt: string
@@ -242,14 +244,18 @@ export interface AddReactionRequest {
 // เพิ่ม type ใหม่สำหรับ Create Post Request
 export interface CreatePostRequest {
   groupId: string
+  title: string
+  description: string
   content: string
-  contentType: 'text' | 'image' | 'file' | 'mixed'
+  contentType: 'TEXT' | 'MARKDOWN' | 'IMAGE' | 'FILE' | 'MIXED'
   attachments?: File[]
   tags?: string[]
 }
 
 // เพิ่ม type ใหม่สำหรับ Update Post Request
 export interface UpdatePostRequest {
+  title?: string
+  description?: string
   content: string
   tags?: string[]
 }
@@ -378,7 +384,7 @@ export interface ShareStudyContentResponse {
   contentSource: 'study_content'
   contentId: string
   originalContentType: string
-  contentData: any
+  contentData: unknown
 }
 
 export interface ListGroupResourcesParams {

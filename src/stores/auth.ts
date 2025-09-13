@@ -71,6 +71,15 @@ export const useAuthStore = defineStore('auth', {
     currentUserId: (state) => state.userId,
     isAuthenticated: (state) => !!state.token && !isTokenExpired(state.token),
     currentUserAvatar: (state) => buildFullUrl(state.user?.avatarUrl),
+    currentUser: (state) => state.user ? {
+      id: state.user.id,
+      name: `${state.user.firstname} ${state.user.lastname}`.trim() || state.user.username,
+      username: state.user.username,
+      email: state.user.email,
+      avatar: buildFullUrl(state.user.avatarUrl),
+      avatarUrl: buildFullUrl(state.user.avatarUrl),
+      avatarRotation: state.user.avatarRotation
+    } : null,
     // Add debug getter
     debugToken: (state) => {
       console.log('🔍 Auth Store Debug - Token:', state.token ? 'EXISTS' : 'NOT FOUND')

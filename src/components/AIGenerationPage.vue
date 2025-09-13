@@ -1,10 +1,15 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAIGenerationStore } from '@/stores/aiGeneration'
 // import { useAIContentStore } from '@/stores/aiContent'
 import { ApiTestUtil } from '@/utils/apiTestUtil'
 import { PathTestUtil } from '@/utils/pathTestUtil'
+
+// Define emits for parent communication
+const emit = defineEmits<{
+  switchTab: [tab: 'chat' | 'history' | 'saved']
+}>()
 
 const aiGenerationStore = useAIGenerationStore()
 // const aiContentStore = useAIContentStore()
@@ -19,6 +24,10 @@ const outputFormat = ref<'quiz' | 'flashcard' | 'note'>('note')
 const attachedFile = ref<File | null>(null)
 const generationProgress = ref(0)
 const generationStatus = ref('Initializing...')
+
+// Track if prompt has been modified from default
+const initialPromptText = ref('')
+const isPromptModified = ref(false)
 
 // Kayaan Animation State
 const currentGenerationMessage = ref('<svg class="w-5 h-5 inline text-blue-500" fill="currentColor" viewBox="0 0 20 20"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z"></path></svg> Kayaan is thinking...')
@@ -118,6 +127,9 @@ const removeFile = () => {
 const updatePromptBasedOnFileStatus = () => {
   const currentPrompts = getCurrentPrompts()
   promptText.value = currentPrompts[outputFormat.value]
+  // Update initial prompt and reset modification status
+  initialPromptText.value = promptText.value
+  isPromptModified.value = false
 }
 
 // Default prompts - different versions for with/without file attachment
@@ -129,7 +141,7 @@ const defaultPromptsWithFile = {
 
 const defaultPromptsWithoutFile = {
   quiz: 'Generate an educational quiz in English on a specific topic of your choice. Create multiple choice questions, true/false questions, and short answer questions. Please specify the subject area, academic level, and key topics you want covered. Example: "Create a high school level biology quiz covering photosynthesis, cellular respiration, and plant structure with 10 questions total."',
-  flashcard: 'Create educational flashcards in English on a specific topic of your choice. Please specify the subject area, academic level, and key concepts you want covered. Example: "Create intermediate-level Spanish vocabulary flashcards for common verbs and adjectives used in daily conversation, with 20 cards total."',
+  flashcard: 'Create educational flashcards in English on a specific topic of your choice. Please specify the subject area, academic level, and key concepts you want covered. Example: "Create intermediate-level Spanish vocabulary flashcards for common verbs and adjectives used in daily conversation, with 10 cards total."',
   note: 'Create well-organized study notes in English on a specific topic of your choice. Please specify the subject area, academic level, and key concepts you want covered. Example: "Create comprehensive study notes for high school chemistry covering atomic structure, chemical bonding, and periodic table trends with clear explanations and examples."'
 }
 
@@ -285,9 +297,13 @@ const hasEnglishContent = (text: string): boolean => {
 // Validation
 const isValid = computed(() => {
   const trimmedText = promptText.value.trim()
-  return trimmedText.length >= 10 &&
-         trimmedText.length <= 2000 &&
-         hasEnglishContent(trimmedText)
+  const hasValidPrompt = trimmedText.length >= 10 &&
+                        trimmedText.length <= 2000 &&
+                        hasEnglishContent(trimmedText)
+
+  // If file is attached, allow using default prompt
+  // If no file attached, require prompt modification
+  return hasValidPrompt && (attachedFile.value || isPromptModified.value)
 })
 
 const characterCount = computed(() => promptText.value.length)
@@ -296,12 +312,25 @@ const characterCount = computed(() => promptText.value.length)
 const validationMessage = computed(() => {
   const trimmedText = promptText.value.trim()
 
-  if (trimmedText.length === 0) return ''
+  if (trimmedText.length === 0) return 'Please enter a prompt to continue'
+
+  // If no file attached and prompt not modified, show customization message
+  if (!attachedFile.value && !isPromptModified.value) {
+    return 'Please customize the prompt or select a template to continue'
+  }
+
   if (trimmedText.length < 10) return 'Please enter at least 10 characters'
   if (trimmedText.length > 2000) return 'Please keep within 2000 characters'
   if (!hasEnglishContent(trimmedText)) return 'Please write primarily in English for best results'
 
   return ''
+})
+
+// Watch for prompt text changes to track if user has modified it
+watch(promptText, (newValue) => {
+  if (initialPromptText.value && newValue !== initialPromptText.value) {
+    isPromptModified.value = true
+  }
 })
 
 // Navigation
@@ -357,6 +386,8 @@ const applyPreset = () => {
   })
 
   promptText.value = finalPrompt
+  // Mark as modified since user applied a preset
+  isPromptModified.value = true
   showPresetModal.value = false
 }
 
@@ -483,6 +514,10 @@ const handleContentTypeChange = (type: 'quiz' | 'flashcard' | 'note') => {
     const currentPrompts = getCurrentPrompts()
     promptText.value = currentPrompts[type]
   }
+
+  // Update initial prompt and reset modification status
+  initialPromptText.value = promptText.value
+  isPromptModified.value = false
 }
 
 
@@ -762,22 +797,10 @@ const handleGenerate = async () => {
           }, 1000)
 
                               redirectTimeoutId.value = setTimeout(async () => {
-            console.log('🚀 Auto-redirecting to My Content page...')
+            console.log('🚀 Auto-redirecting to My Content tab...')
             console.log('📍 Current route:', router.currentRoute.value.fullPath)
 
             try {
-              // Method 1: Try navigation with replace to force route change
-              console.log('🔄 Attempting navigation with router.replace...')
-              console.log('📋 Target route:', { name: 'ai-content-generator', query: { tab: 'saved' } })
-
-              const result = await router.replace({
-                name: 'ai-content-generator',
-                query: { tab: 'saved' }
-              })
-
-              console.log('✅ Router.replace result:', result)
-              console.log('📍 New route after replace:', router.currentRoute.value.fullPath)
-
               // Clear countdown interval since redirect is successful
               if (redirectCountdownInterval.value) {
                 clearInterval(redirectCountdownInterval.value)
@@ -785,11 +808,16 @@ const handleGenerate = async () => {
                 console.log('🔄 Countdown interval cleared')
               }
 
+              // Emit event to parent to switch to saved tab
+              console.log('🔄 Emitting switchTab event to parent...')
+              emit('switchTab', 'saved')
+              console.log('✅ Switch tab event emitted')
+
               // Use nextTick to ensure DOM updates before loading content
               await nextTick()
               console.log('✅ NextTick completed')
 
-              // Force refresh content after navigation and DOM update
+              // Force refresh content after tab switch
               setTimeout(async () => {
                 try {
                   console.log('🔄 Starting content refresh...')
@@ -801,30 +829,7 @@ const handleGenerate = async () => {
               }, 300)
 
             } catch (error) {
-              console.error('❌ Auto-redirect with replace failed:', error)
-
-              // Method 2: Try with push and force reload
-              try {
-                console.log('🔄 Attempting fallback with router.push...')
-                const timestamp = Date.now()
-                console.log('📋 Fallback route:', { name: 'ai-content-generator', query: { tab: 'saved', _t: timestamp } })
-
-                await router.push({
-                  name: 'ai-content-generator',
-                  query: { tab: 'saved', _t: timestamp } // Add timestamp to force refresh
-                })
-                console.log('✅ Fallback navigation successful')
-                console.log('📍 Route after fallback push:', router.currentRoute.value.fullPath)
-
-              } catch (pushError) {
-                console.error('❌ Fallback navigation failed:', pushError)
-
-                // Method 3: Force page reload
-                console.log('🔄 Using window.location as last resort...')
-                const fallbackUrl = '/ai-content-generator?tab=saved&_t=' + Date.now()
-                console.log('📍 Fallback URL:', fallbackUrl)
-                window.location.href = fallbackUrl
-              }
+              console.error('❌ Auto-redirect failed:', error)
             }
           }, 2000) // รอ 2 วินาทีเพื่อให้เห็นข้อความ success ก่อน
         }
@@ -881,7 +886,13 @@ const resetGeneration = () => {
   console.log('🔄 Resetting generation - going back to prompt step')
   stopKayaanAnimation()
   currentStep.value = 'prompt'
-  promptText.value = ''
+
+  // Reset to default prompt
+  const currentPrompts = getCurrentPrompts()
+  promptText.value = currentPrompts[outputFormat.value]
+  initialPromptText.value = promptText.value
+  isPromptModified.value = false
+
   attachedFile.value = null
   if (fileInput.value) {
     fileInput.value.value = ''
@@ -912,6 +923,9 @@ onMounted(() => {
   // Set default prompt based on file attachment status
   const currentPrompts = getCurrentPrompts()
   promptText.value = currentPrompts.note
+  // Store initial prompt for comparison
+  initialPromptText.value = currentPrompts.note
+  isPromptModified.value = false
 })
 </script>
 
@@ -1276,26 +1290,46 @@ onMounted(() => {
         </div>
 
         <!-- Dynamic Help Section -->
-        <div v-if="!attachedFile" class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+        <div v-if="!attachedFile" class="bg-amber-50/50 border border-amber-200 rounded-lg p-4 mb-4">
           <div class="flex items-start gap-3">
-            <svg class="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+            <div class="w-5 h-5 bg-amber-50 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 border border-amber-200">
+              <svg class="w-3.5 h-3.5 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+              </svg>
+            </div>
             <div>
-              <h4 class="text-sm font-medium text-blue-900 mb-1">No File Attached</h4>
-              <p class="text-sm text-blue-800">Since you haven't attached a file, please specify the subject, academic level, and key topics you want covered in your prompt. Be as specific as possible for better results.</p>
+              <h4 class="text-sm font-medium text-slate-700 mb-1 flex items-center gap-2">
+                <span>No File Attached</span>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
+                  Required Info
+                </span>
+              </h4>
+              <p class="text-sm text-slate-600 leading-relaxed">
+                <span class="font-medium text-slate-700">Please specify the following in your prompt:</span> subject area, academic level, and key topics you want covered.
+                <span class="font-medium text-slate-700">Be as specific as possible for better results.</span>
+              </p>
             </div>
           </div>
         </div>
 
-        <div v-else class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+        <div v-else class="bg-emerald-50/50 border border-emerald-200 rounded-lg p-4 mb-4">
           <div class="flex items-start gap-3">
-            <svg class="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+            <div class="w-5 h-5 bg-emerald-50 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 border border-emerald-200">
+              <svg class="w-3.5 h-3.5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+              </svg>
+            </div>
             <div>
-              <h4 class="text-sm font-medium text-green-900 mb-1">File Attached: {{ attachedFile.name }}</h4>
-              <p class="text-sm text-green-800">Your file will be analyzed and processed. Please describe how you want the AI to transform this content into study materials (e.g., difficulty level, specific focus areas, question types).</p>
+              <h4 class="text-sm font-medium text-slate-700 mb-1 flex items-center gap-2">
+                <span>File Attached: {{ attachedFile.name }}</span>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
+                  Ready to Process
+                </span>
+              </h4>
+              <p class="text-sm text-slate-600 leading-relaxed">
+                <span class="font-medium text-slate-700">Your file will be analyzed and processed.</span> Please describe how you want the AI to transform this content into study materials
+                <span class="font-medium text-slate-700">(e.g., difficulty level, specific focus areas, question types).</span>
+              </p>
             </div>
           </div>
         </div>
@@ -1532,7 +1566,7 @@ onMounted(() => {
               <div>
                 <h4 class="font-medium text-blue-900">Redirecting to My Content</h4>
                 <p class="text-sm text-blue-700">
-                  Taking you to view your content in
+                  Taking you to view your saved content in
                   <span class="font-semibold">{{ redirectCountdown }}</span>
                   second{{ redirectCountdown !== 1 ? 's' : '' }}...
                 </p>
@@ -1600,7 +1634,7 @@ onMounted(() => {
               <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
             </svg>
             <div>
-              <h4 class="font-medium text-green-900 mb-1">✨ Content Ready!</h4>
+              <h4 class="font-medium text-green-900 mb-1">Content Ready!</h4>
               <p class="text-sm text-green-800">
                 Your generated content has been automatically saved and you'll be redirected to the "My Content" section shortly.
                 You can also generate more content anytime using the button above!

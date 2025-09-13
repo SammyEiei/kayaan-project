@@ -651,4 +651,524 @@ export default {
       throw axiosError
     }
   },
+
+  // Group Posts Management
+  async createPost(groupId: string, payload: {
+    title: string;
+    description: string;
+    content: string;
+    contentType: 'TEXT' | 'IMAGE' | 'FILE' | 'MIXED';
+    attachments?: File[];
+    tags?: string[];
+  }) {
+    try {
+      console.log('🚀 Creating post in group:', groupId, 'with payload:', payload)
+
+      // Validate required fields
+      if (!groupId || groupId.trim() === '') {
+        throw new Error('Group ID is required')
+      }
+      if (!payload.title || payload.title.trim() === '') {
+        throw new Error('Post title is required')
+      }
+      if (!payload.description || payload.description.trim() === '') {
+        throw new Error('Post description is required')
+      }
+      if (!payload.content || payload.content.trim() === '') {
+        throw new Error('Post content is required')
+      }
+      if (!payload.contentType) {
+        throw new Error('Content type is required')
+      }
+
+      // Send JSON payload instead of FormData
+      const jsonPayload = {
+        title: payload.title.trim(),
+        description: payload.description.trim(),
+        content: payload.content.trim(),
+        contentType: payload.contentType,
+        tags: payload.tags || []
+      }
+
+      console.log('📤 Sending JSON payload to backend:', jsonPayload)
+      console.log('🌐 API endpoint:', `/groups/${groupId}/posts`)
+
+      const response = await api.post(`/groups/${groupId}/posts`, jsonPayload, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      console.log('✅ Post created successfully:', response.data)
+      return response.data
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { status?: number; data?: unknown }; message?: string }
+      console.error('❌ Backend API failed:', axiosError.response?.status, axiosError.message)
+      throw axiosError
+    }
+  },
+
+  async getGroupPosts(groupId: string, params?: {
+    page?: number;
+    size?: number;
+    sortBy?: 'createdAt' | 'likesCount';
+    sortDirection?: 'ASC' | 'DESC';
+  }) {
+    try {
+      console.log('🚀 Fetching posts for group:', groupId, 'with params:', params)
+
+      const queryParams = new URLSearchParams()
+      if (params?.page !== undefined) queryParams.append('page', params.page.toString())
+      if (params?.size !== undefined) queryParams.append('size', params.size.toString())
+      if (params?.sortBy) queryParams.append('sortBy', params.sortBy)
+      if (params?.sortDirection) queryParams.append('sortDirection', params.sortDirection)
+
+      const url = `/groups/${groupId}/posts${queryParams.toString() ? `?${queryParams.toString()}` : ''}`
+
+      const response = await api.get(url)
+      console.log('✅ Group posts fetched successfully:', response.data)
+
+      // ตั้งค่า comments เป็น empty array สำหรับ posts list และ debug likes data
+      if (response.data.content) {
+        response.data.content.forEach((post: unknown, index: number) => {
+          if (post && typeof post === 'object') {
+            const postObj = post as { comments?: unknown[]; likes?: number; likesCount?: number }
+            console.log(`🔍 Post ${index}:`, {
+              id: (post as { id?: string }).id,
+              likes: postObj.likes,
+              likesCount: postObj.likesCount,
+              title: (post as { title?: string }).title,
+              contentType: (post as { contentType?: string }).contentType,
+              content: (post as { content?: string }).content?.substring(0, 100) + '...'
+            })
+            postObj.comments = []
+          }
+        })
+      } else if (Array.isArray(response.data)) {
+        response.data.forEach((post: unknown, index: number) => {
+          if (post && typeof post === 'object') {
+            const postObj = post as { comments?: unknown[]; likes?: number; likesCount?: number }
+            console.log(`🔍 Post ${index}:`, {
+              id: (post as { id?: string }).id,
+              likes: postObj.likes,
+              likesCount: postObj.likesCount,
+              title: (post as { title?: string }).title,
+              contentType: (post as { contentType?: string }).contentType,
+              content: (post as { content?: string }).content?.substring(0, 100) + '...'
+            })
+            postObj.comments = []
+          }
+        })
+      }
+
+      return response.data
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { status?: number; data?: unknown }; message?: string }
+      console.error('❌ Backend API failed:', axiosError.response?.status, axiosError.message)
+      throw axiosError
+    }
+  },
+
+  async getPost(groupId: string, postId: string, includeComments: boolean = false) {
+    try {
+      console.log('🚀 Fetching post:', groupId, 'post:', postId, 'includeComments:', includeComments)
+
+      const url = `/groups/${groupId}/posts/${postId}${includeComments ? '?includeComments=true' : ''}`
+      const response = await api.get(url)
+      console.log('✅ Post fetched successfully:', response.data)
+      return response.data
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { status?: number; data?: unknown }; message?: string }
+      console.error('❌ Backend API failed:', axiosError.response?.status, axiosError.message)
+      throw axiosError
+    }
+  },
+
+  // Method สำหรับ fetch comments ของ post
+  async getPostComments(groupId: string, postId: string) {
+    try {
+      console.log('🚀 Fetching comments for post:', groupId, 'post:', postId)
+
+      const response = await api.get(`/groups/${groupId}/posts/${postId}/comments`)
+      console.log('✅ Post comments fetched successfully:', response.data)
+      return response.data
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { status?: number; data?: unknown }; message?: string }
+      console.error('❌ Backend API failed:', axiosError.response?.status, axiosError.message)
+      throw axiosError
+    }
+  },
+
+  async updatePost(groupId: string, postId: string, payload: {
+    title?: string;
+    description?: string;
+    content: string;
+    tags?: string[];
+  }) {
+    try {
+      console.log('🚀 Updating post:', groupId, 'post:', postId, 'with payload:', payload)
+
+      // Ensure JSON format
+      const jsonPayload = {
+        title: payload.title,
+        description: payload.description,
+        content: payload.content,
+        tags: payload.tags || []
+      }
+
+      const response = await api.put(`/groups/${groupId}/posts/${postId}`, jsonPayload, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+      console.log('✅ Post updated successfully:', response.data)
+      return response.data
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { status?: number; data?: unknown }; message?: string }
+      console.error('❌ Backend API failed:', axiosError.response?.status, axiosError.message)
+      throw axiosError
+    }
+  },
+
+  async deletePost(groupId: string, postId: string) {
+    try {
+      console.log('🚀 Deleting post:', groupId, 'post:', postId)
+      await api.delete(`/groups/${groupId}/posts/${postId}`)
+      console.log('✅ Post deleted successfully')
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { status?: number; data?: unknown }; message?: string }
+      console.error('❌ Backend API failed:', axiosError.response?.status, axiosError.message)
+      throw axiosError
+    }
+  },
+
+  async likePost(groupId: string, postId: string) {
+    try {
+      // Validate parameters
+      if (!groupId || groupId.trim() === '') {
+        throw new Error('Group ID is required')
+      }
+      if (!postId || postId.trim() === '') {
+        throw new Error('Post ID is required')
+      }
+
+      console.log('🚀 GroupService: Liking post:', groupId, 'post:', postId)
+      console.log('🚀 GroupService: API URL:', `/groups/${groupId}/posts/${postId}/like`)
+
+      const response = await api.post(`/groups/${groupId}/posts/${postId}/like`)
+      console.log('✅ GroupService: Post liked successfully:', response.data)
+      console.log('✅ GroupService: Response status:', response.status)
+      return response.data
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { status?: number; data?: unknown }; message?: string }
+      console.error('❌ GroupService: Backend API failed:', axiosError.response?.status, axiosError.message)
+      console.error('❌ GroupService: Full error:', axiosError)
+      throw axiosError
+    }
+  },
+
+  async unlikePost(groupId: string, postId: string) {
+    try {
+      console.log('🚀 Unliking post:', groupId, 'post:', postId)
+      await api.delete(`/groups/${groupId}/posts/${postId}/like`)
+      console.log('✅ Post unliked successfully')
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { status?: number; data?: unknown }; message?: string }
+      console.error('❌ Backend API failed:', axiosError.response?.status, axiosError.message)
+      throw axiosError
+    }
+  },
+
+  async isPostLiked(groupId: string, postId: string) {
+    try {
+      console.log('🚀 Checking if post is liked:', groupId, 'post:', postId)
+      const response = await api.get(`/groups/${groupId}/posts/${postId}/liked`)
+      console.log('✅ Post like status checked:', response.data)
+      return response.data
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { status?: number; data?: unknown }; message?: string }
+      console.error('❌ Backend API failed:', axiosError.response?.status, axiosError.message)
+      throw axiosError
+    }
+  },
+
+  // Post Comments Management
+  async createComment(groupId: string, postId: string, payload: {
+    content: string;
+    parentCommentId?: string;
+  }) {
+    try {
+      // Validate parameters
+      if (!groupId || groupId.trim() === '') {
+        throw new Error('Group ID is required')
+      }
+      if (!postId || postId.trim() === '') {
+        throw new Error('Post ID is required')
+      }
+      if (!payload.content || payload.content.trim() === '') {
+        throw new Error('Comment content is required')
+      }
+
+      console.log('🚀 Creating comment for post:', groupId, 'post:', postId, 'with payload:', payload)
+
+      const jsonPayload = {
+        content: payload.content,
+        parentCommentId: payload.parentCommentId || null
+      }
+
+      const response = await api.post(`/groups/${groupId}/posts/${postId}/comments`, jsonPayload, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+      console.log('✅ Comment created successfully:', response.data)
+      return response.data
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { status?: number; data?: unknown }; message?: string }
+      console.error('❌ Backend API failed:', axiosError.response?.status, axiosError.message)
+      throw axiosError
+    }
+  },
+
+
+  async updateComment(groupId: string, postId: string, commentId: string, payload: {
+    content: string;
+  }) {
+    try {
+      console.log('🚀 Updating comment:', groupId, 'post:', postId, 'comment:', commentId, 'with payload:', payload)
+
+      const jsonPayload = {
+        content: payload.content
+      }
+
+      const response = await api.put(`/groups/${groupId}/posts/${postId}/comments/${commentId}`, jsonPayload, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+      console.log('✅ Comment updated successfully:', response.data)
+      return response.data
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { status?: number; data?: unknown }; message?: string }
+      console.error('❌ Backend API failed:', axiosError.response?.status, axiosError.message)
+      throw axiosError
+    }
+  },
+
+  async deleteComment(groupId: string, postId: string, commentId: string) {
+    try {
+      console.log('🚀 Deleting comment:', groupId, 'post:', postId, 'comment:', commentId)
+      await api.delete(`/groups/${groupId}/posts/${postId}/comments/${commentId}`)
+      console.log('✅ Comment deleted successfully')
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { status?: number; data?: unknown }; message?: string }
+      console.error('❌ Backend API failed:', axiosError.response?.status, axiosError.message)
+      throw axiosError
+    }
+  },
+
+  async likeComment(groupId: string, postId: string, commentId: string) {
+    try {
+      console.log('🚀 Liking comment:', groupId, 'post:', postId, 'comment:', commentId)
+      const response = await api.post(`/groups/${groupId}/posts/${postId}/comments/${commentId}/like`)
+      console.log('✅ Comment liked successfully:', response.data)
+      return response.data
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { status?: number; data?: unknown }; message?: string }
+      console.error('❌ Backend API failed:', axiosError.response?.status, axiosError.message)
+      throw axiosError
+    }
+  },
+
+  async unlikeComment(groupId: string, postId: string, commentId: string) {
+    try {
+      console.log('🚀 Unliking comment:', groupId, 'post:', postId, 'comment:', commentId)
+      await api.delete(`/groups/${groupId}/posts/${postId}/comments/${commentId}/like`)
+      console.log('✅ Comment unliked successfully')
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { status?: number; data?: unknown }; message?: string }
+      console.error('❌ Backend API failed:', axiosError.response?.status, axiosError.message)
+      throw axiosError
+    }
+  },
+
+  // Search and Filter Posts
+  async searchPosts(groupId: string, params: {
+    q: string;
+    page?: number;
+    size?: number;
+  }) {
+    try {
+      console.log('🚀 Searching posts in group:', groupId, 'with params:', params)
+
+      const queryParams = new URLSearchParams()
+      queryParams.append('q', params.q)
+      if (params.page !== undefined) queryParams.append('page', params.page.toString())
+      if (params.size !== undefined) queryParams.append('size', params.size.toString())
+
+      const url = `/groups/${groupId}/posts/search?${queryParams.toString()}`
+
+      const response = await api.get(url)
+      console.log('✅ Posts search completed:', response.data)
+      return response.data
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { status?: number; data?: unknown }; message?: string }
+      console.error('❌ Backend API failed:', axiosError.response?.status, axiosError.message)
+      throw axiosError
+    }
+  },
+
+  async filterPosts(groupId: string, params: {
+    contentType?: 'TEXT' | 'IMAGE' | 'FILE' | 'MIXED';
+    page?: number;
+    size?: number;
+  }) {
+    try {
+      console.log('🚀 Filtering posts in group:', groupId, 'with params:', params)
+
+      const queryParams = new URLSearchParams()
+      if (params.contentType) queryParams.append('contentType', params.contentType)
+      if (params.page !== undefined) queryParams.append('page', params.page.toString())
+      if (params.size !== undefined) queryParams.append('size', params.size.toString())
+
+      const url = `/groups/${groupId}/posts/filter?${queryParams.toString()}`
+
+      const response = await api.get(url)
+      console.log('✅ Posts filtered successfully:', response.data)
+      return response.data
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { status?: number; data?: unknown }; message?: string }
+      console.error('❌ Backend API failed:', axiosError.response?.status, axiosError.message)
+      throw axiosError
+    }
+  },
+
+  async getPinnedPosts(groupId: string) {
+    try {
+      console.log('🚀 Fetching pinned posts for group:', groupId)
+      const response = await api.get(`/groups/${groupId}/posts/pinned`)
+      console.log('✅ Pinned posts fetched successfully:', response.data)
+      return response.data
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { status?: number; data?: unknown }; message?: string }
+      console.error('❌ Backend API failed:', axiosError.response?.status, axiosError.message)
+      throw axiosError
+    }
+  },
+
+  async getPostsCount(groupId: string) {
+    try {
+      console.log('🚀 Getting posts count for group:', groupId)
+      const response = await api.get(`/groups/${groupId}/posts/count`)
+      console.log('✅ Posts count fetched successfully:', response.data)
+      return response.data
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { status?: number; data?: unknown }; message?: string }
+      console.error('❌ Backend API failed:', axiosError.response?.status, axiosError.message)
+      throw axiosError
+    }
+  },
+
+  // File Attachments Management
+  async uploadAttachment(groupId: string, postId: string, file: File) {
+    try {
+      console.log('🚀 Uploading attachment for post:', groupId, 'post:', postId, 'file:', file.name)
+
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const response = await api.post(`/groups/${groupId}/posts/${postId}/attachments`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      })
+
+      console.log('✅ Attachment uploaded successfully:', response.data)
+      return response.data
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { status?: number; data?: unknown }; message?: string }
+      console.error('❌ Backend API failed:', axiosError.response?.status, axiosError.message)
+      throw axiosError
+    }
+  },
+
+  // Create post with attachments (two-step process)
+  async createPostWithAttachments(groupId: string, payload: {
+    title: string;
+    description: string;
+    content: string;
+    contentType: 'TEXT' | 'IMAGE' | 'FILE' | 'MIXED';
+    attachments?: File[];
+    tags?: string[];
+  }) {
+    try {
+      console.log('🚀 Creating post with attachments:', groupId, 'with payload:', payload)
+
+      // Validate required fields
+      if (!groupId || groupId.trim() === '') {
+        throw new Error('Group ID is required')
+      }
+      if (!payload.title || payload.title.trim() === '') {
+        throw new Error('Post title is required')
+      }
+      if (!payload.description || payload.description.trim() === '') {
+        throw new Error('Post description is required')
+      }
+      if (!payload.content || payload.content.trim() === '') {
+        throw new Error('Post content is required')
+      }
+      if (!payload.contentType) {
+        throw new Error('Content type is required')
+      }
+
+      // Step 1: Create the post first
+      const postPayload = {
+        title: payload.title.trim(),
+        description: payload.description.trim(),
+        content: payload.content.trim(),
+        contentType: payload.contentType,
+        tags: payload.tags || []
+      }
+
+      const postResponse = await api.post(`/groups/${groupId}/posts`, postPayload, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      console.log('✅ Post created successfully:', postResponse.data)
+
+      // Step 2: Upload attachments if any
+      if (payload.attachments && payload.attachments.length > 0) {
+        const postId = postResponse.data.id
+        const attachmentPromises = payload.attachments.map(file =>
+          this.uploadAttachment(groupId, postId, file)
+        )
+
+        const attachmentResponses = await Promise.all(attachmentPromises)
+        console.log('✅ All attachments uploaded successfully:', attachmentResponses)
+
+        // Update the post response with attachment info
+        postResponse.data.attachments = attachmentResponses
+      }
+
+      return postResponse.data
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { status?: number; data?: unknown }; message?: string }
+      console.error('❌ Backend API failed:', axiosError.response?.status, axiosError.message)
+      throw axiosError
+    }
+  },
+
+  async deleteAttachment(groupId: string, postId: string, attachmentId: string) {
+    try {
+      console.log('🚀 Deleting attachment:', groupId, 'post:', postId, 'attachment:', attachmentId)
+      await api.delete(`/groups/${groupId}/posts/${postId}/attachments/${attachmentId}`)
+      console.log('✅ Attachment deleted successfully')
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { status?: number; data?: unknown }; message?: string }
+      console.error('❌ Backend API failed:', axiosError.response?.status, axiosError.message)
+      throw axiosError
+    }
+  },
 }

@@ -129,9 +129,9 @@ const contentTitle = computed(() => contentData.value?.title || 'Untitled Conten
 const isSharedContent = computed(() => contentData.value?.source === 'shared')
 
 // เพิ่ม computed properties สำหรับ interactive content detection
-const isInteractiveContent = computed(() => {
-  return contentData.value?.contentType && contentData.value?.contentData
-})
+// const isInteractiveContent = computed(() => {
+//   return contentData.value?.contentType && contentData.value?.contentData
+// })
 
 // Methods
 const loadContent = () => {
@@ -167,6 +167,25 @@ const loadContent = () => {
 }
 
 const goBack = () => {
+  // ตรวจสอบว่ามาจาก group หรือไม่
+  const referrer = document.referrer
+
+  // ถ้ามาจาก group detail view ให้กลับไปที่ library tab
+  if (referrer.includes('/study-groups/') && !referrer.includes('/content-viewer')) {
+    // Extract group ID from referrer URL
+    const groupIdMatch = referrer.match(/\/study-groups\/(\d+)/)
+    if (groupIdMatch) {
+      const groupId = groupIdMatch[1]
+      router.push({
+        name: 'group-detail',
+        params: { id: groupId },
+        query: { tab: 'library' }
+      })
+      return
+    }
+  }
+
+  // Fallback: ใช้ router.back() ปกติ
   router.back()
 }
 
@@ -532,7 +551,7 @@ const validateContent = (content: unknown) => {
 // }
 
 // Loading state for content processing
-const isProcessingContent = ref(false)
+// const isProcessingContent = ref(false)
 
 onMounted(() => {
   loadContent()
@@ -579,11 +598,11 @@ onMounted(() => {
           </div>
 
           <div class="flex items-center gap-3">
-            <button
+            <!-- <button
               class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
             >
               Share
-            </button>
+            </button> -->
           </div>
         </div>
       </div>

@@ -48,7 +48,7 @@ export interface DashboardData {
 export const dashboardService = {
   async getDashboardData(): Promise<DashboardData> {
     try {
-      const response = await apiClient.get('/api/dashboard')
+      const response = await apiClient.get('/dashboard')
       return response.data
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error)
@@ -58,7 +58,7 @@ export const dashboardService = {
 
   async getStudyStats(): Promise<DashboardStats> {
     try {
-      const response = await apiClient.get('/api/dashboard/stats')
+      const response = await apiClient.get('/dashboard/stats')
       return response.data
     } catch (error) {
       console.error('Failed to fetch study stats:', error)
@@ -68,7 +68,7 @@ export const dashboardService = {
 
   async getStudyHours(): Promise<StudyHourData[]> {
     try {
-      const response = await apiClient.get('/api/dashboard/study-hours')
+      const response = await apiClient.get('/dashboard/study-hours')
       return response.data
     } catch (error) {
       console.error('Failed to fetch study hours:', error)
@@ -78,7 +78,7 @@ export const dashboardService = {
 
   async getUserGroups(): Promise<StudyGroup[]> {
     try {
-      const response = await apiClient.get('/api/dashboard/groups')
+      const response = await apiClient.get('/dashboard/groups')
       return response.data
     } catch (error) {
       console.error('Failed to fetch user groups:', error)
@@ -88,7 +88,7 @@ export const dashboardService = {
 
   async getLearningProgress(): Promise<LearningProgress[]> {
     try {
-      const response = await apiClient.get('/api/dashboard/progress')
+      const response = await apiClient.get('/dashboard/progress')
       return response.data
     } catch (error) {
       console.error('Failed to fetch learning progress:', error)
@@ -98,7 +98,7 @@ export const dashboardService = {
 
   async getAIContent(): Promise<AIContent[]> {
     try {
-      const response = await apiClient.get('/api/dashboard/ai-content')
+      const response = await apiClient.get('/dashboard/ai-content')
       return response.data
     } catch (error) {
       console.error('Failed to fetch AI content:', error)

@@ -878,34 +878,46 @@ export const useGroupStore = defineStore('group', () => {
     loading.value = true
     error.value = null
     try {
-      // TODO: Replace with actual API call
-      // const response = await groupService.createPost(postData)
-      // return response.data
+      console.log('🚀 GroupStore: Creating post with data:', postData)
 
-      // Mock post creation
-      const newPost: GroupPost = {
-        id: Date.now().toString(),
-        groupId: postData.groupId,
-        authorId: 'current-user',
-        authorName: 'Current User',
-        authorAvatar: undefined,
-        content: postData.content,
-        contentType: postData.contentType,
-        attachments: [],
-        tags: postData.tags || [],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        likes: 0,
-        comments: [],
-        isEdited: false,
-        isPinned: false
+      // Validate groupId
+      if (!postData.groupId || postData.groupId.trim() === '') {
+        throw new Error('Group ID is required to create a post.')
       }
+
+      console.log('🔍 Creating post in group:', postData.groupId)
+
+      // Use real API call - choose method based on attachments
+      let response
+      if (postData.attachments && postData.attachments.length > 0) {
+        // Use two-step process for posts with attachments
+        response = await GroupService.createPostWithAttachments(postData.groupId, {
+          title: postData.title,
+          description: postData.description,
+          content: postData.content,
+          contentType: postData.contentType.toUpperCase() as 'TEXT' | 'IMAGE' | 'FILE' | 'MIXED',
+          attachments: postData.attachments,
+          tags: postData.tags
+        })
+      } else {
+        // Use simple JSON method for posts without attachments
+        response = await GroupService.createPost(postData.groupId, {
+          title: postData.title,
+          description: postData.description,
+          content: postData.content,
+          contentType: postData.contentType.toUpperCase() as 'TEXT' | 'IMAGE' | 'FILE' | 'MIXED',
+          attachments: postData.attachments,
+          tags: postData.tags
+        })
+      }
+
+      console.log('✅ GroupStore: Post created successfully:', response)
 
       // Add to posts array
       if (!groupPosts.value) {
         groupPosts.value = []
       }
-      groupPosts.value.unshift(newPost)
+      groupPosts.value.unshift(response)
 
       // Send notification to group members about new post
       const notificationStore = useNotificationStore()
@@ -915,14 +927,29 @@ export const useGroupStore = defineStore('group', () => {
           title: 'New Post',
           message: `New post in ${currentGroup.value.name}`,
           groupId: currentGroup.value.id,
-          resourceId: newPost.id
+          resourceId: response.id
         })
       }
 
-      return newPost
+      return response
     } catch (err) {
       error.value = 'Failed to create post'
-      console.error('createPost error:', err)
+      console.error('❌ GroupStore createPost error:', err)
+
+      // Log detailed error information
+      if (err instanceof Error) {
+        console.error('Error message:', err.message)
+        console.error('Error stack:', err.stack)
+      }
+
+      // Check if it's an axios error
+      if (err && typeof err === 'object' && 'response' in err) {
+        const axiosError = err as { response?: { status?: number; data?: unknown }; message?: string }
+        console.error('Axios error status:', axiosError.response?.status)
+        console.error('Axios error data:', axiosError.response?.data)
+        console.error('Axios error message:', axiosError.message)
+      }
+
       throw err
     } finally {
       loading.value = false
@@ -933,17 +960,29 @@ export const useGroupStore = defineStore('group', () => {
     loading.value = true
     error.value = null
     try {
-      // TODO: Replace with actual API call
-      // const response = await groupService.fetchGroupPosts(groupId, filters)
-      // groupPosts.value = response.data
-
-      // Mock posts for now
-      if (!groupPosts.value) {
-        groupPosts.value = []
+      // Validate groupId
+      if (!groupId || groupId.trim() === '') {
+        throw new Error('Group ID is required to fetch posts.')
       }
 
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500))
+      console.log('🔍 Fetching posts for group:', groupId)
+
+      // Use getGroupPosts ที่ไม่ fetch comments
+      const response = await GroupService.getGroupPosts(groupId, {
+        page: filters?.page || 0,
+        size: filters?.limit || 20,
+        sortBy: filters?.sortBy === 'recent' ? 'createdAt' : 'likesCount',
+        sortDirection: 'DESC'
+      })
+
+      // Handle different response formats
+      if (Array.isArray(response)) {
+        groupPosts.value = response
+      } else if (response && typeof response === 'object' && 'content' in response) {
+        groupPosts.value = response.content
+      } else {
+        groupPosts.value = []
+      }
 
       return groupPosts.value
     } catch (err) {
@@ -955,29 +994,62 @@ export const useGroupStore = defineStore('group', () => {
     }
   }
 
+  // Method สำหรับ fetch comments ของ post
+  const fetchPostComments = async (groupId: string, postId: string) => {
+    loading.value = true
+    error.value = null
+    try {
+      // Validate parameters
+      if (!groupId || groupId.trim() === '') {
+        throw new Error('Group ID is required to fetch post comments.')
+      }
+      if (!postId || postId.trim() === '') {
+        throw new Error('Post ID is required to fetch post comments.')
+      }
+
+      console.log('🔍 Fetching comments for post:', groupId, 'post:', postId)
+
+      const response = await GroupService.getPostComments(groupId, postId)
+      console.log('✅ Post comments fetched:', response)
+
+      return response
+    } catch (err) {
+      error.value = 'Failed to fetch post comments'
+      console.error('fetchPostComments error:', err)
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
   const updatePost = async (postId: string, updateData: UpdatePostRequest) => {
     loading.value = true
     error.value = null
     try {
-      // TODO: Replace with actual API call
-      // const response = await groupService.updatePost(postId, updateData)
-      // return response.data
+      // Validate currentGroupId
+      if (!currentGroupId.value || currentGroupId.value.trim() === '') {
+        throw new Error('No current group selected. Please select a group first.')
+      }
+
+      console.log('🔍 Updating post:', postId, 'in group:', currentGroupId.value)
+
+      // Use real API call
+      const response = await GroupService.updatePost(currentGroupId.value, postId, {
+        title: updateData.title,
+        description: updateData.description,
+        content: updateData.content,
+        tags: updateData.tags
+      })
 
       // Update local state
       if (groupPosts.value) {
         const postIndex = groupPosts.value.findIndex(p => p.id === postId)
         if (postIndex !== -1) {
-          groupPosts.value[postIndex] = {
-            ...groupPosts.value[postIndex],
-            content: updateData.content,
-            tags: updateData.tags || groupPosts.value[postIndex].tags,
-            updatedAt: new Date().toISOString(),
-            isEdited: true
-          }
+          groupPosts.value[postIndex] = response
         }
       }
 
-      return { success: true }
+      return response
     } catch (err) {
       error.value = 'Failed to update post'
       console.error('updatePost error:', err)
@@ -991,8 +1063,15 @@ export const useGroupStore = defineStore('group', () => {
     loading.value = true
     error.value = null
     try {
-      // TODO: Replace with actual API call
-      // await groupService.deletePost(postId)
+      // Validate currentGroupId
+      if (!currentGroupId.value || currentGroupId.value.trim() === '') {
+        throw new Error('No current group selected. Please select a group first.')
+      }
+
+      console.log('🔍 Deleting post:', postId, 'in group:', currentGroupId.value)
+
+      // Use real API call
+      await GroupService.deletePost(currentGroupId.value, postId)
 
       // Remove from local state
       if (groupPosts.value) {
@@ -1013,24 +1092,18 @@ export const useGroupStore = defineStore('group', () => {
     loading.value = true
     error.value = null
     try {
-      // TODO: Replace with actual API call
-      // const response = await groupService.addPostComment(commentData)
-      // return response.data
-
-      // Create new comment
-      const newComment: PostComment = {
-        id: Date.now().toString(),
-        postId: commentData.postId || '',
-        authorId: 'current-user',
-        authorName: 'Current User',
-        authorAvatar: undefined,
-        content: commentData.content,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        likes: 0,
-        isEdited: false,
-        replies: []
+      // Validate currentGroupId
+      if (!currentGroupId.value || currentGroupId.value.trim() === '') {
+        throw new Error('No current group selected. Please select a group first.')
       }
+
+      console.log('🔍 Adding comment to post:', commentData.postId, 'in group:', currentGroupId.value)
+
+      // Use real API call
+      const response = await GroupService.createComment(currentGroupId.value, commentData.postId || '', {
+        content: commentData.content,
+        parentCommentId: commentData.parentCommentId
+      })
 
       // Add to post comments
       if (groupPosts.value) {
@@ -1039,7 +1112,7 @@ export const useGroupStore = defineStore('group', () => {
           if (!groupPosts.value[postIndex].comments) {
             groupPosts.value[postIndex].comments = []
           }
-          groupPosts.value[postIndex].comments.push(newComment)
+          groupPosts.value[postIndex].comments.push(response)
         }
       }
 
@@ -1055,7 +1128,7 @@ export const useGroupStore = defineStore('group', () => {
         })
       }
 
-      return newComment
+      return response
     } catch (err) {
       error.value = 'Failed to add comment'
       console.error('addPostComment error:', err)
@@ -1067,20 +1140,33 @@ export const useGroupStore = defineStore('group', () => {
 
   const likePost = async (postId: string) => {
     try {
-      // TODO: Replace with actual API call
-      // await groupService.likePost(postId)
+      // Validate currentGroupId
+      if (!currentGroupId.value || currentGroupId.value.trim() === '') {
+        throw new Error('No current group selected. Please select a group first.')
+      }
+
+      console.log('🔍 GroupStore: Liking post:', postId, 'in group:', currentGroupId.value)
+      console.log('🔍 GroupStore: Current group ID type:', typeof currentGroupId.value)
+      console.log('🔍 GroupStore: Current group ID value:', currentGroupId.value)
+
+      // Use real API call
+      const response = await GroupService.likePost(currentGroupId.value, postId)
+      console.log('✅ GroupStore: Like response received:', response)
 
       // Update local state
       if (groupPosts.value) {
         const postIndex = groupPosts.value.findIndex(p => p.id === postId)
+        console.log('🔍 GroupStore: Post index found:', postIndex)
         if (postIndex !== -1) {
-          groupPosts.value[postIndex].likes += 1
+          const oldLikes = groupPosts.value[postIndex].likes
+          groupPosts.value[postIndex].likes = response.likesCount || groupPosts.value[postIndex].likes + 1
+          console.log('✅ GroupStore: Updated likes from', oldLikes, 'to', groupPosts.value[postIndex].likes)
         }
       }
 
-      return { success: true }
+      return response
     } catch (err) {
-      console.error('likePost error:', err)
+      console.error('❌ GroupStore: likePost error:', err)
       throw err
     }
   }
@@ -1348,6 +1434,7 @@ export const useGroupStore = defineStore('group', () => {
     addReaction,
     createPost,
     fetchGroupPosts,
+    fetchPostComments,
     updatePost,
     deletePost,
     addPostComment,
