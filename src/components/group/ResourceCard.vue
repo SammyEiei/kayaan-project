@@ -204,6 +204,11 @@ const viewStudyContent = () => {
       // Store content data for viewing
       localStorage.setItem('sharedContentToView', JSON.stringify(contentData))
 
+      // Store group ID for navigation back
+      if (props.groupId) {
+        localStorage.setItem('contentViewerSourceGroupId', props.groupId)
+      }
+
       // Navigate to content viewer
       router.push('/content-viewer')
     } catch (error) {

@@ -167,22 +167,19 @@ const loadContent = () => {
 }
 
 const goBack = () => {
-  // ตรวจสอบว่ามาจาก group หรือไม่
-  const referrer = document.referrer
+  // ตรวจสอบว่ามี group ID ที่เก็บไว้ใน localStorage หรือไม่
+  const storedGroupId = localStorage.getItem('contentViewerSourceGroupId')
 
-  // ถ้ามาจาก group detail view ให้กลับไปที่ library tab
-  if (referrer.includes('/study-groups/') && !referrer.includes('/content-viewer')) {
-    // Extract group ID from referrer URL
-    const groupIdMatch = referrer.match(/\/study-groups\/(\d+)/)
-    if (groupIdMatch) {
-      const groupId = groupIdMatch[1]
-      router.push({
-        name: 'group-detail',
-        params: { id: groupId },
-        query: { tab: 'library' }
-      })
-      return
-    }
+  if (storedGroupId) {
+    // ถ้ามี group ID ที่เก็บไว้ ให้กลับไปที่ group นั้นพร้อมเปิด library tab
+    router.push({
+      name: 'group-detail',
+      params: { id: storedGroupId },
+      query: { tab: 'library' }
+    })
+    // ลบ group ID ที่เก็บไว้หลังจากใช้แล้ว
+    localStorage.removeItem('contentViewerSourceGroupId')
+    return
   }
 
   // Fallback: ใช้ router.back() ปกติ

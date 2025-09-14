@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useGroupStore } from '@/stores/group'
 import { useAuthStore } from '@/stores/auth'
+import { useNotificationStore } from '@/stores/notification'
 import GroupService from '@/service/GroupService'
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
 import type { GroupPost, CreatePostRequest } from '@/types/group'
@@ -13,6 +14,7 @@ interface Props {
 const props = defineProps<Props>()
 const groupStore = useGroupStore()
 const auth = useAuthStore()
+const notificationStore = useNotificationStore()
 
 // State
 const posts = ref<GroupPost[]>([])
@@ -62,7 +64,12 @@ const filteredPosts = computed(() => {
 // Methods
 const handleCreatePost = async () => {
   if (!newPostTitle.value.trim() || !newPostDescription.value.trim() || (!newPostContent.value.trim() && selectedFiles.value.length === 0)) {
-    alert('กรุณากรอกข้อมูลให้ครบถ้วน')
+    notificationStore.addNotification({
+      type: 'warning',
+      title: 'Missing Information',
+      message: 'Please fill in all required fields (title, description, and content)',
+      groupId: props.groupId
+    })
     return
   }
 
@@ -76,7 +83,12 @@ const handleCreatePost = async () => {
   })
 
   if (!authStore.token) {
-    alert('กรุณาเข้าสู่ระบบก่อนสร้างโพสต์')
+    notificationStore.addNotification({
+      type: 'error',
+      title: 'Authentication Required',
+      message: 'Please log in to create a post',
+      groupId: props.groupId
+    })
     return
   }
 
@@ -117,11 +129,21 @@ const handleCreatePost = async () => {
     // Refresh posts
     await fetchPosts()
 
-    alert('สร้างโพสต์สำเร็จ!')
+    notificationStore.addNotification({
+      type: 'success',
+      title: 'Post Created Successfully',
+      message: 'Your post has been shared with the study group',
+      groupId: props.groupId
+    })
   } catch (error) {
     console.error('❌ Failed to create post:', error)
-    const errorMessage = error instanceof Error ? error.message : 'เกิดข้อผิดพลาดในการสร้างโพสต์'
-    alert(`ไม่สามารถสร้างโพสต์ได้: ${errorMessage}`)
+    const errorMessage = error instanceof Error ? error.message : 'An error occurred while creating the post'
+    notificationStore.addNotification({
+      type: 'error',
+      title: 'Failed to Create Post',
+      message: `Unable to create post: ${errorMessage}`,
+      groupId: props.groupId
+    })
   } finally {
     loading.value = false
   }
@@ -353,7 +375,12 @@ const handleLikePost = async (post: GroupPost) => {
       likesCount.value[post.id] = currentLikes + 1
     }
 
-    alert('ไม่สามารถกดไลค์ได้')
+    notificationStore.addNotification({
+      type: 'error',
+      title: 'Like Failed',
+      message: 'Unable to like this post. Please try again.',
+      groupId: props.groupId
+    })
   }
 }
 
@@ -363,6 +390,7 @@ const newComment = ref<{ [postId: string]: string }>({})
 const commentsCount = ref<{ [postId: string]: number }>({})
 const likesCount = ref<{ [postId: string]: number }>({})
 const isLiked = ref<{ [postId: string]: boolean }>({})
+const isAddingComment = ref<{ [postId: string]: boolean }>({})
 
 const toggleComments = async (postId: string) => {
   showComments.value[postId] = !showComments.value[postId]
@@ -383,8 +411,26 @@ const loadPostComments = async (postId: string) => {
     // Update the post in the posts array with comments
     const postIndex = posts.value.findIndex(p => p.id === postId)
     if (postIndex !== -1) {
-      posts.value[postIndex].comments = comments || []
-      console.log('✅ Updated post comments in local state')
+      // Only update if comments array is empty or if we need to refresh
+      if (!posts.value[postIndex].comments || posts.value[postIndex].comments.length === 0) {
+        posts.value[postIndex].comments = comments || []
+        console.log('✅ Updated post comments in local state')
+      } else {
+        // Merge new comments with existing ones, avoiding duplicates
+        const existingComments = posts.value[postIndex].comments || []
+        const newComments = comments || []
+
+        // Create a map of existing comment IDs for quick lookup
+        const existingIds = new Set(existingComments.map(c => c.id))
+
+        // Add only new comments that don't already exist
+        const uniqueNewComments = newComments.filter((c: { id: string }) => !existingIds.has(c.id))
+
+        if (uniqueNewComments.length > 0) {
+          posts.value[postIndex].comments = [...uniqueNewComments, ...existingComments]
+          console.log('✅ Merged new comments with existing ones')
+        }
+      }
     }
 
     // Update comments count
@@ -392,16 +438,24 @@ const loadPostComments = async (postId: string) => {
     console.log('✅ Updated comments count:', commentsCount.value[postId])
   } catch (error) {
     console.error('❌ Failed to load comments:', error)
-    alert('ไม่สามารถโหลดความคิดเห็นได้')
+    notificationStore.addNotification({
+      type: 'error',
+      title: 'Failed to Load Comments',
+      message: 'Unable to load comments. Please try again.',
+      groupId: props.groupId
+    })
   }
 }
 
 const handleAddComment = async (postId: string) => {
   const commentText = newComment.value[postId]
-  if (!commentText?.trim()) return
+  if (!commentText?.trim() || isAddingComment.value[postId]) return
+
+  // Set loading state
+  isAddingComment.value[postId] = true
 
   try {
-    await groupStore.addPostComment({
+    const newCommentData = await groupStore.addPostComment({
       postId: postId,
       content: commentText.trim()
     })
@@ -412,11 +466,42 @@ const handleAddComment = async (postId: string) => {
     // Update comments count
     commentsCount.value[postId] = (commentsCount.value[postId] || 0) + 1
 
-    // Refresh posts to show new comment
-    await fetchPosts()
+    // Add new comment to the post's comments array in realtime
+    const postIndex = posts.value.findIndex(p => p.id === postId)
+    if (postIndex !== -1) {
+      if (!posts.value[postIndex].comments) {
+        posts.value[postIndex].comments = []
+      }
+
+      // Check if comment already exists to prevent duplicates
+      const commentExists = posts.value[postIndex].comments.some(
+        comment => comment.id === newCommentData?.id
+      )
+
+      // Add the new comment to the beginning of the comments array only if it doesn't exist
+      if (newCommentData && !commentExists) {
+        posts.value[postIndex].comments.unshift(newCommentData)
+      }
+    }
+
+    // Show success notification
+    notificationStore.addNotification({
+      type: 'success',
+      title: 'Comment Added',
+      message: 'Your comment has been posted successfully',
+      groupId: props.groupId
+    })
   } catch (error) {
     console.error('Failed to add comment:', error)
-    alert('ไม่สามารถเพิ่มความคิดเห็นได้')
+    notificationStore.addNotification({
+      type: 'error',
+      title: 'Failed to Add Comment',
+      message: 'Unable to add comment. Please try again.',
+      groupId: props.groupId
+    })
+  } finally {
+    // Clear loading state
+    isAddingComment.value[postId] = false
   }
 }
 
@@ -1016,37 +1101,20 @@ onMounted(() => {
                 v-model="newComment[post.id]"
                 type="text"
                 placeholder="Write a comment..."
-                class="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                @keyup.enter="handleAddComment(post.id)"
+                :disabled="isAddingComment[post.id]"
+                class="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                @keyup.enter="!isAddingComment[post.id] && handleAddComment(post.id)"
               />
               <button
                 @click="handleAddComment(post.id)"
-                :disabled="!newComment[post.id]?.trim()"
-                class="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all duration-200 font-medium shadow-md hover:shadow-lg disabled:shadow-none"
+                :disabled="!newComment[post.id]?.trim() || isAddingComment[post.id]"
+                class="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all duration-200 font-medium shadow-md hover:shadow-lg disabled:shadow-none flex items-center gap-2"
               >
-                Comment
+                <svg v-if="isAddingComment[post.id]" class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                {{ isAddingComment[post.id] ? 'Posting...' : 'Comment' }}
               </button>
-            </div>
-          </div>
-
-          <!-- Comments Loading Skeleton -->
-          <div v-if="!post.comments || post.comments.length === 0" class="space-y-4">
-            <div v-for="n in 2" :key="n" class="flex gap-4 p-4 bg-gray-50 rounded-xl border border-gray-100 animate-pulse">
-              <div class="w-8 h-8 bg-gray-200 rounded-full flex-shrink-0"></div>
-              <div class="flex-1">
-                <div class="flex items-center gap-2 mb-2">
-                  <div class="h-3 bg-gray-200 rounded w-20"></div>
-                  <div class="h-3 bg-gray-200 rounded w-16"></div>
-                </div>
-                <div class="space-y-2">
-                  <div class="h-3 bg-gray-200 rounded w-full"></div>
-                  <div class="h-3 bg-gray-200 rounded w-3/4"></div>
-                </div>
-                <div class="flex items-center gap-4 mt-3">
-                  <div class="h-3 bg-gray-200 rounded w-8"></div>
-                  <div class="h-3 bg-gray-200 rounded w-12"></div>
-                </div>
-              </div>
             </div>
           </div>
 
@@ -1092,10 +1160,13 @@ onMounted(() => {
 
           <!-- No Comments Message -->
           <div v-else class="text-center py-8 text-gray-500">
-            <svg class="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-            </svg>
-            <p class="text-sm">No comments yet. Be the first to comment!</p>
+            <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+            </div>
+            <h4 class="text-lg font-medium text-gray-700 mb-2">No comments yet</h4>
+            <p class="text-sm text-gray-500">Be the first to share your thoughts on this post!</p>
           </div>
         </div>
       </div>
