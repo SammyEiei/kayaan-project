@@ -73,11 +73,15 @@ export class UnifiedContentService {
    */
   static async getUserContent(params: UnifiedContentParams = {}): Promise<UnifiedContentResponse> {
     try {
+      // ✅ ตรวจสอบ source parameter ก่อน
+      const shouldLoadManual = !params.source || params.source === 'manual' || params.source === 'all'
+      const shouldLoadAI = !params.source || params.source === 'ai' || params.source === 'all'
+
       // Try to get content from ManualContentService first
       let manualContent: ManualContentResponse[] = []
 
-      if (params.contentType === 'all' || !params.contentType ||
-          ['quiz', 'flashcard', 'note'].includes(params.contentType)) {
+      if (shouldLoadManual && (params.contentType === 'all' || !params.contentType ||
+          ['quiz', 'flashcard', 'note'].includes(params.contentType))) {
         try {
           if (params.contentType && params.contentType !== 'all') {
             manualContent = await ManualContentService.getContentByType(params.contentType)
@@ -95,67 +99,93 @@ export class UnifiedContentService {
       }
 
       // Transform manual content to unified format
-      const unifiedManualContent: UnifiedContentDTO[] = manualContent.map(content => ({
-        id: `manual-${content.contentType}-${content.id}`,
-        title: content.contentTitle,
-        content: content.contentData,
-        contentType: content.contentType,
-        source: 'manual' as const,
-        createdAt: content.createdAt,
-        updatedAt: content.updatedAt,
-        createdByUsername: content.createdByUsername,
-        difficulty: content.difficulty,
-        subject: content.subject,
-        tags: content.tags
-      }))
-
-      // Try to get AI content
-      let aiContent: UnifiedContentDTO[] = []
-      try {
-        // Import AIContentService dynamically to avoid circular dependency
-        const { aiContentService } = await import('./AIContentService')
-
-        if (params.contentType === 'all' || !params.contentType ||
-            ['quiz', 'flashcard', 'note'].includes(params.contentType)) {
-          try {
-            const aiContentResponse = await aiContentService.getSavedContent()
-
-            // Transform AI content to unified format
-            aiContent = aiContentResponse.content.map((content: {
-              id: number
-              contentTitle: string
-              contentType: string
-              contentData?: string
-              contentVersion: number
-              supabaseFilePath?: string
-              fileSize?: number
-              isSaved: boolean
-              createdAt: string
-            }) => ({
-              id: `ai-${content.id}`,
-              title: content.contentTitle,
-              content: content.contentData || '',
-              contentType: content.contentType as 'quiz' | 'flashcard' | 'note',
-              source: 'ai' as const,
-              createdAt: content.createdAt,
-              updatedAt: content.createdAt, // Use createdAt as fallback
-              createdByUsername: 'AI Assistant',
-              difficulty: undefined,
-              subject: undefined,
-              tags: [],
-              aiRequestId: undefined
-            }))
-          } catch (aiContentError) {
-            console.warn('AI content fetch failed:', aiContentError)
-          }
-        }
-      } catch (aiError) {
-        console.warn('AI content service import failed:', aiError)
-        console.error('❌ AI content error details:', {
-          message: aiError instanceof Error ? aiError.message : 'Unknown error',
-          error: aiError
+      const unifiedManualContent: UnifiedContentDTO[] = manualContent.map(content => {
+        console.log('🔧 Transforming manual content:', {
+          id: content.id,
+          contentType: content.contentType,
+          contentTitle: content.contentTitle,
+          contentDataLength: content.contentData?.length || 0,
+          contentDataPreview: content.contentData?.substring(0, 100) + '...'
         })
+
+        // ✅ ตรวจสอบ contentData ก่อน transform
+        if (!content.contentData || content.contentData.trim() === '') {
+          console.warn('⚠️ Empty contentData for manual content:', content.id)
+        }
+
+        return {
+          id: `manual-${content.contentType}-${content.id}`,
+          title: content.contentTitle,
+          content: content.contentData,
+          contentType: content.contentType,
+          source: 'manual' as const,
+          createdAt: content.createdAt,
+          updatedAt: content.updatedAt,
+          createdByUsername: content.createdByUsername,
+          difficulty: content.difficulty,
+          subject: content.subject,
+          tags: content.tags
+        }
+      })
+
+      // ✅ Try to get AI content only if shouldLoadAI is true
+      let aiContent: UnifiedContentDTO[] = []
+      if (shouldLoadAI) {
+        try {
+          // Import AIContentService dynamically to avoid circular dependency
+          const { aiContentService } = await import('./AIContentService')
+
+          if (params.contentType === 'all' || !params.contentType ||
+              ['quiz', 'flashcard', 'note'].includes(params.contentType)) {
+            try {
+              const aiContentResponse = await aiContentService.getSavedContent()
+
+              // Transform AI content to unified format
+              aiContent = aiContentResponse.content.map((content: {
+                id: number
+                contentTitle: string
+                contentType: string
+                contentData?: string
+                contentVersion: number
+                supabaseFilePath?: string
+                fileSize?: number
+                isSaved: boolean
+                createdAt: string
+              }) => ({
+                id: `ai-${content.id}`,
+                title: content.contentTitle,
+                content: content.contentData || '',
+                contentType: content.contentType as 'quiz' | 'flashcard' | 'note',
+                source: 'ai' as const,
+                createdAt: content.createdAt,
+                updatedAt: content.createdAt, // Use createdAt as fallback
+                createdByUsername: 'AI Assistant',
+                difficulty: undefined,
+                subject: undefined,
+                tags: [],
+                aiRequestId: undefined
+              }))
+            } catch (aiContentError) {
+              console.warn('AI content fetch failed:', aiContentError)
+            }
+          }
+        } catch (aiError) {
+          console.warn('AI content service import failed:', aiError)
+          console.error('❌ AI content error details:', {
+            message: aiError instanceof Error ? aiError.message : 'Unknown error',
+            error: aiError
+          })
+        }
       }
+
+      // ✅ Debug logging
+      console.log('🔍 Content loading summary:', {
+        shouldLoadManual,
+        shouldLoadAI,
+        manualContentCount: unifiedManualContent.length,
+        aiContentCount: aiContent.length,
+        params: params
+      })
 
       // Combine and sort content
       const allContent = [...unifiedManualContent, ...aiContent]
@@ -328,6 +358,66 @@ export class UnifiedContentService {
         recentActivity: { last7Days: 0, last30Days: 0 },
         success: false,
         message: error instanceof Error ? error.message : 'Failed to fetch content statistics'
+      }
+    }
+  }
+
+  /**
+   * Debug endpoint to get notes specifically
+   */
+  static async getDebugNotes(): Promise<{
+    username: string
+    totalNotes: number
+    notes: Array<{
+      id: number
+      contentTitle: string
+      contentType: string
+      contentData: string
+      subject: string
+      difficulty: string
+      tags: string[]
+      createdAt: string
+      updatedAt: string
+    }>
+  }> {
+    try {
+      console.log('🔍 Debug: Getting notes specifically...')
+
+      // Get manual content
+      const manualContent = await ManualContentService.getAllContent()
+      const notes = manualContent.filter(content => content.contentType === 'note')
+
+      console.log('🔍 Debug: Found notes:', notes.length)
+      notes.forEach((note, index) => {
+        console.log(`🔍 Debug: Note ${index + 1}:`, {
+          id: note.id,
+          title: note.contentTitle,
+          contentDataLength: note.contentData?.length || 0,
+          contentDataPreview: note.contentData?.substring(0, 200) + '...'
+        })
+      })
+
+      return {
+        username: 'debug_user',
+        totalNotes: notes.length,
+        notes: notes.map(note => ({
+          id: note.id,
+          contentTitle: note.contentTitle,
+          contentType: note.contentType,
+          contentData: note.contentData,
+          subject: note.subject,
+          difficulty: note.difficulty,
+          tags: note.tags,
+          createdAt: note.createdAt,
+          updatedAt: note.updatedAt
+        }))
+      }
+    } catch (error) {
+      console.error('❌ Debug notes failed:', error)
+      return {
+        username: 'debug_user',
+        totalNotes: 0,
+        notes: []
       }
     }
   }

@@ -133,7 +133,22 @@
 
     <!-- Note Editor -->
     <div class="bg-white rounded-lg border border-slate-200 p-6 shadow-sm">
-      <h2 class="text-xl font-semibold text-slate-900 mb-4">Note Content</h2>
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xl font-semibold text-slate-900">Note Content</h2>
+        <div class="flex items-center gap-2">
+          <button
+            @click="showPreview = !showPreview"
+            :class="showPreview ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-700'"
+            class="px-3 py-1 text-sm rounded-lg transition-colors"
+          >
+            <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+            {{ showPreview ? 'Hide Preview' : 'Show Preview' }}
+          </button>
+        </div>
+      </div>
       <div class="notion-editor space-y-2">
         <div
           v-for="block in noteData.blocks"
@@ -245,6 +260,16 @@
           </button>
         </div>
       </div>
+
+      <!-- Markdown Preview -->
+      <div v-if="showPreview" class="mt-6 pt-6 border-t border-gray-200">
+        <h3 class="text-lg font-semibold text-slate-900 mb-4">Markdown Preview</h3>
+        <MarkdownRenderer
+          :content="markdownContent"
+          mode="preview"
+          class="border border-gray-200 rounded-lg p-4 bg-gray-50"
+        />
+      </div>
     </div>
     </div>
   </div>
@@ -255,6 +280,8 @@ import { reactive, ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import ManualContentService from '@/service/ManualContentService'
 import { useAuthStore } from '@/stores/auth'
+import { convertBlocksToMarkdown, type NoteBlock } from '@/utils/markdownConverter'
+import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -265,6 +292,7 @@ const isLoading = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')
 const editingId = ref<number | null>(null)
+const showPreview = ref(false)
 
 const noteData = reactive({
   subject: '',
@@ -274,11 +302,11 @@ const noteData = reactive({
   blocks: [
     {
       id: 1,
-      type: 'paragraph',
+      type: 'paragraph' as const,
       content: '',
       placeholder: 'Start writing...',
     },
-  ],
+  ] as NoteBlock[],
 })
 
 // Load note for editing if edit parameter exists
@@ -294,14 +322,33 @@ onMounted(async () => {
       noteData.difficulty = note.difficulty || 'medium'
       noteData.tags = note.tags?.join(', ') || ''
 
-      // Parse content into blocks
-      const contentLines = noteContent.content?.[0]?.description?.split('\n') || []
-      noteData.blocks = contentLines.map((line: string, index: number) => ({
-        id: index + 1,
-        type: 'paragraph',
-        content: line,
-        placeholder: 'Start writing...',
-      }))
+      // ✅ ตรวจสอบว่ามี blocks data หรือไม่ (สำหรับ Markdown format ใหม่)
+      if (noteContent.blocks && Array.isArray(noteContent.blocks)) {
+        console.log('✅ Loading note with blocks data:', noteContent.blocks)
+        noteData.blocks = noteContent.blocks.map((block: any, index: number) => ({
+          id: block.id || index + 1,
+          type: (block.type || 'paragraph') as NoteBlock['type'],
+          content: block.content || '',
+          placeholder: block.placeholder || 'Start writing...',
+        }))
+      } else {
+        // ✅ Fallback: แปลง Markdown content กลับเป็น blocks
+        const markdownContent = noteContent.markdown || noteContent.content?.[0]?.description || ''
+        console.log('🔄 Converting Markdown to blocks:', markdownContent)
+
+        if (markdownContent) {
+          noteData.blocks = parseMarkdownToBlocks(markdownContent)
+        } else {
+          // Legacy fallback
+          const contentLines = noteContent.content?.[0]?.description?.split('\n') || []
+          noteData.blocks = contentLines.map((line: string, index: number) => ({
+            id: index + 1,
+            type: 'paragraph' as const,
+            content: line,
+            placeholder: 'Start writing...',
+          }))
+        }
+      }
     } catch (error) {
       errorMessage.value = 'Failed to load note'
       console.error(error)
@@ -310,6 +357,11 @@ onMounted(async () => {
 })
 
 const isEditing = computed(() => editingId.value !== null)
+
+// Computed property สำหรับ Markdown content
+const markdownContent = computed(() => {
+  return convertBlocksToMarkdown(noteData.blocks)
+})
 
 const addBlock = (type = 'paragraph') => {
   const newId = Math.max(...noteData.blocks.map((b) => b.id)) + 1
@@ -326,7 +378,7 @@ const addBlock = (type = 'paragraph') => {
 
   noteData.blocks.push({
     id: newId,
-    type: type,
+    type: type as NoteBlock['type'],
     content: '',
     placeholder: placeholders[type] || 'Start writing...',
   })
@@ -342,7 +394,7 @@ const removeBlock = (id: number) => {
 const changeBlockType = (id: number, newType: string) => {
   const block = noteData.blocks.find((b) => b.id === id)
   if (block) {
-    block.type = newType
+    block.type = newType as NoteBlock['type']
     const placeholders: Record<string, string> = {
       paragraph: 'Start writing...',
       heading1: 'Heading 1',
@@ -381,12 +433,10 @@ const saveNote = async () => {
     return
   }
 
-  const content = noteData.blocks
-    .map((block) => block.content)
-    .filter((text) => text.trim())
-    .join('\n')
+  // ใช้ Markdown content แทน plain text
+  const markdownContent = convertBlocksToMarkdown(noteData.blocks)
 
-  if (!content.trim()) {
+  if (!markdownContent.trim()) {
     errorMessage.value = 'Please enter note content'
     return
   }
@@ -406,33 +456,41 @@ const saveNote = async () => {
       .map((tag: string) => tag.trim())
       .filter((tag: string) => tag)
 
-    const notePayload = {
-      title: noteData.title,
-      content: content,
-      subject: noteData.subject,
-      difficulty: noteData.difficulty,
-      tags: tagsArray,
-    }
-
-    // Convert to JSON format
+    // สร้าง JSON format ที่มี Markdown content
     const jsonNoteData = {
       type: "note",
       content: [
         {
-          feature: notePayload.title,
-          description: notePayload.content
+          feature: noteData.title,
+          description: markdownContent // ✅ ใช้ Markdown content
         }
-      ]
+      ],
+      markdown: markdownContent, // ✅ เพิ่ม Markdown field แยกต่างหาก
+      blocks: noteData.blocks, // ✅ เก็บ original blocks สำหรับ editing
+      metadata: {
+        subject: noteData.subject,
+        difficulty: noteData.difficulty,
+        tags: tagsArray,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }
     }
 
     const requestData = {
-      contentTitle: notePayload.title,
+      contentTitle: noteData.title,
       contentType: "note" as const,
       contentData: JSON.stringify(jsonNoteData),
-      subject: notePayload.subject,
-      difficulty: notePayload.difficulty,
-      tags: notePayload.tags
+      subject: noteData.subject,
+      difficulty: noteData.difficulty,
+      tags: tagsArray
     }
+
+    console.log('💾 Saving note with Markdown content:', {
+      title: noteData.title,
+      markdownLength: markdownContent.length,
+      blocksCount: noteData.blocks.length,
+      jsonData: jsonNoteData
+    })
 
     if (editingId.value) {
       await ManualContentService.updateContent(editingId.value, requestData)
@@ -455,6 +513,87 @@ const saveNote = async () => {
 
 const goBack = () => {
   router.push('/create-content')
+}
+
+/**
+ * แปลง Markdown กลับเป็น blocks สำหรับ editing
+ */
+const parseMarkdownToBlocks = (markdown: string): NoteBlock[] => {
+  const lines = markdown.split('\n')
+  const blocks: NoteBlock[] = []
+  let currentId = 1
+
+  for (const line of lines) {
+    const trimmedLine = line.trim()
+
+    if (!trimmedLine) {
+      // Empty line - skip
+      continue
+    }
+
+    let blockType: NoteBlock['type'] = 'paragraph'
+    let content = trimmedLine
+
+    // Detect block type from Markdown syntax
+    if (trimmedLine.startsWith('### ')) {
+      blockType = 'heading3'
+      content = trimmedLine.substring(4)
+    } else if (trimmedLine.startsWith('## ')) {
+      blockType = 'heading2'
+      content = trimmedLine.substring(3)
+    } else if (trimmedLine.startsWith('# ')) {
+      blockType = 'heading1'
+      content = trimmedLine.substring(2)
+    } else if (trimmedLine.startsWith('- ')) {
+      blockType = 'bullet'
+      content = trimmedLine.substring(2)
+    } else if (trimmedLine.match(/^\d+\. /)) {
+      blockType = 'numbered'
+      content = trimmedLine.replace(/^\d+\. /, '')
+    } else if (trimmedLine.startsWith('> ')) {
+      blockType = 'quote'
+      content = trimmedLine.substring(2)
+    } else if (trimmedLine.startsWith('```')) {
+      blockType = 'code'
+      content = trimmedLine.substring(3)
+    }
+
+    blocks.push({
+      id: currentId++,
+      type: blockType,
+      content: content,
+      placeholder: getPlaceholderForType(blockType)
+    })
+  }
+
+  // ถ้าไม่มี blocks ให้สร้าง paragraph เปล่า
+  if (blocks.length === 0) {
+    blocks.push({
+      id: 1,
+      type: 'paragraph',
+      content: '',
+      placeholder: 'Start writing...'
+    })
+  }
+
+  return blocks
+}
+
+/**
+ * Get placeholder text for block type
+ */
+const getPlaceholderForType = (type: NoteBlock['type']): string => {
+  const placeholders: Record<NoteBlock['type'], string> = {
+    paragraph: 'Start writing...',
+    heading1: 'Heading 1',
+    heading2: 'Heading 2',
+    heading3: 'Heading 3',
+    bullet: 'List item',
+    numbered: 'List item',
+    quote: 'Quote',
+    code: 'Code block',
+  }
+  return placeholders[type] || 'Start writing...'
 }
 
 /**

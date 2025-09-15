@@ -1,195 +1,276 @@
 <template>
-  <div
-    class="markdown-content prose prose-sm max-w-none"
-    v-html="renderedMarkdown"
-  ></div>
+  <div class="markdown-renderer">
+    <!-- Live Preview Mode -->
+    <div v-if="mode === 'preview'" class="markdown-preview">
+      <div
+        class="prose prose-slate max-w-none"
+        v-html="renderedHtml"
+      ></div>
+    </div>
+
+    <!-- Split View Mode -->
+    <div v-else-if="mode === 'split'" class="markdown-split-view">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
+        <!-- Editor Side -->
+        <div class="markdown-editor-side">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-slate-900">Markdown Source</h3>
+            <button
+              @click="copyMarkdown"
+              class="px-3 py-1 text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors"
+            >
+              <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+              Copy
+            </button>
+          </div>
+          <textarea
+            v-model="markdownSource"
+            @input="updateMarkdown"
+            class="w-full h-96 p-4 border border-slate-300 rounded-lg font-mono text-sm resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="Enter your markdown content here..."
+          ></textarea>
+        </div>
+
+        <!-- Preview Side -->
+        <div class="markdown-preview-side">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-slate-900">Preview</h3>
+            <div class="flex items-center gap-2">
+              <button
+                @click="toggleFullscreen"
+                class="px-3 py-1 text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors"
+              >
+                <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                </svg>
+                Fullscreen
+              </button>
+            </div>
+          </div>
+          <div
+            class="h-96 overflow-y-auto p-4 border border-slate-300 rounded-lg bg-white"
+            v-html="renderedHtml"
+          ></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Fullscreen Mode -->
+    <div v-else-if="mode === 'fullscreen'" class="markdown-fullscreen fixed inset-0 bg-white z-50 overflow-hidden">
+      <div class="flex flex-col h-full">
+        <!-- Header -->
+        <div class="flex items-center justify-between p-4 border-b border-slate-200 bg-white">
+          <h2 class="text-xl font-semibold text-slate-900">Markdown Preview</h2>
+          <div class="flex items-center gap-3">
+            <button
+              @click="copyMarkdown"
+              class="px-4 py-2 text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors"
+            >
+              <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+              Copy Markdown
+            </button>
+            <button
+              @click="toggleFullscreen"
+              class="px-4 py-2 text-sm bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors"
+            >
+              <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              Close
+            </button>
+          </div>
+        </div>
+
+        <!-- Content -->
+        <div class="flex-1 overflow-hidden">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full p-6">
+            <!-- Editor -->
+            <div class="flex flex-col">
+              <h3 class="text-lg font-semibold text-slate-900 mb-4">Markdown Source</h3>
+              <textarea
+                v-model="markdownSource"
+                @input="updateMarkdown"
+                class="flex-1 p-4 border border-slate-300 rounded-lg font-mono text-sm resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Enter your markdown content here..."
+              ></textarea>
+            </div>
+
+            <!-- Preview -->
+            <div class="flex flex-col">
+              <h3 class="text-lg font-semibold text-slate-900 mb-4">Preview</h3>
+              <div
+                class="flex-1 overflow-y-auto p-4 border border-slate-300 rounded-lg bg-white"
+                v-html="renderedHtml"
+              ></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Simple Render Mode (default) -->
+    <div v-else class="markdown-simple">
+      <div
+        class="prose prose-slate max-w-none"
+        v-html="renderedHtml"
+      ></div>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { marked } from 'marked'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { markdownToHtml } from '@/utils/markdownConverter'
 
+// Props
 interface Props {
-  content: string
+  content?: string
+  mode?: 'simple' | 'preview' | 'split' | 'fullscreen'
+  editable?: boolean
+  showSource?: boolean
 }
 
-const props = defineProps<Props>()
-
-// Configure marked options
-marked.setOptions({
-  breaks: true, // Convert line breaks to <br>
-  gfm: true, // GitHub Flavored Markdown
+const props = withDefaults(defineProps<Props>(), {
+  content: '',
+  mode: 'simple',
+  editable: false,
+  showSource: false
 })
 
-const renderedMarkdown = computed(() => {
-  if (!props.content) return ''
+// Emits
+const emit = defineEmits<{
+  'update:content': [content: string]
+  'markdown-changed': [markdown: string]
+}>()
 
+// State
+const markdownSource = ref(props.content)
+const isFullscreen = ref(false)
+
+// Computed
+const renderedHtml = computed(() => {
+  return markdownToHtml(markdownSource.value)
+})
+
+// Methods
+const updateMarkdown = () => {
+  emit('update:content', markdownSource.value)
+  emit('markdown-changed', markdownSource.value)
+}
+
+const copyMarkdown = async () => {
   try {
-    return marked(props.content)
+    await navigator.clipboard.writeText(markdownSource.value)
+    // You could add a toast notification here
+    console.log('Markdown copied to clipboard')
   } catch (error) {
-    console.error('Markdown rendering error:', error)
-    return props.content // Fallback to plain text
+    console.error('Failed to copy markdown:', error)
   }
+}
+
+const toggleFullscreen = () => {
+  isFullscreen.value = !isFullscreen.value
+  if (isFullscreen.value) {
+    document.body.style.overflow = 'hidden'
+  } else {
+    document.body.style.overflow = ''
+  }
+}
+
+// Watchers
+watch(() => props.content, (newContent) => {
+  markdownSource.value = newContent
+})
+
+// Lifecycle
+onMounted(() => {
+  markdownSource.value = props.content
+})
+
+// Cleanup
+onUnmounted(() => {
+  document.body.style.overflow = ''
 })
 </script>
 
 <style scoped>
-/* Markdown content styling with Kayaan theme - Darker colors */
-.markdown-content {
-  @apply text-theme-text leading-relaxed;
-  color: #1a202c; /* Darker text */
+.markdown-renderer {
+  @apply w-full;
 }
 
-.markdown-content :deep(h1) {
-  @apply text-2xl font-bold mt-6 mb-4;
-  color: #1e40af; /* Darker blue */
+/* Prose styling for better readability */
+.prose {
+  @apply text-slate-800 leading-relaxed;
 }
 
-.markdown-content :deep(h2) {
-  @apply text-xl font-semibold mt-5 mb-3;
-  color: #1e40af; /* Darker blue */
+.prose h1 {
+  @apply text-3xl font-bold text-slate-900 mb-4 mt-6;
 }
 
-.markdown-content :deep(h3) {
-  @apply text-lg font-semibold mt-4 mb-2;
-  color: #1e40af; /* Darker blue */
+.prose h2 {
+  @apply text-2xl font-semibold text-slate-900 mb-3 mt-5;
 }
 
-.markdown-content :deep(h4) {
-  @apply text-base font-semibold mt-3 mb-2;
-  color: #1e40af; /* Darker blue */
+.prose h3 {
+  @apply text-xl font-medium text-slate-900 mb-2 mt-4;
 }
 
-.markdown-content :deep(p) {
-  @apply mb-4;
-  color: #1a202c; /* Darker text */
+.prose p {
+  @apply mb-4 text-slate-700;
 }
 
-.markdown-content :deep(ul) {
-  @apply list-disc list-inside mb-4 space-y-1;
+.prose ul, .prose ol {
+  @apply mb-4 pl-6;
 }
 
-.markdown-content :deep(ol) {
-  @apply list-decimal list-inside mb-4 space-y-1;
+.prose li {
+  @apply mb-2;
 }
 
-.markdown-content :deep(li) {
-  @apply ml-4;
-  color: #1a202c; /* Darker text */
+.prose blockquote {
+  @apply border-l-4 border-slate-300 pl-4 italic text-slate-600 my-4;
 }
 
-.markdown-content :deep(blockquote) {
-  @apply border-l-4 pl-4 italic my-4 rounded-r-lg;
-  border-left-color: #1e40af; /* Darker blue */
-  background-color: #f1f5f9; /* Darker surface */
-  color: #475569; /* Darker secondary text */
-  padding: 1rem;
+.prose code {
+  @apply bg-slate-100 text-slate-800 px-1 py-0.5 rounded text-sm font-mono;
 }
 
-.markdown-content :deep(code) {
-  @apply px-2 py-1 rounded text-sm font-mono;
-  background-color: #f1f5f9; /* Darker surface */
-  color: #1e40af; /* Darker blue */
-  border: 1px solid #cbd5e1; /* Darker border */
+.prose pre {
+  @apply bg-slate-100 text-slate-800 p-4 rounded-lg overflow-x-auto my-4;
 }
 
-.markdown-content :deep(pre) {
-  @apply p-4 rounded-lg overflow-x-auto my-4;
-  background-color: #1e293b; /* Dark background for code */
-  border: 1px solid #334155; /* Darker border */
+.prose pre code {
+  @apply bg-transparent p-0;
 }
 
-.markdown-content :deep(pre code) {
-  @apply bg-transparent p-0 border-0;
-  color: #e2e8f0; /* Light text on dark background */
+/* Split view styling */
+.markdown-split-view {
+  @apply h-full;
 }
 
-.markdown-content :deep(a) {
-  @apply underline transition-colors duration-200;
-  color: #1e40af; /* Darker blue */
+.markdown-editor-side,
+.markdown-preview-side {
+  @apply flex flex-col;
 }
 
-.markdown-content :deep(a:hover) {
-  color: #7c3aed; /* Darker purple */
+/* Fullscreen styling */
+.markdown-fullscreen {
+  @apply z-50;
 }
 
-.markdown-content :deep(strong) {
-  @apply font-semibold;
-  color: #0f172a; /* Very dark text */
-}
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  .markdown-split-view .grid {
+    @apply grid-cols-1;
+  }
 
-.markdown-content :deep(em) {
-  @apply italic;
-  color: #475569; /* Darker secondary text */
-}
-
-.markdown-content :deep(hr) {
-  @apply my-6;
-  border-color: #cbd5e1; /* Darker border */
-}
-
-.markdown-content :deep(table) {
-  @apply w-full border-collapse my-4 rounded-lg overflow-hidden;
-  border: 1px solid #cbd5e1; /* Darker border */
-}
-
-.markdown-content :deep(th) {
-  @apply px-4 py-3 text-left font-semibold;
-  background-color: #f1f5f9; /* Darker surface */
-  color: #0f172a; /* Very dark text */
-  border-bottom: 1px solid #cbd5e1; /* Darker border */
-}
-
-.markdown-content :deep(td) {
-  @apply px-4 py-3;
-  border-bottom: 1px solid #cbd5e1; /* Darker border */
-  color: #1a202c; /* Darker text */
-}
-
-.markdown-content :deep(tr:last-child td) {
-  border-bottom: none;
-}
-
-.markdown-content :deep(img) {
-  @apply max-w-full h-auto rounded-lg my-4 shadow-sm;
-  border: 1px solid #cbd5e1; /* Darker border */
-}
-
-/* Syntax highlighting for code blocks */
-.markdown-content :deep(pre[class*="language-"]) {
-  @apply relative;
-}
-
-.markdown-content :deep(pre[class*="language-"]::before) {
-  content: attr(class);
-  @apply absolute top-2 right-2 text-xs px-2 py-1 rounded;
-  background-color: #1e40af; /* Darker blue */
-  color: white;
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-/* Custom scrollbar for code blocks */
-.markdown-content :deep(pre) {
-  scrollbar-width: thin;
-  scrollbar-color: #475569 transparent; /* Darker scrollbar */
-}
-
-.markdown-content :deep(pre::-webkit-scrollbar) {
-  height: 6px;
-}
-
-.markdown-content :deep(pre::-webkit-scrollbar-track) {
-  background: transparent;
-}
-
-.markdown-content :deep(pre::-webkit-scrollbar-thumb) {
-  background-color: #475569; /* Darker scrollbar */
-  border-radius: 3px;
-}
-
-.markdown-content :deep(pre::-webkit-scrollbar-thumb:hover) {
-  background-color: #334155; /* Even darker on hover */
+  .markdown-split-view .markdown-editor-side,
+  .markdown-split-view .markdown-preview-side {
+    @apply h-96;
+  }
 }
 </style>

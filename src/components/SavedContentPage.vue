@@ -207,6 +207,72 @@ const extractTopicTitle = (content: AIGeneratedContent) => {
   }
 }
 
+// ✅ Prepare note content for InteractiveNote component with Markdown support
+const prepareNoteContentForInteractive = (content: AIGeneratedContent): string => {
+  try {
+    const parsed = tryParseJSON(content.content)
+    if (!parsed) {
+      console.warn('⚠️ Could not parse content for InteractiveNote:', content.content)
+      return content.content || ''
+    }
+
+    console.log('🔧 Preparing note content for InteractiveNote:', {
+      contentId: content.id,
+      parsedContent: parsed,
+      contentType: content.outputFormat
+    })
+
+    // ✅ ตรวจสอบว่ามี Markdown field หรือไม่
+    if (parsed.markdown && typeof parsed.markdown === 'string') {
+      console.log('✅ Found Markdown field, using it directly')
+      return parsed.markdown
+    }
+
+    // ✅ แปลง content เป็น Markdown format
+    let markdownContent = ''
+
+    // Handle different content structures
+    if (parsed.content && Array.isArray(parsed.content)) {
+      // Format: { content: [{ feature: "...", description: "..." }] }
+      markdownContent = parsed.content
+        .map((item: Record<string, unknown>, index: number) => {
+          const feature = item.feature || item.title || `Section ${index + 1}`
+          const description = item.description || item.content || ''
+
+          // Convert to Markdown format
+          return `## ${feature}\n\n${description}`
+        })
+        .join('\n\n')
+    } else if (parsed.sections && Array.isArray(parsed.sections)) {
+      // Format: { sections: [{ title: "...", content: "..." }] }
+      markdownContent = parsed.sections
+        .map((section: Record<string, unknown>, index: number) => {
+          const title = section.title || `Section ${index + 1}`
+          const content = section.content || ''
+
+          return `## ${title}\n\n${content}`
+        })
+        .join('\n\n')
+    } else if (parsed.topic && parsed.content) {
+      // Format: { topic: "...", content: "..." }
+      markdownContent = `# ${parsed.topic}\n\n${parsed.content}`
+    } else if (typeof parsed.content === 'string') {
+      // Simple string format
+      markdownContent = parsed.content
+    } else {
+      console.warn('⚠️ Unknown note content format:', parsed)
+      markdownContent = 'No content available'
+    }
+
+    console.log('✅ Converted to Markdown format:', markdownContent)
+    return markdownContent
+
+  } catch (error) {
+    console.error('❌ Error preparing note content for InteractiveNote:', error)
+    return content.content || ''
+  }
+}
+
 const generateContentPreview = (content: AIGeneratedContent): string => {
   const parsedContent = tryParseJSON(content.content)
 
@@ -412,6 +478,32 @@ const renderContentPreview = (content: AIGeneratedContent): string => {
 // Deleted unused ContentPreviewDisplay component - using inline rendering instead
 
 const renderNotePreview = (parsedContent: Record<string, unknown>) => {
+  // ✅ ตรวจสอบว่ามี Markdown field หรือไม่
+  if (parsedContent.markdown && typeof parsedContent.markdown === 'string') {
+    console.log('✅ Rendering note preview with Markdown content')
+
+    // Note: markdownToHtml will be used in the interactive view, not in preview
+
+    // For preview, show a simplified version
+    const markdownContent = parsedContent.markdown as string
+    const lines = markdownContent.split('\n').slice(0, 10) // Show first 10 lines
+    const preview = lines.join('\n')
+
+    return `<div class="space-y-4">
+      <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div class="flex items-center gap-2 mb-2">
+          <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+          </svg>
+          <span class="text-sm font-medium text-blue-800">Markdown Content</span>
+        </div>
+        <div class="text-sm text-blue-700 whitespace-pre-wrap max-h-32 overflow-y-auto">
+          ${preview}${markdownContent.split('\n').length > 10 ? '\n...' : ''}
+        </div>
+      </div>
+    </div>`
+  }
+
   // Handle both new API format และ legacy format
   const isNewFormat = !!(parsedContent.metadata && parsedContent.content)
 
@@ -1478,7 +1570,7 @@ onMounted(async () => {
               <InteractiveNote
                 v-else-if="selectedContent.outputFormat === 'note'"
                 :key="`note-${selectedContent.id}`"
-                :content="selectedContent.content"
+                :content="prepareNoteContentForInteractive(selectedContent)"
                 :title="extractTopicTitle(selectedContent)"
               />
               <InteractiveFlashcard

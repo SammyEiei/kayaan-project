@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { markdownToHtml } from '@/utils/markdownConverter'
 
 interface Props {
   content: string
@@ -16,7 +17,7 @@ const showTableOfContents = ref(true)
 const readingProgress = ref(0)
 const activeSection = ref('')
 
-// Try to parse JSON content first, then fallback to markdown
+// ✅ Enhanced content parsing with Markdown support
 const parseContent = (content: string) => {
   if (!content || typeof content !== 'string') {
     return [{
@@ -27,8 +28,14 @@ const parseContent = (content: string) => {
   }
 
   try {
-    // Try to parse as JSON
+    // Try to parse as JSON first
     const jsonData = JSON.parse(content)
+
+    // ✅ ตรวจสอบ Markdown field ใน JSON
+    if (jsonData.markdown && typeof jsonData.markdown === 'string') {
+      console.log('✅ Found Markdown content in JSON, parsing...')
+      return parseMarkdownContent(jsonData.markdown)
+    }
 
     // If it's a note object with structured data
     if (jsonData.topic || jsonData.content || jsonData.sections) {
@@ -38,7 +45,13 @@ const parseContent = (content: string) => {
     // Not JSON, continue with regular parsing
   }
 
-  // Regular markdown parsing with better handling
+  // ✅ ตรวจสอบว่า content เป็น Markdown หรือไม่
+  if (isMarkdownContent(content)) {
+    console.log('✅ Content appears to be Markdown, parsing...')
+    return parseMarkdownContent(content)
+  }
+
+  // Regular parsing with better handling
   const lines = content.split('\n')
   const sections: { level: number; title: string; content: string[] }[] = []
   let currentSection: { level: number; title: string; content: string[] } | null = null
@@ -85,6 +98,82 @@ const parseContent = (content: string) => {
       title: 'Content',
       content: lines.filter(l => l.trim())
     })
+  }
+
+  return sections
+}
+
+// ✅ ตรวจสอบว่า content เป็น Markdown หรือไม่
+const isMarkdownContent = (content: string): boolean => {
+  const markdownPatterns = [
+    /^#{1,6}\s+/m,        // Headers
+    /```[\s\S]*?```/,     // Code blocks
+    /`[^`]+`/,            // Inline code
+    /^\s*>\s+/m,          // Blockquotes
+    /^\s*[-*+]\s+/m,      // Unordered lists
+    /^\s*\d+\.\s+/m,      // Ordered lists
+    /\*\*.*?\*\*/,        // Bold
+    /\*.*?\*/             // Italic
+  ]
+
+  return markdownPatterns.some(pattern => pattern.test(content))
+}
+
+// ✅ Enhanced Markdown content parsing
+const parseMarkdownContent = (markdown: string) => {
+  const lines = markdown.split('\n')
+  const sections: { level: number; title: string; content: string[] }[] = []
+  let currentSection: { level: number; title: string; content: string[] } | null = null
+  let currentContent: string[] = []
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    const trimmedLine = line.trim()
+
+    // Check for headers
+    if (trimmedLine.startsWith('#')) {
+      // Save previous section if exists
+      if (currentSection && currentContent.length > 0) {
+        currentSection.content = currentContent
+        sections.push(currentSection)
+      }
+
+      // Start new section
+      const level = trimmedLine.match(/^#+/)?.[0].length || 1
+      const title = trimmedLine.replace(/^#+\s*/, '').trim()
+      if (title) {
+        currentSection = { level, title, content: [] }
+        currentContent = []
+      }
+    } else {
+      // Add content to current section
+      if (trimmedLine) {
+        currentContent.push(line) // Keep original line with indentation
+      } else if (currentContent.length > 0) {
+        // Add empty line only if we have content
+        currentContent.push('')
+      }
+    }
+  }
+
+  // Add last section
+  if (currentSection) {
+    currentSection.content = currentContent
+    if (currentContent.length > 0) {
+      sections.push(currentSection)
+    }
+  }
+
+  // If no sections found, create a default one with all content
+  if (sections.length === 0) {
+    const allContent = lines.filter(l => l.trim())
+    if (allContent.length > 0) {
+      sections.push({
+        level: 1,
+        title: 'Content',
+        content: allContent
+      })
+    }
   }
 
   return sections
@@ -473,27 +562,13 @@ onUnmounted(() => {
               </h4>
             </div>
 
-            <!-- Section Content with better spacing -->
-            <div v-if="section.content.length > 0" class="space-y-4">
+            <!-- Section Content with Enhanced Markdown rendering -->
+            <div v-if="section.content.length > 0" class="markdown-section-content">
+              <!-- ✅ Render entire section content as Markdown -->
               <div
-                v-for="(paragraph, index) in section.content"
-                :key="index"
-                class="relative"
-              >
-                <!-- Check if paragraph is a list item -->
-                <div v-if="paragraph.startsWith('•') || paragraph.startsWith('-') || paragraph.match(/^\d+\./)"
-                     class="flex gap-3 items-start">
-                  <span class="text-blue-500 mt-1">•</span>
-                  <p class="text-slate-700 leading-relaxed flex-1">
-                    {{ paragraph.replace(/^[•\-]\s*|^\d+\.\s*/, '') }}
-                  </p>
-                </div>
-                <!-- Regular paragraph -->
-                <p v-else-if="typeof paragraph === 'string' && paragraph.trim()"
-                   class="text-slate-700 leading-relaxed text-base">
-                  {{ paragraph }}
-                </p>
-              </div>
+                class="markdown-content prose prose-slate max-w-none"
+                v-html="markdownToHtml(section.content.join('\n'))"
+              ></div>
             </div>
 
             <!-- Empty section indicator -->
@@ -567,5 +642,117 @@ onUnmounted(() => {
 .prose blockquote {
   font-size: var(--font-size, 16px) !important;
   line-height: var(--line-height, 1.6) !important;
+}
+
+/* ✅ Enhanced Markdown content styling */
+.markdown-section-content {
+  @apply w-full;
+}
+
+.markdown-content {
+  @apply text-slate-700 leading-relaxed;
+}
+
+/* Override prose styles for better Markdown rendering */
+.markdown-content.prose {
+  @apply max-w-none;
+}
+
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3,
+.markdown-content h4,
+.markdown-content h5,
+.markdown-content h6 {
+  @apply font-bold text-slate-900;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.markdown-content h1 {
+  @apply text-3xl mb-6 mt-10;
+}
+.markdown-content h2 {
+  @apply text-2xl mb-4 mt-8;
+}
+.markdown-content h3 {
+  @apply text-xl mb-3 mt-6;
+}
+.markdown-content h4 {
+  @apply text-lg mb-2 mt-4;
+}
+
+.markdown-content p {
+  @apply mb-4 text-slate-700 leading-relaxed;
+  margin-top: 0;
+}
+
+.markdown-content ul,
+.markdown-content ol {
+  @apply mb-4;
+  margin-top: 0;
+}
+
+.markdown-content li {
+  @apply mb-2 text-slate-700;
+}
+
+.markdown-content blockquote {
+  @apply border-l-4 border-blue-500 pl-4 italic text-slate-600 my-4 bg-blue-50 py-2 rounded-r;
+  margin-top: 0;
+}
+
+.markdown-content code {
+  @apply bg-slate-100 text-slate-800 px-2 py-1 rounded text-sm font-mono border;
+}
+
+.markdown-content pre {
+  @apply bg-slate-100 text-slate-800 p-4 rounded-lg overflow-x-auto my-4 border border-slate-200;
+  margin-top: 0;
+}
+
+.markdown-content pre code {
+  @apply bg-transparent p-0 border-0;
+}
+
+.markdown-content strong {
+  @apply font-semibold text-slate-900;
+}
+
+.markdown-content em {
+  @apply italic text-slate-700;
+}
+
+.markdown-content a {
+  @apply text-blue-600 hover:text-blue-800 underline;
+}
+
+.markdown-content img {
+  @apply max-w-full h-auto rounded-lg shadow-sm my-4;
+}
+
+.markdown-content hr {
+  @apply my-8 border-slate-300;
+}
+
+/* List styling improvements */
+.markdown-content ul {
+  @apply list-disc list-inside space-y-1;
+}
+
+.markdown-content ol {
+  @apply list-decimal list-inside space-y-1;
+}
+
+.markdown-content li {
+  @apply ml-0;
+}
+
+/* Nested lists */
+.markdown-content ul ul,
+.markdown-content ol ol,
+.markdown-content ul ol,
+.markdown-content ol ul {
+  @apply mt-2 ml-4;
 }
 </style>

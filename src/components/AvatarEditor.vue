@@ -67,12 +67,12 @@
               Remove Avatar
             </button>
             <!-- Debug button -->
-            <button
+            <!-- <button
               @click="debugToken"
               class="ml-2 px-3 py-1 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md transition-all duration-200"
             >
               Debug Token
-            </button>
+            </button> -->
           </div>
 
           <!-- Image Editor -->

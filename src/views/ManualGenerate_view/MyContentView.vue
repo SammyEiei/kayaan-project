@@ -738,6 +738,38 @@ const contentItems = computed(() => {
             }
 
           case 'note':
+            console.log('🔧 Processing note content:', {
+              itemId: item.id,
+              contentData: contentData,
+              contentDataKeys: Object.keys(contentData)
+            })
+
+            // ✅ แก้ไขการ parse note content ให้ถูกต้อง
+            let noteContent = ''
+            if (contentData.content && Array.isArray(contentData.content)) {
+              // Note format: { type: "note", content: [{ feature: "...", description: "..." }] }
+              noteContent = contentData.content
+                .map((item: { feature?: string; description?: string }) => {
+                  const feature = item.feature || 'Content'
+                  const description = item.description || ''
+                  return `**${feature}**\n${description}`
+                })
+                .join('\n\n')
+            } else if (contentData.sections && Array.isArray(contentData.sections)) {
+              // Alternative format: { sections: [{ content: "..." }] }
+              noteContent = contentData.sections
+                .map((section: { content?: string }) => section.content || '')
+                .join('\n\n')
+            } else if (typeof contentData.content === 'string') {
+              // Simple string format
+              noteContent = contentData.content
+            } else {
+              console.warn('⚠️ Unknown note content format:', contentData)
+              noteContent = 'No content available'
+            }
+
+            console.log('✅ Parsed note content:', noteContent)
+
             return {
               id: `note-${item.id}`,
               type: 'note' as const,
@@ -747,7 +779,8 @@ const contentItems = computed(() => {
               tags: item.tags || [],
               createdAt: item.createdAt,
               isDeck: false,
-              content: contentData.content || contentData.sections?.[0]?.content || ''
+              content: noteContent,
+              rawContentData: contentData // ✅ เก็บ raw data สำหรับ interactive view
             }
 
           default:
@@ -1151,14 +1184,56 @@ function prepareContentForInteractive(item: ContentItem): string {
       })
 
       case 'note':
-      if (detailed && detailed.content) {
-        console.log('✅ Using real note data')
-        return detailed.content
-      }
+        console.log('🔧 === NOTE INTERACTIVE VIEW ===')
+        console.log('🔧 Item:', item)
+        console.log('🔧 Has detailed content?', !!detailed)
+        console.log('🔧 Detailed content:', detailed)
 
-      // No fallback mock: show empty state in InteractiveNote
-      console.warn('⚠️ No detailed note data; showing empty interactive note')
-      return ''
+        // ✅ ใช้ rawContentData จาก item ก่อน
+        const noteItem = item as ContentItem & { rawContentData?: Record<string, unknown> }
+        if (noteItem.rawContentData) {
+          console.log('✅ Using raw content data from item:', noteItem.rawContentData)
+
+          // Parse note content จาก rawContentData
+          let noteContent = ''
+          if (noteItem.rawContentData.content && Array.isArray(noteItem.rawContentData.content)) {
+            // Note format: { type: "note", content: [{ feature: "...", description: "..." }] }
+            noteContent = noteItem.rawContentData.content
+              .map((item: { feature?: string; description?: string }) => {
+                const feature = item.feature || 'Content'
+                const description = item.description || ''
+                return `**${feature}**\n${description}`
+              })
+              .join('\n\n')
+          } else if (noteItem.rawContentData.sections && Array.isArray(noteItem.rawContentData.sections)) {
+            // Alternative format: { sections: [{ content: "..." }] }
+            noteContent = noteItem.rawContentData.sections
+              .map((section: { content?: string }) => section.content || '')
+              .join('\n\n')
+          } else if (typeof noteItem.rawContentData.content === 'string') {
+            // Simple string format
+            noteContent = noteItem.rawContentData.content
+          }
+
+          console.log('✅ Parsed note content for interactive view:', noteContent)
+          return noteContent
+        }
+
+        // ✅ Fallback ไปใช้ detailed content
+        if (detailed && detailed.content) {
+          console.log('✅ Using detailed note data:', detailed.content)
+          return detailed.content
+        }
+
+        // ✅ Fallback สุดท้าย: ใช้ content จาก item
+        if ('content' in noteItem && noteItem.content) {
+          console.log('✅ Using item content as fallback:', noteItem.content)
+          return noteItem.content as string
+        }
+
+        // No content available
+        console.warn('⚠️ No note content available; showing empty interactive note')
+        return ''
 
       case 'flashcard':
       if (detailed && (detailed.cards || detailed.frontText)) {
@@ -1276,7 +1351,59 @@ function formatDate(dateString: string) {
   return new Date(dateString).toLocaleDateString()
 }
 
+// ✅ Debug functions สำหรับทดสอบ
+const debugNotes = async () => {
+  try {
+    console.log('🔍 === DEBUG NOTES TEST ===')
+    const debugData = await UnifiedContentService.getDebugNotes()
+    console.log('🔍 Debug notes result:', debugData)
+
+    // แสดงผลใน alert สำหรับ debug
+    alert(`Debug Notes Found: ${debugData.totalNotes}\nFirst note: ${debugData.notes[0]?.contentTitle || 'None'}`)
+  } catch (error) {
+    console.error('❌ Debug notes failed:', error)
+    alert('Debug notes failed: ' + (error instanceof Error ? error.message : 'Unknown error'))
+  }
+}
+
+const debugUnifiedAPI = async () => {
+  try {
+    console.log('🔍 === DEBUG UNIFIED API TEST ===')
+    const response = await UnifiedContentService.getUserContent({
+      source: 'manual',
+      contentType: 'note',
+      size: 100
+    })
+    console.log('🔍 Unified API result:', response)
+
+    // แสดงผลใน alert สำหรับ debug
+    alert(`Unified API Found: ${response.content.length} notes\nSuccess: ${response.success}`)
+  } catch (error) {
+    console.error('❌ Debug unified API failed:', error)
+    alert('Debug unified API failed: ' + (error instanceof Error ? error.message : 'Unknown error'))
+  }
+}
+
 onMounted(async () => {
+  console.log('🚀 === MY CONTENT VIEW MOUNTED ===')
+
+  // ✅ เพิ่ม debug tools ใน development mode
+  if (import.meta.env.DEV) {
+    console.log('🔧 Development mode: Adding debug tools to window')
+    const windowWithDebug = window as typeof window & {
+      debugNotes: typeof debugNotes
+      debugUnifiedAPI: typeof debugUnifiedAPI
+      debugLoadContent: typeof loadContentItems
+      debugContentItems: () => typeof contentItems.value
+      debugUnifiedContent: () => typeof unifiedContent.value
+    }
+    windowWithDebug.debugNotes = debugNotes
+    windowWithDebug.debugUnifiedAPI = debugUnifiedAPI
+    windowWithDebug.debugLoadContent = loadContentItems
+    windowWithDebug.debugContentItems = () => contentItems.value
+    windowWithDebug.debugUnifiedContent = () => unifiedContent.value
+  }
+
   await loadContentItems()
   await loadContentStats()
 })
