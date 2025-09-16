@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import InteractiveQuiz from '@/components/InteractiveQuiz.vue'
 import InteractiveFlashcard from '@/components/InteractiveFlashcard.vue'
 import InteractiveNote from '@/components/InteractiveNote.vue'
+import { markdownToHtml } from '@/utils/markdownConverter'
 
 const router = useRouter()
 
@@ -30,14 +31,11 @@ const contentType = computed(() => {
   // First, try to get type from contentData.contentType
   if (contentData.value.contentType && typeof contentData.value.contentType === 'string') {
     const contentTypeFromData = contentData.value.contentType.toLowerCase()
-    console.log('🔍 Found contentData.contentType:', contentTypeFromData)
 
     // Use contentType if it's a valid interactive content type
     if (['flashcard', 'quiz', 'note'].includes(contentTypeFromData)) {
       detectedType = contentTypeFromData
-      console.log('🔍 Using contentData.contentType:', detectedType)
     } else {
-      console.log('🔍 Invalid contentType, will detect from content structure')
     }
   }
 
@@ -45,26 +43,21 @@ const contentType = computed(() => {
   if (!detectedType) {
     // Check if content.content is a stringified JSON
     if (typeof content.content === 'string') {
-      console.log('🔍 Attempting to parse content string...')
 
       // Try to detect type from string content first (before parsing)
       const contentString = content.content.toLowerCase()
       if (contentString.includes('"flashcards"') || contentString.includes('"cards"')) {
         detectedType = 'flashcard'
-        console.log('🔍 Detected flashcard from string content')
       } else if (contentString.includes('"questions"')) {
         detectedType = 'quiz'
-        console.log('🔍 Detected quiz from string content')
       } else if (contentString.includes('"type": "note"') || contentString.includes('"content":')) {
         detectedType = 'note'
-        console.log('🔍 Detected note from string content')
       }
 
       // If we still don't have a type, try to parse the JSON
       if (!detectedType) {
         try {
           const parsedInnerContent = JSON.parse(content.content)
-          console.log('🔍 Successfully parsed inner content:', parsedInnerContent)
 
           // Check inner content type
           if (parsedInnerContent.type) {
@@ -78,7 +71,6 @@ const contentType = computed(() => {
           }
         } catch (parseError) {
           console.warn('⚠️ Could not parse inner content:', parseError)
-          console.log('🔍 Content string preview:', content.content.substring(0, 200) + '...')
         }
       }
     }
@@ -87,19 +79,14 @@ const contentType = computed(() => {
     if (!detectedType) {
       if (content.type && typeof content.type === 'string') {
         detectedType = content.type.toLowerCase()
-        console.log('🔍 Using outer content.type:', detectedType)
       } else if (content.questions && Array.isArray(content.questions)) {
         detectedType = 'quiz'
-        console.log('🔍 Detected quiz from outer structure')
       } else if (content.flashcards && Array.isArray(content.flashcards)) {
         detectedType = 'flashcard'
-        console.log('🔍 Detected flashcard from outer structure')
       } else if (content.cards && Array.isArray(content.cards)) {
         detectedType = 'flashcard'
-        console.log('🔍 Detected flashcard from outer cards')
       } else if (content.content && Array.isArray(content.content)) {
         detectedType = 'note'
-        console.log('🔍 Detected note from outer structure')
       }
     }
   }
@@ -109,24 +96,27 @@ const contentType = computed(() => {
     const title = contentData.value?.title?.toLowerCase() || ''
     if (title.includes('flashcard') || title.includes('card')) {
       detectedType = 'flashcard'
-      console.log('🔍 Detected flashcard from title')
     } else if (title.includes('quiz') || title.includes('question')) {
       detectedType = 'quiz'
-      console.log('🔍 Detected quiz from title')
     } else if (title.includes('note')) {
       detectedType = 'note'
-      console.log('🔍 Detected note from title')
     } else {
       detectedType = 'note' // Default fallback
-      console.log('🔍 Using default fallback: note')
     }
   }
 
-  console.log('🔍 ContentViewer - Final detected contentType:', detectedType)
   return detectedType
 })
 const contentTitle = computed(() => contentData.value?.title || 'Untitled Content')
 const isSharedContent = computed(() => contentData.value?.source === 'shared')
+
+// InteractiveNote-style UI state
+const fontSize = ref(16)
+const lineHeight = ref(1.6)
+const theme = ref<'light' | 'dark' | 'sepia'>('light')
+const showTableOfContents = ref(true)
+const readingProgress = ref(0)
+const activeSection = ref('')
 
 // เพิ่ม computed properties สำหรับ interactive content detection
 // const isInteractiveContent = computed(() => {
@@ -137,19 +127,14 @@ const isSharedContent = computed(() => contentData.value?.source === 'shared')
 const loadContent = () => {
   try {
     const storedContent = localStorage.getItem('sharedContentToView')
-    console.log('🔍 Loading content from localStorage:', storedContent)
 
     if (storedContent) {
       const parsedContent = JSON.parse(storedContent)
       contentData.value = parsedContent
-      console.log('✅ Content loaded successfully:', contentData.value)
 
       // ตรวจสอบว่าเป็น interactive content หรือไม่
       if (parsedContent.contentType && parsedContent.contentData) {
-        console.log('🔍 Interactive content detected:', {
-          contentType: parsedContent.contentType,
-          hasContentData: !!parsedContent.contentData
-        })
+        // Interactive content detected
       }
 
       // Clear the stored content after loading
@@ -184,6 +169,53 @@ const goBack = () => {
 
   // Fallback: ใช้ router.back() ปกติ
   router.back()
+}
+
+// InteractiveNote-style methods
+const increaseFontSize = () => {
+  if (fontSize.value < 24) fontSize.value += 2
+}
+
+const decreaseFontSize = () => {
+  if (fontSize.value > 12) fontSize.value -= 2
+}
+
+const toggleTheme = () => {
+  const themes: ('light' | 'dark' | 'sepia')[] = ['light', 'dark', 'sepia']
+  const currentIndex = themes.indexOf(theme.value)
+  const nextIndex = (currentIndex + 1) % themes.length
+  theme.value = themes[nextIndex]
+}
+
+const scrollToSection = (title: string) => {
+  const element = document.getElementById(`section-${title.replace(/\s+/g, '-').toLowerCase()}`)
+  if (element) {
+    element.scrollIntoView({ behavior: 'smooth' })
+    activeSection.value = title
+  }
+}
+
+// Update reading progress on scroll
+const updateReadingProgress = () => {
+  const scrollTop = window.scrollY
+  const docHeight = document.documentElement.scrollHeight - window.innerHeight
+  const progress = docHeight > 0 ? Math.min((scrollTop / docHeight) * 100, 100) : 0
+  readingProgress.value = Math.round(progress)
+
+  // Update active section
+  const sectionElements = document.querySelectorAll('[id^="section-"]')
+  let currentSection = ''
+
+  sectionElements.forEach((element) => {
+    const rect = element.getBoundingClientRect()
+    if (rect.top <= 100 && rect.bottom >= 100) {
+      currentSection = element.id.replace('section-', '').replace(/-/g, ' ')
+    }
+  })
+
+  if (currentSection) {
+    activeSection.value = currentSection
+  }
 }
 
 const getContentIcon = () => {
@@ -255,18 +287,13 @@ const getProcessedContent = () => {
 
   // If content.content is a stringified JSON, parse it and return the inner content
   if (typeof content.content === 'string') {
-    console.log('🔍 Processing string content...')
 
     // First, try to extract content manually (more reliable for malformed JSON)
     try {
       const manualExtract = extractContentManually(content.content)
       if (manualExtract) {
-        console.log('🔧 Successfully extracted content manually:', manualExtract)
-        console.log('🔧 Manual extract type:', manualExtract.type)
-        console.log('🔧 Manual extract flashcards count:', manualExtract.flashcards?.length || 0)
         return JSON.stringify(manualExtract)
       } else {
-        console.log('🔧 Manual extraction returned null/undefined')
       }
     } catch (manualError) {
       console.warn('⚠️ Manual extraction failed:', manualError)
@@ -288,27 +315,22 @@ const getProcessedContent = () => {
 
         if (cutIndex > 0) {
           jsonString = jsonString.substring(0, cutIndex + 1)
-          console.log('🔧 Attempting to parse truncated JSON:', jsonString.substring(0, 100) + '...')
         }
       }
 
       const parsedInnerContent = JSON.parse(jsonString)
-      console.log('🔍 Successfully parsed inner content:', parsedInnerContent)
       return JSON.stringify(parsedInnerContent)
     } catch (parseError) {
       console.warn('⚠️ JSON parsing failed:', parseError)
-      console.log('🔍 Raw content string preview:', content.content.substring(0, 200) + '...')
 
       // Create a fallback content based on detected type
       const detectedType = contentType.value || 'note'
       const fallbackContent = createFallbackContent(detectedType, content.content)
-      console.log('🔧 Returning fallback content:', fallbackContent)
       return JSON.stringify(fallbackContent)
     }
   }
 
   // Otherwise return the outer content
-  console.log('🔍 Returning outer content:', content)
   return JSON.stringify(content)
 }
 
@@ -327,7 +349,6 @@ const createFallbackContent = (type: string, rawContent: string) => {
       const answerMatch = rawContent.match(/"answer":\s*"([^"]*(?:\\.[^"]*)*)"/)
 
       if (questionMatch && answerMatch) {
-        console.log('🔧 Fallback: Found question-answer pair in raw content')
         return {
           ...baseContent,
           flashcards: [{
@@ -342,7 +363,6 @@ const createFallbackContent = (type: string, rawContent: string) => {
         const visibleAnswer = visibleContent.match(/"answer":\s*"([^"]*(?:\\.[^"]*)*)"/)
 
         if (visibleQuestion && visibleAnswer) {
-          console.log('🔧 Fallback: Found question-answer pair in visible content')
           return {
             ...baseContent,
             flashcards: [{
@@ -351,7 +371,6 @@ const createFallbackContent = (type: string, rawContent: string) => {
             }]
           }
         } else {
-          console.log('🔧 Fallback: No question-answer pairs found, using generic content')
           return {
             ...baseContent,
             flashcards: [{
@@ -384,7 +403,6 @@ const createFallbackContent = (type: string, rawContent: string) => {
 // Manual content extraction for malformed JSON
 const extractContentManually = (jsonString: string) => {
   try {
-    console.log('🔧 Attempting manual extraction from:', jsonString.substring(0, 100) + '...')
 
     // First, try to detect the type from the string
     let detectedType = null
@@ -396,19 +414,16 @@ const extractContentManually = (jsonString: string) => {
       detectedType = 'note'
     }
 
-    console.log('🔧 Detected type from string:', detectedType)
 
     // Try to extract flashcard data using regex
     if (detectedType === 'flashcard' || !detectedType) {
       const flashcardMatch = jsonString.match(/"flashcards":\s*\[(.*?)\]/s)
       if (flashcardMatch) {
-        console.log('🔧 Found flashcard data, attempting to extract...')
         const flashcardContent = flashcardMatch[1]
 
         // Try to find individual flashcard objects with more flexible regex
         const cardMatches = flashcardContent.match(/\{[^}]*"question"[^}]*"answer"[^}]*\}/g)
         if (cardMatches && cardMatches.length > 0) {
-          console.log(`🔧 Found ${cardMatches.length} flashcard(s)`)
           const flashcards = cardMatches.map((card, index) => {
             try {
               return JSON.parse(card)
@@ -430,12 +445,10 @@ const extractContentManually = (jsonString: string) => {
           }
         } else {
           // If no complete card objects found, try to extract individual question/answer pairs
-          console.log('🔧 No complete card objects found, trying to extract individual pairs...')
           const questionMatches = flashcardContent.match(/"question":\s*"([^"]*(?:\\.[^"]*)*)"/g)
           const answerMatches = flashcardContent.match(/"answer":\s*"([^"]*(?:\\.[^"]*)*)"/g)
 
           if (questionMatches && answerMatches && questionMatches.length === answerMatches.length) {
-            console.log(`🔧 Found ${questionMatches.length} question-answer pairs`)
             const flashcards = questionMatches.map((q, index) => {
               const questionMatch = q.match(/"question":\s*"([^"]*(?:\\.[^"]*)*)"/)
               const answerMatch = answerMatches[index]?.match(/"answer":\s*"([^"]*(?:\\.[^"]*)*)"/)
@@ -459,7 +472,6 @@ const extractContentManually = (jsonString: string) => {
     if (detectedType === 'quiz' || !detectedType) {
       const questionMatch = jsonString.match(/"questions":\s*\[(.*?)\]/s)
       if (questionMatch) {
-        console.log('🔧 Found quiz data, attempting to extract...')
         return {
           type: 'quiz',
           topic: 'Extracted Content',
@@ -470,12 +482,10 @@ const extractContentManually = (jsonString: string) => {
 
     // Try to extract any content that looks like it has question/answer pairs (fallback for flashcard)
     if (detectedType === 'flashcard' || !detectedType) {
-      console.log('🔧 Trying to extract question-answer pairs from entire string...')
 
       // First try the original method
       const questionAnswerPairs = jsonString.match(/"question":\s*"([^"]*(?:\\.[^"]*)*)"[^}]*"answer":\s*"([^"]*(?:\\.[^"]*)*)"/g)
       if (questionAnswerPairs && questionAnswerPairs.length > 0) {
-        console.log(`🔧 Found ${questionAnswerPairs.length} question-answer pair(s)`)
         const flashcards = questionAnswerPairs.map((pair, index) => {
           const questionMatch = pair.match(/"question":\s*"([^"]*(?:\\.[^"]*)*)"/)
           const answerMatch = pair.match(/"answer":\s*"([^"]*(?:\\.[^"]*)*)"/)
@@ -493,12 +503,10 @@ const extractContentManually = (jsonString: string) => {
       }
 
       // If that fails, try a more aggressive approach - extract all questions and answers separately
-      console.log('🔧 Trying separate question/answer extraction...')
       const allQuestions = jsonString.match(/"question":\s*"([^"]*(?:\\.[^"]*)*)"/g)
       const allAnswers = jsonString.match(/"answer":\s*"([^"]*(?:\\.[^"]*)*)"/g)
 
       if (allQuestions && allAnswers && allQuestions.length > 0 && allAnswers.length > 0) {
-        console.log(`🔧 Found ${allQuestions.length} questions and ${allAnswers.length} answers`)
         const minCount = Math.min(allQuestions.length, allAnswers.length)
         const flashcards = []
 
@@ -515,7 +523,6 @@ const extractContentManually = (jsonString: string) => {
         }
 
         if (flashcards.length > 0) {
-          console.log(`🔧 Successfully extracted ${flashcards.length} flashcards`)
           return {
             type: 'flashcard',
             topic: 'Extracted Content',
@@ -525,7 +532,6 @@ const extractContentManually = (jsonString: string) => {
       }
     }
 
-    console.log('🔧 No extractable content found')
     return null
   } catch (error) {
     console.warn('⚠️ Manual extraction failed:', error)
@@ -540,6 +546,195 @@ const validateContent = (content: unknown) => {
   return true
 }
 
+// ✅ Check if content contains markdown patterns or is structured content
+const isMarkdownContent = (content: string): boolean => {
+  if (!content || typeof content !== 'string') {
+    return false
+  }
+
+  try {
+    // First check if it's JSON with structured content
+    const jsonData = JSON.parse(content)
+    if (jsonData.type === 'note' && jsonData.content && Array.isArray(jsonData.content)) {
+      return true // Treat structured content as markdown-compatible
+    }
+  } catch {
+    // Not JSON, continue with markdown pattern check
+  }
+
+  const markdownPatterns = [
+    /^#{1,6}\s+/m,        // Headers
+    /```[\s\S]*?```/,     // Code blocks
+    /`[^`]+`/,            // Inline code
+    /^\s*>\s+/m,          // Blockquotes
+    /^\s*[-*+]\s+/m,      // Unordered lists
+    /^\s*\d+\.\s+/m,      // Ordered lists
+    /\*\*.*?\*\*/,        // Bold
+    /\*.*?\*/,            // Italic
+    /\[.*?\]\(.*?\)/,     // Links
+    /!\[.*?\]\(.*?\)/     // Images
+  ]
+
+  return markdownPatterns.some(pattern => pattern.test(content))
+}
+
+// ✅ Extract markdown content from processed content
+const extractMarkdownContent = (content: string): string => {
+  if (!content || typeof content !== 'string') {
+    return ''
+  }
+
+  try {
+    // Try to parse as JSON first
+    const jsonData = JSON.parse(content)
+
+    // Check if it has a markdown field
+    if (jsonData.markdown && typeof jsonData.markdown === 'string') {
+      return jsonData.markdown
+    }
+
+    // Check if it has a content field that might be markdown
+    if (jsonData.content && typeof jsonData.content === 'string') {
+      return jsonData.content
+    }
+
+    // If it's a note object with structured content array
+    if (jsonData.type === 'note' && jsonData.content && Array.isArray(jsonData.content)) {
+      // Convert structured content to markdown format
+      let markdownContent = `# ${jsonData.topic || 'Note'}\n\n`
+
+      jsonData.content.forEach((item: any, index: number) => {
+        if (item.feature && item.description) {
+          markdownContent += `## ${item.feature}\n\n${item.description}\n\n`
+        } else if (typeof item === 'string') {
+          markdownContent += `${item}\n\n`
+        } else if (item.title && item.content) {
+          markdownContent += `## ${item.title}\n\n${item.content}\n\n`
+        }
+      })
+
+      return markdownContent
+    }
+
+    // If it's a note object, try to extract content
+    if (jsonData.type === 'note' && jsonData.content) {
+      if (typeof jsonData.content === 'string') {
+        return jsonData.content
+      } else if (Array.isArray(jsonData.content)) {
+        return jsonData.content.join('\n')
+      }
+    }
+
+    // Return the original content if it looks like markdown
+    if (isMarkdownContent(content)) {
+      return content
+    }
+
+    // Fallback: return the content as-is
+    return content
+  } catch (error) {
+    // If not JSON, return the content as-is if it looks like markdown
+    if (isMarkdownContent(content)) {
+      return content
+    }
+
+    return content
+  }
+}
+
+// ✅ Enhanced Markdown content parsing (same as InteractiveNote)
+const parseMarkdownContent = (markdown: string) => {
+  const lines = markdown.split('\n')
+  const sections: { level: number; title: string; content: string[] }[] = []
+  let currentSection: { level: number; title: string; content: string[] } | null = null
+  let currentContent: string[] = []
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    const trimmedLine = line.trim()
+
+    // Check for headers
+    if (trimmedLine.startsWith('#')) {
+      // Save previous section if exists
+      if (currentSection && currentContent.length > 0) {
+        currentSection.content = currentContent
+        sections.push(currentSection)
+      }
+
+      // Start new section
+      const level = trimmedLine.match(/^#+/)?.[0].length || 1
+      const title = trimmedLine.replace(/^#+\s*/, '').trim()
+      if (title) {
+        currentSection = { level, title, content: [] }
+        currentContent = []
+      }
+    } else {
+      // Add content to current section
+      if (trimmedLine) {
+        currentContent.push(line) // Keep original line with indentation
+      } else if (currentContent.length > 0) {
+        // Add empty line only if we have content
+        currentContent.push('')
+      }
+    }
+  }
+
+  // Add last section
+  if (currentSection) {
+    currentSection.content = currentContent
+    if (currentContent.length > 0) {
+      sections.push(currentSection)
+    }
+  }
+
+  // If no sections found, create a default one with all content
+  if (sections.length === 0) {
+    const allContent = lines.filter(l => l.trim())
+    if (allContent.length > 0) {
+      sections.push({
+        level: 1,
+        title: 'Content',
+        content: allContent
+      })
+    }
+  }
+
+  return sections
+}
+
+// ✅ Computed property for parsed markdown sections
+const parsedMarkdownSections = computed(() => {
+  const content = getProcessedContent()
+  if (!isMarkdownContent(content)) {
+    return []
+  }
+
+  const markdownContent = extractMarkdownContent(content)
+  return parseMarkdownContent(markdownContent)
+})
+
+// InteractiveNote-style computed properties
+const tableOfContents = computed(() =>
+  parsedMarkdownSections.value.filter(section => section.level <= 3)
+)
+
+const contentStyle = computed(() => ({
+  '--font-size': `${fontSize.value}px`,
+  '--line-height': lineHeight.value,
+  lineHeight: lineHeight.value,
+}))
+
+const themeClasses = computed(() => {
+  switch (theme.value) {
+    case 'dark':
+      return 'bg-slate-800 text-slate-200'
+    case 'sepia':
+      return 'bg-amber-50 text-slate-800'
+    default:
+      return 'bg-white text-slate-900'
+  }
+})
+
 // Error handling for content processing (currently unused to prevent infinite loops)
 // const handleContentError = (err: unknown) => {
 //   console.error('Content processing error:', err)
@@ -552,6 +747,13 @@ const validateContent = (content: unknown) => {
 
 onMounted(() => {
   loadContent()
+  // Add scroll listener for reading progress
+  window.addEventListener('scroll', updateReadingProgress)
+})
+
+onUnmounted(() => {
+  // Remove scroll listener
+  window.removeEventListener('scroll', updateReadingProgress)
 })
 </script>
 
@@ -658,13 +860,6 @@ onMounted(() => {
 
         <!-- Interactive Content -->
         <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <!-- Debug Info -->
-          <!-- <div class="p-4 bg-gray-50 border-b text-xs text-gray-600">
-            <strong>Debug Info:</strong> Content Type: "{{ contentType }}" | Content Keys: {{ Object.keys(contentData.content || {}).join(', ') }} | Processing: {{ isProcessingContent ? 'Yes' : 'No' }}<br>
-            <strong>Content Preview:</strong> {{ typeof contentData.content?.content === 'string' ? contentData.content.content.substring(0, 100) + '...' : 'Not a string' }}<br>
-            <strong>Component to Render:</strong> {{ contentType?.toLowerCase() === 'quiz' ? 'InteractiveQuiz' : contentType?.toLowerCase() === 'flashcard' ? 'InteractiveFlashcard' : contentType?.toLowerCase() === 'note' ? 'InteractiveNote' : 'Fallback' }}<br>
-            <strong>Is Interactive Content:</strong> {{ isInteractiveContent ? 'Yes' : 'No' }}
-          </div> -->
 
           <!-- Quiz Content -->
           <InteractiveQuiz
@@ -680,18 +875,242 @@ onMounted(() => {
             :title="contentData.title"
           />
 
-          <!-- Debug: Show processed content for flashcard -->
-          <!-- <div v-if="contentType?.toLowerCase() === 'flashcard'" class="p-4 bg-yellow-50 border-t text-xs">
-            <strong>Flashcard Content Debug:</strong><br>
-            <pre>{{ getProcessedContent() }}</pre>
-          </div> -->
 
-          <!-- Note Content -->
+          <!-- Note Content with InteractiveNote-style UI -->
+          <div v-else-if="contentType?.toLowerCase() === 'note'" class="note-content-container">
+            <!-- InteractiveNote-style Layout -->
+            <div class="min-h-screen" :class="themeClasses">
+              <!-- Header with Controls -->
+              <div class="border-b border-slate-200 sticky top-0 z-10" :class="theme === 'dark' ? 'bg-slate-700 border-slate-600' : theme === 'sepia' ? 'bg-amber-100 border-amber-200' : 'bg-white border-slate-200'">
+                <div class="flex items-center justify-between px-6 py-4">
+                  <div class="flex items-center gap-4">
+                    <!-- Font Size Controls -->
+                    <div class="flex items-center gap-2">
+                      <button
+                        @click="decreaseFontSize"
+                        class="p-2 transition-colors"
+                        :class="theme === 'dark' ? 'text-slate-300 hover:text-slate-100' : theme === 'sepia' ? 'text-slate-600 hover:text-slate-800' : 'text-slate-600 hover:text-slate-900'"
+                        title="Decrease font size"
+                      >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
+                        </svg>
+                      </button>
+                      <span class="text-sm font-medium" :class="theme === 'dark' ? 'text-slate-200' : theme === 'sepia' ? 'text-slate-700' : 'text-slate-700'">{{ fontSize }}px</span>
+                      <button
+                        @click="increaseFontSize"
+                        class="p-2 transition-colors"
+                        :class="theme === 'dark' ? 'text-slate-300 hover:text-slate-100' : theme === 'sepia' ? 'text-slate-600 hover:text-slate-800' : 'text-slate-600 hover:text-slate-900'"
+                        title="Increase font size"
+                      >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                      </button>
+          </div>
+
+                    <!-- Line Height Controls -->
+                    <div class="flex items-center gap-2">
+                      <button
+                        @click="lineHeight = Math.max(1.2, lineHeight - 0.1)"
+                        class="p-2 transition-colors"
+                        :class="theme === 'dark' ? 'text-slate-300 hover:text-slate-100' : theme === 'sepia' ? 'text-slate-600 hover:text-slate-800' : 'text-slate-600 hover:text-slate-900'"
+                        title="Decrease line height"
+                      >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
+                        </svg>
+                      </button>
+                      <span class="text-sm font-medium" :class="theme === 'dark' ? 'text-slate-200' : theme === 'sepia' ? 'text-slate-700' : 'text-slate-700'">{{ lineHeight.toFixed(1) }}</span>
+                      <button
+                        @click="lineHeight = Math.min(2.0, lineHeight + 0.1)"
+                        class="p-2 transition-colors"
+                        :class="theme === 'dark' ? 'text-slate-300 hover:text-slate-100' : theme === 'sepia' ? 'text-slate-600 hover:text-slate-800' : 'text-slate-600 hover:text-slate-900'"
+                        title="Increase line height"
+                      >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                      </button>
+                    </div>
+
+                    <!-- Theme Toggle -->
+                    <button
+                      @click="toggleTheme"
+                      class="p-2 transition-colors"
+                      :class="theme === 'dark' ? 'text-slate-300 hover:text-slate-100' : theme === 'sepia' ? 'text-slate-600 hover:text-slate-800' : 'text-slate-600 hover:text-slate-900'"
+                      :title="`Switch to ${theme === 'light' ? 'dark' : theme === 'dark' ? 'sepia' : 'light'} theme`"
+                    >
+                      <svg v-if="theme === 'light'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                      </svg>
+                      <svg v-else-if="theme === 'dark'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                      </svg>
+                      <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zM21 5a2 2 0 00-2-2h-4a2 2 0 00-2 2v12a4 4 0 004 4h4a2 2 0 002-2V5z" />
+                      </svg>
+                    </button>
+                  </div>
+
+                  <!-- Table of Contents Toggle -->
+                  <button
+                    @click="showTableOfContents = !showTableOfContents"
+                    class="p-2 transition-colors"
+                    :class="theme === 'dark' ? 'text-slate-300 hover:text-slate-100' : theme === 'sepia' ? 'text-slate-600 hover:text-slate-800' : 'text-slate-600 hover:text-slate-900'"
+                    title="Toggle table of contents"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <div class="flex">
+                <!-- Table of Contents -->
+                <div
+                  v-if="showTableOfContents"
+                  class="w-64 p-6 border-r min-h-screen"
+                  :class="theme === 'dark' ? 'border-slate-600 bg-slate-700' : theme === 'sepia' ? 'border-amber-200 bg-amber-50' : 'border-slate-200 bg-white'"
+                >
+                  <h3 class="font-semibold mb-4" :class="theme === 'dark' ? 'text-slate-100' : theme === 'sepia' ? 'text-slate-800' : 'text-slate-900'">Table of Contents</h3>
+                  <nav class="space-y-1">
+                    <button
+                      v-for="section in tableOfContents"
+                      :key="section.title"
+                      @click="scrollToSection(section.title)"
+                      class="block w-full text-left px-3 py-2 rounded-lg transition-all duration-200"
+                      :class="[
+                        activeSection === section.title
+                          ? 'bg-blue-50 border-l-4 border-blue-500 text-blue-700'
+                          : theme === 'dark'
+                            ? 'hover:bg-slate-700 text-slate-300 hover:text-slate-100'
+                            : theme === 'sepia'
+                              ? 'hover:bg-amber-100 text-slate-600 hover:text-slate-800'
+                              : 'hover:bg-slate-50 text-slate-600 hover:text-slate-900',
+                        {
+                          'pl-3': section.level === 1,
+                          'pl-6': section.level === 2,
+                          'pl-9': section.level === 3,
+                        }
+                      ]"
+                    >
+                      <span class="text-sm" :class="{ 'font-semibold': section.level === 1, 'font-medium': section.level === 2 }">
+                        {{ section.title }}
+                      </span>
+                      <div v-if="section.content.length > 0" class="text-xs mt-1" :class="theme === 'dark' ? 'text-slate-400' : theme === 'sepia' ? 'text-slate-600' : 'text-slate-500'">
+                        {{ section.content.length }} paragraphs
+                      </div>
+                    </button>
+                  </nav>
+                </div>
+
+                <!-- Main Content -->
+                <div class="flex-1 p-8 max-w-4xl mx-auto" :class="theme === 'dark' ? 'bg-slate-800' : theme === 'sepia' ? 'bg-amber-50' : 'bg-white'">
+                  <!-- Title -->
+                  <header class="mb-12 pb-6 border-b-2" :class="theme === 'dark' ? 'border-slate-600' : theme === 'sepia' ? 'border-amber-200' : 'border-slate-200'">
+                    <h1 class="text-4xl font-bold mb-4" :class="theme === 'dark' ? 'text-slate-100' : theme === 'sepia' ? 'text-slate-800' : 'text-slate-900'">{{ contentData.title }}</h1>
+                    <div class="flex items-center gap-4 text-sm" :class="theme === 'dark' ? 'text-slate-400' : theme === 'sepia' ? 'text-slate-600' : 'text-slate-600'">
+                      <span class="flex items-center gap-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        {{ parsedMarkdownSections.length }} sections
+                      </span>
+                      <span>•</span>
+                      <span class="flex items-center gap-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                        </svg>
+                        {{ getProcessedContent().split(' ').length }} words
+                      </span>
+                      <span>•</span>
+                      <span class="flex items-center gap-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        {{ Math.ceil(getProcessedContent().split(' ').length / 200) }} min
+                      </span>
+                    </div>
+                  </header>
+
+                  <!-- Content -->
+                  <article class="prose prose-slate max-w-none" :style="contentStyle">
+                    <!-- Check if content contains markdown -->
+                    <div v-if="isMarkdownContent(getProcessedContent())">
+                      <!-- Enhanced Markdown Content with InteractiveNote-style sections -->
+                      <div
+                        v-for="(section, sectionIndex) in parsedMarkdownSections"
+                        :key="section.title"
+                        :id="`section-${section.title.replace(/\s+/g, '-').toLowerCase()}`"
+                        class="mb-12 scroll-mt-20"
+                      >
+                        <!-- Section Header with visual separator -->
+                        <div class="relative mb-6">
+                          <h1
+                            v-if="section.level === 1"
+                            class="font-bold text-3xl flex items-center gap-3"
+                            :class="theme === 'dark' ? 'text-slate-100' : theme === 'sepia' ? 'text-slate-800' : 'text-slate-900'"
+                          >
+                            <span class="text-blue-500 font-normal">{{ String(sectionIndex + 1).padStart(2, '0') }}</span>
+                            {{ section.title }}
+                          </h1>
+                          <h2
+                            v-else-if="section.level === 2"
+                            class="font-bold text-2xl flex items-center gap-3"
+                            :class="theme === 'dark' ? 'text-slate-200' : theme === 'sepia' ? 'text-slate-700' : 'text-slate-800'"
+                          >
+                            <span class="w-8 h-1 bg-blue-500 rounded"></span>
+                            {{ section.title }}
+                          </h2>
+                          <h3
+                            v-else-if="section.level === 3"
+                            class="font-semibold text-xl"
+                            :class="theme === 'dark' ? 'text-slate-300' : theme === 'sepia' ? 'text-slate-700' : 'text-slate-700'"
+                          >
+                            {{ section.title }}
+                          </h3>
+                          <h4
+                            v-else
+                            class="font-medium text-lg"
+                            :class="theme === 'dark' ? 'text-slate-400' : theme === 'sepia' ? 'text-slate-600' : 'text-slate-600'"
+                          >
+                            {{ section.title }}
+                          </h4>
+                        </div>
+
+                        <!-- Section Content with Enhanced Markdown rendering -->
+                        <div v-if="section.content.length > 0" class="markdown-section-content">
+                          <!-- ✅ Render entire section content as Markdown -->
+                          <div
+                            class="markdown-content prose prose-slate max-w-none"
+                            v-html="markdownToHtml(section.content.join('\n'))"
+                          ></div>
+                        </div>
+
+                        <!-- Empty section indicator -->
+                        <div v-else class="italic" :class="theme === 'dark' ? 'text-slate-500' : theme === 'sepia' ? 'text-slate-500' : 'text-slate-400'">
+                          (No content in this section)
+                        </div>
+
+                        <!-- Section separator -->
+                        <div v-if="sectionIndex < parsedMarkdownSections.length - 1" class="mt-8 border-b" :class="theme === 'dark' ? 'border-slate-600' : theme === 'sepia' ? 'border-amber-200' : 'border-slate-200'"></div>
+                      </div>
+                    </div>
+
+                    <!-- Fallback to InteractiveNote for structured content -->
+                    <div v-else>
           <InteractiveNote
-            v-else-if="contentType?.toLowerCase() === 'note'"
             :content="getProcessedContent()"
             :title="contentData.title"
           />
+                    </div>
+                  </article>
+                </div>
+              </div>
+            </div>
+          </div>
 
           <!-- Fallback for unknown content types -->
           <div v-else class="p-8 text-center">
@@ -702,15 +1121,155 @@ onMounted(() => {
             </div>
             <h3 class="text-lg font-medium text-gray-900 mb-2">Unsupported Content Type</h3>
             <p class="text-gray-600">Content type "{{ contentType }}" is not yet supported for viewing.</p>
-            <div class="mt-4 p-4 bg-gray-100 rounded-lg text-left">
-              <p class="text-sm"><strong>Available content keys:</strong> {{ Object.keys(contentData.content || {}).join(', ') }}</p>
-              <p class="text-sm"><strong>Content validation:</strong> {{ validateContent(contentData.content) ? 'Valid' : 'Invalid' }}</p>
-              <p class="text-sm"><strong>Content structure:</strong></p>
-              <pre class="text-xs mt-2 overflow-auto max-h-40">{{ JSON.stringify(contentData.content, null, 2) }}</pre>
-            </div>
+            <button
+              @click="goBack"
+              class="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+            >
+              Go Back
+            </button>
           </div>
         </div>
       </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+/* ✅ Enhanced Note Content Styling */
+.note-content-container {
+  @apply w-full;
+}
+
+.note-content-wrapper {
+  @apply w-full;
+}
+
+.markdown-note-content {
+  @apply bg-white;
+}
+
+.markdown-note-renderer {
+  @apply w-full;
+}
+
+.structured-note-content {
+  @apply w-full;
+}
+
+/* ✅ InteractiveNote-style sections */
+.markdown-note-sections {
+  @apply w-full;
+}
+
+.markdown-section-content {
+  @apply w-full;
+}
+
+/* Enhanced markdown rendering styles - matching InteractiveNote */
+.markdown-content {
+  @apply text-slate-700 leading-relaxed;
+}
+
+/* Override prose styles for better Markdown rendering */
+.markdown-content.prose {
+  @apply max-w-none;
+}
+
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3,
+.markdown-content h4,
+.markdown-content h5,
+.markdown-content h6 {
+  @apply font-bold text-slate-900;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.markdown-content h1 {
+  @apply text-3xl mb-6 mt-10;
+}
+.markdown-content h2 {
+  @apply text-2xl mb-4 mt-8;
+}
+.markdown-content h3 {
+  @apply text-xl mb-3 mt-6;
+}
+.markdown-content h4 {
+  @apply text-lg mb-2 mt-4;
+}
+
+.markdown-content p {
+  @apply mb-4 text-slate-700 leading-relaxed;
+  margin-top: 0;
+}
+
+.markdown-content ul,
+.markdown-content ol {
+  @apply mb-4;
+  margin-top: 0;
+}
+
+.markdown-content li {
+  @apply mb-2 text-slate-700;
+}
+
+.markdown-content blockquote {
+  @apply border-l-4 border-blue-500 pl-4 italic text-slate-600 my-4 bg-blue-50 py-2 rounded-r;
+  margin-top: 0;
+}
+
+.markdown-content code {
+  @apply bg-slate-100 text-slate-800 px-2 py-1 rounded text-sm font-mono border;
+}
+
+.markdown-content pre {
+  @apply bg-slate-100 text-slate-800 p-4 rounded-lg overflow-x-auto my-4 border border-slate-200;
+  margin-top: 0;
+}
+
+.markdown-content pre code {
+  @apply bg-transparent p-0 border-0;
+}
+
+.markdown-content strong {
+  @apply font-semibold text-slate-900;
+}
+
+.markdown-content em {
+  @apply italic text-slate-700;
+}
+
+.markdown-content a {
+  @apply text-blue-600 hover:text-blue-800 underline;
+}
+
+.markdown-content img {
+  @apply max-w-full h-auto rounded-lg shadow-sm my-4;
+}
+
+.markdown-content hr {
+  @apply my-8 border-slate-300;
+}
+
+/* List styling improvements */
+.markdown-content ul {
+  @apply list-disc list-inside space-y-1;
+}
+
+.markdown-content ol {
+  @apply list-decimal list-inside space-y-1;
+}
+
+.markdown-content li {
+  @apply ml-0;
+}
+
+/* Nested lists */
+.markdown-content ul ul,
+.markdown-content ol ol,
+.markdown-content ul ol,
+.markdown-content ol ul {
+  @apply mt-2 ml-4;
+}
+</style>

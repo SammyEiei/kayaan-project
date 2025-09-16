@@ -303,7 +303,7 @@ const contentStyle = computed(() => ({
 const themeClasses = computed(() => {
   switch (theme.value) {
     case 'dark':
-      return 'bg-slate-900 text-slate-100'
+      return 'bg-slate-800 text-slate-200'
     case 'sepia':
       return 'bg-amber-50 text-slate-800'
     default:
@@ -372,24 +372,26 @@ onUnmounted(() => {
 <template>
   <div class="max-w-6xl mx-auto" :class="themeClasses">
     <!-- Reading Controls -->
-    <div class="sticky top-0 z-10 bg-white/95 backdrop-blur-sm border-b border-slate-200 p-4">
+    <div class="sticky top-0 z-10 backdrop-blur-sm border-b p-4" :class="theme === 'dark' ? 'bg-slate-700/95 border-slate-600' : theme === 'sepia' ? 'bg-amber-100/95 border-amber-200' : 'bg-white/95 border-slate-200'">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-4">
           <!-- Font Size Controls -->
           <div class="flex items-center gap-2">
             <button
               @click="decreaseFontSize"
-              class="p-2 text-slate-600 hover:text-slate-900 transition-colors"
+              class="p-2 transition-colors"
+              :class="theme === 'dark' ? 'text-slate-300 hover:text-slate-100' : theme === 'sepia' ? 'text-slate-600 hover:text-slate-800' : 'text-slate-600 hover:text-slate-900'"
               title="Decrease font size"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
               </svg>
             </button>
-            <span class="text-sm font-medium text-slate-700">{{ fontSize }}px</span>
+            <span class="text-sm font-medium" :class="theme === 'dark' ? 'text-slate-200' : theme === 'sepia' ? 'text-slate-700' : 'text-slate-700'">{{ fontSize }}px</span>
             <button
               @click="increaseFontSize"
-              class="p-2 text-slate-600 hover:text-slate-900 transition-colors"
+              class="p-2 transition-colors"
+              :class="theme === 'dark' ? 'text-slate-300 hover:text-slate-100' : theme === 'sepia' ? 'text-slate-600 hover:text-slate-800' : 'text-slate-600 hover:text-slate-900'"
               title="Increase font size"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -402,17 +404,19 @@ onUnmounted(() => {
           <div class="flex items-center gap-2">
             <button
               @click="lineHeight = Math.max(1.2, lineHeight - 0.1)"
-              class="p-2 text-slate-600 hover:text-slate-900 transition-colors"
+              class="p-2 transition-colors"
+              :class="theme === 'dark' ? 'text-slate-300 hover:text-slate-100' : theme === 'sepia' ? 'text-slate-600 hover:text-slate-800' : 'text-slate-600 hover:text-slate-900'"
               title="Decrease line height"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
               </svg>
             </button>
-            <span class="text-sm font-medium text-slate-700">{{ lineHeight.toFixed(1) }}</span>
+            <span class="text-sm font-medium" :class="theme === 'dark' ? 'text-slate-200' : theme === 'sepia' ? 'text-slate-700' : 'text-slate-700'">{{ lineHeight.toFixed(1) }}</span>
             <button
               @click="lineHeight = Math.min(2.0, lineHeight + 0.1)"
-              class="p-2 text-slate-600 hover:text-slate-900 transition-colors"
+              class="p-2 transition-colors"
+              :class="theme === 'dark' ? 'text-slate-300 hover:text-slate-100' : theme === 'sepia' ? 'text-slate-600 hover:text-slate-800' : 'text-slate-600 hover:text-slate-900'"
               title="Increase line height"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -424,7 +428,8 @@ onUnmounted(() => {
           <!-- Theme Toggle -->
           <button
             @click="toggleTheme"
-            class="p-2 text-slate-600 hover:text-slate-900 transition-colors"
+            class="p-2 transition-colors"
+            :class="theme === 'dark' ? 'text-slate-300 hover:text-slate-100' : theme === 'sepia' ? 'text-slate-600 hover:text-slate-800' : 'text-slate-600 hover:text-slate-900'"
             :title="`Switch to ${theme === 'light' ? 'dark' : theme === 'dark' ? 'sepia' : 'light'} theme`"
           >
             <svg v-if="theme === 'light'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -442,7 +447,8 @@ onUnmounted(() => {
         <!-- Table of Contents Toggle -->
         <button
           @click="showTableOfContents = !showTableOfContents"
-          class="p-2 text-slate-600 hover:text-slate-900 transition-colors"
+          class="p-2 transition-colors"
+          :class="theme === 'dark' ? 'text-slate-300 hover:text-slate-100' : theme === 'sepia' ? 'text-slate-600 hover:text-slate-800' : 'text-slate-600 hover:text-slate-900'"
           title="Toggle table of contents"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -456,9 +462,10 @@ onUnmounted(() => {
       <!-- Table of Contents -->
       <div
         v-if="showTableOfContents"
-        class="w-64 p-6 border-r border-slate-200 min-h-screen"
+        class="w-64 p-6 border-r min-h-screen"
+        :class="theme === 'dark' ? 'border-slate-600 bg-slate-700' : theme === 'sepia' ? 'border-amber-200 bg-amber-50' : 'border-slate-200 bg-white'"
       >
-        <h3 class="font-semibold text-slate-900 mb-4">Table of Contents</h3>
+        <h3 class="font-semibold mb-4" :class="theme === 'dark' ? 'text-slate-100' : theme === 'sepia' ? 'text-slate-800' : 'text-slate-900'">Table of Contents</h3>
         <nav class="space-y-1">
           <button
             v-for="section in tableOfContents"
@@ -468,7 +475,11 @@ onUnmounted(() => {
             :class="[
               activeSection === section.title
                 ? 'bg-blue-50 border-l-4 border-blue-500 text-blue-700'
-                : 'hover:bg-slate-50 text-slate-600 hover:text-slate-900',
+                : theme === 'dark'
+                  ? 'hover:bg-slate-600 text-slate-300 hover:text-slate-100'
+                  : theme === 'sepia'
+                    ? 'hover:bg-amber-100 text-slate-600 hover:text-slate-800'
+                    : 'hover:bg-slate-50 text-slate-600 hover:text-slate-900',
               {
                 'pl-3': section.level === 1,
                 'pl-6': section.level === 2,
@@ -479,7 +490,7 @@ onUnmounted(() => {
             <span class="text-sm" :class="{ 'font-semibold': section.level === 1, 'font-medium': section.level === 2 }">
               {{ section.title }}
             </span>
-            <div v-if="section.content.length > 0" class="text-xs text-slate-500 mt-1">
+            <div v-if="section.content.length > 0" class="text-xs mt-1" :class="theme === 'dark' ? 'text-slate-400' : theme === 'sepia' ? 'text-slate-600' : 'text-slate-500'">
               {{ section.content.length }} paragraphs
             </div>
           </button>
@@ -487,11 +498,11 @@ onUnmounted(() => {
       </div>
 
       <!-- Main Content -->
-      <div class="flex-1 p-8 max-w-4xl mx-auto">
+      <div class="flex-1 p-8 max-w-4xl mx-auto" :class="theme === 'dark' ? 'bg-slate-800' : theme === 'sepia' ? 'bg-amber-50' : 'bg-white'">
         <!-- Title -->
-        <header class="mb-12 pb-6 border-b-2 border-slate-200">
-          <h1 class="text-4xl font-bold text-slate-900 mb-4">{{ props.title }}</h1>
-          <div class="flex items-center gap-4 text-sm text-slate-600">
+        <header class="mb-12 pb-6 border-b-2" :class="theme === 'dark' ? 'border-slate-600' : theme === 'sepia' ? 'border-amber-200' : 'border-slate-200'">
+          <h1 class="text-4xl font-bold mb-4" :class="theme === 'dark' ? 'text-slate-100' : theme === 'sepia' ? 'text-slate-800' : 'text-slate-900'">{{ props.title }}</h1>
+          <div class="flex items-center gap-4 text-sm" :class="theme === 'dark' ? 'text-slate-400' : theme === 'sepia' ? 'text-slate-600' : 'text-slate-600'">
             <span class="flex items-center gap-1">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -536,27 +547,31 @@ onUnmounted(() => {
             <div class="relative mb-6">
               <h1
                 v-if="section.level === 1"
-                class="font-bold text-slate-900 text-3xl flex items-center gap-3"
+                class="font-bold text-3xl flex items-center gap-3"
+                :class="theme === 'dark' ? 'text-slate-100' : theme === 'sepia' ? 'text-slate-800' : 'text-slate-900'"
               >
                 <span class="text-blue-500 font-normal">{{ String(sectionIndex + 1).padStart(2, '0') }}</span>
                 {{ section.title }}
               </h1>
               <h2
                 v-else-if="section.level === 2"
-                class="font-bold text-slate-800 text-2xl flex items-center gap-3"
+                class="font-bold text-2xl flex items-center gap-3"
+                :class="theme === 'dark' ? 'text-slate-200' : theme === 'sepia' ? 'text-slate-700' : 'text-slate-800'"
               >
                 <span class="w-8 h-1 bg-blue-500 rounded"></span>
                 {{ section.title }}
               </h2>
               <h3
                 v-else-if="section.level === 3"
-                class="font-semibold text-slate-700 text-xl"
+                class="font-semibold text-xl"
+                :class="theme === 'dark' ? 'text-slate-300' : theme === 'sepia' ? 'text-slate-700' : 'text-slate-700'"
               >
                 {{ section.title }}
               </h3>
               <h4
                 v-else
-                class="font-medium text-slate-600 text-lg"
+                class="font-medium text-lg"
+                :class="theme === 'dark' ? 'text-slate-400' : theme === 'sepia' ? 'text-slate-600' : 'text-slate-600'"
               >
                 {{ section.title }}
               </h4>
@@ -572,12 +587,12 @@ onUnmounted(() => {
             </div>
 
             <!-- Empty section indicator -->
-            <div v-else class="text-slate-400 italic">
+            <div v-else class="italic" :class="theme === 'dark' ? 'text-slate-500' : theme === 'sepia' ? 'text-slate-500' : 'text-slate-400'">
               (No content in this section)
             </div>
 
             <!-- Section separator -->
-            <div v-if="sectionIndex < sections.length - 1" class="mt-8 border-b border-slate-200"></div>
+            <div v-if="sectionIndex < sections.length - 1" class="mt-8 border-b" :class="theme === 'dark' ? 'border-slate-600' : theme === 'sepia' ? 'border-amber-200' : 'border-slate-200'"></div>
           </div>
         </article>
 

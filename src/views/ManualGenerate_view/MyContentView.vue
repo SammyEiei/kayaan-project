@@ -324,7 +324,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h.01M19 10a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                     </button>
-                    <button
+                    <!-- <button
                       @click.stop="emitEdit(item, item.type)"
                       class="text-blue-600 hover:text-blue-900 transition-colors"
                       title="Edit"
@@ -332,7 +332,7 @@
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                       </svg>
-                    </button>
+                    </button> -->
                     <button
                       @click.stop="emitDelete(item)"
                       class="text-red-600 hover:text-red-900 transition-colors"
@@ -872,7 +872,7 @@ async function emitDelete(item: ContentItem) {
       const contentId = item.id.replace(/^(deck|quiz|note)-/, '')
 
       // ใช้ Unified API สำหรับลบ content
-      await api.delete(`/api/content/user/${contentId}`)
+      await api.delete(`/content/user/${contentId}`)
 
       console.log('✅ Content deleted successfully')
 

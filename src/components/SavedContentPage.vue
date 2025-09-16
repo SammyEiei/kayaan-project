@@ -21,6 +21,12 @@ const isDeleting = ref(false)
 const selectedContent = ref<AIGeneratedContent | null>(null)
 const currentViewMode = ref<'detail' | 'interactive'>('detail')
 
+// Notification state
+const showSuccessNotification = ref(false)
+const successMessage = ref('')
+const showErrorNotification = ref(false)
+const errorMessage = ref('')
+
 // Format options
 const formatOptions = [
   { value: 'all', label: 'All Formats', icon: 'Cards' },
@@ -90,53 +96,75 @@ const handleDelete = async (content: AIGeneratedContent) => {
 const confirmDelete = async () => {
   if (!contentToDelete.value) return
 
+  const content = contentToDelete.value
+  showDeleteModal.value = false
+  isDeleting.value = true
+
   try {
-    isDeleting.value = true
+    console.log('🗑️ Deleting AI content:', {
+      id: content.id,
+      title: content.title,
+      format: content.outputFormat
+    })
 
     // Call delete API
-    await aiStore.deleteContent(contentToDelete.value.id)
+    await aiStore.deleteContent(content.id)
 
-    // Close modal and reset state
-    showDeleteModal.value = false
-    contentToDelete.value = null
+    // ✅ แสดง success notification
+    hideErrorNotification()
 
-    // Show success notification
-    console.log('✅ Content deleted successfully')
+    successMessage.value = `"${content.title}" has been deleted successfully!`
+    showSuccessNotification.value = true
 
     // Refresh content list to ensure UI is up to date
     await aiStore.loadSavedContent()
 
+    // Auto-hide notification after 3 seconds
+    setTimeout(() => {
+      hideSuccessNotification()
+    }, 3000)
+
   } catch (error: unknown) {
     console.error('❌ Failed to delete content:', error)
 
-        // Handle different error cases based on API documentation
-    let errorMessage = 'Failed to delete content'
-
-    if (error && typeof error === 'object') {
-      const err = error as { response?: { status?: number; data?: { message?: string } }; message?: string } // Type assertion for axios error
-
-      if (err.response?.status === 403) {
-        errorMessage = 'Authentication required. Please login again.'
-      } else if (err.response?.status === 400) {
-        const responseData = err.response.data
-        if (responseData?.message?.includes('Content not found')) {
-          errorMessage = 'Content not found. It may have already been deleted.'
-        } else if (responseData?.message?.includes('Access denied')) {
-          errorMessage = 'Access denied. You can only delete your own content.'
-        } else {
-          errorMessage = responseData?.message || 'Failed to delete content'
-        }
-      } else if (err.message) {
-        errorMessage = err.message
+    const axiosError = error as {
+      response?: {
+        status?: number
+        data?: { message?: string }
+        headers?: unknown
       }
+      message?: string
     }
 
-    // You can integrate with toast notification system here
-    // For now, we'll use console.error and could add alert
-    alert(errorMessage)
+    console.error('❌ Error response:', axiosError.response?.data)
+    console.error('❌ Error status:', axiosError.response?.status)
+
+    // Enhanced error handling
+    let errorMsg = 'Failed to delete content. Please try again.'
+    if (axiosError.response?.status === 404) {
+      errorMsg = 'Content not found. It may have already been deleted.'
+    } else if (axiosError.response?.status === 403) {
+      errorMsg = 'Access denied. You can only delete your own content.'
+    } else if (axiosError.response?.status === 401) {
+      errorMsg = 'Authentication required. Please log in again.'
+    } else if (axiosError.message) {
+      errorMsg = axiosError.message
+    }
+
+    // ✅ แสดง error notification แทน alert
+    hideSuccessNotification()
+
+    errorMessage.value = `Delete failed: ${axiosError.response?.status} - ${errorMsg}`
+    showErrorNotification.value = true
+
+    // Auto-hide error notification after 5 seconds
+    setTimeout(() => {
+      hideErrorNotification()
+    }, 5000)
 
   } finally {
     isDeleting.value = false
+    contentToDelete.value = null
   }
 }
 
@@ -171,6 +199,17 @@ const getFormatColor = (format: string) => {
 const truncateText = (text: string, maxLength: number = 100) => {
   if (text.length <= maxLength) return text
   return text.substring(0, maxLength) + '...'
+}
+
+// Notification functions
+const hideSuccessNotification = () => {
+  showSuccessNotification.value = false
+  successMessage.value = ''
+}
+
+const hideErrorNotification = () => {
+  showErrorNotification.value = false
+  errorMessage.value = ''
 }
 
 // Helper functions สำหรับ parse และ format content
@@ -1213,11 +1252,15 @@ onMounted(async () => {
               <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                 <button
                   @click.stop="handleDelete(content)"
-                  class="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
+                  :disabled="isDeleting"
+                  class="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                   title="Delete"
                 >
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg v-if="!isDeleting" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  <svg v-else class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
                 </button>
               </div>
@@ -1330,11 +1373,15 @@ onMounted(async () => {
 
                     <button
                       @click.stop="(e: Event) => handleDelete(content)"
-                      class="text-red-600 hover:text-red-900 transition-colors"
+                      :disabled="isDeleting"
+                      class="text-red-600 hover:text-red-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       title="Delete"
                     >
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg v-if="!isDeleting" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                      <svg v-else class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                       </svg>
                     </button>
                   </div>
@@ -1397,41 +1444,65 @@ onMounted(async () => {
     </div>
 
     <!-- Delete Confirmation Modal -->
-    <div v-if="showDeleteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[60]">
-      <div class="bg-white rounded-lg max-w-md w-full p-6">
-        <div class="flex items-center gap-3 mb-4">
+    <div
+      v-if="showDeleteModal"
+      @click.self="showDeleteModal = false"
+      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[70]"
+    >
+      <div class="bg-white rounded-xl max-w-md w-full shadow-2xl">
+        <!-- Modal Header -->
+        <div class="flex items-center gap-3 p-6 border-b border-gray-200">
           <div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
             <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
             </svg>
           </div>
-          <h3 class="text-lg font-semibold text-slate-900">Confirm Deletion</h3>
+          <div>
+            <h3 class="text-lg font-semibold text-gray-900">Delete Content</h3>
+            <p class="text-sm text-gray-500">This action cannot be undone</p>
+          </div>
         </div>
 
-        <p class="text-slate-600 mb-6">
-          Are you sure you want to delete "{{ contentToDelete?.title }}"? This action cannot be undone.
-        </p>
+        <!-- Modal Content -->
+        <div class="p-6">
+          <div class="mb-4">
+            <p class="text-gray-700">
+              Are you sure you want to delete
+              <span class="font-semibold text-gray-900">"{{ contentToDelete?.title }}"</span>?
+            </p>
+            <div v-if="contentToDelete" class="mt-3 p-3 bg-gray-50 rounded-lg">
+              <div class="flex items-center gap-2 text-sm text-gray-600">
+                <span class="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                  {{ contentToDelete.outputFormat }}
+                </span>
+                <span class="text-gray-400">•</span>
+                <span>{{ new Date(contentToDelete.createdAt).toLocaleDateString() }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
 
-        <div class="flex justify-end gap-3">
+        <!-- Modal Footer -->
+        <div class="flex items-center justify-end gap-3 p-6 border-t border-gray-200">
           <button
             @click="showDeleteModal = false"
-            class="px-4 py-2 text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+            :disabled="isDeleting"
+            class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             Cancel
           </button>
           <button
             @click="confirmDelete"
             :disabled="isDeleting"
-            class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
           >
-            <span v-if="isDeleting" class="flex items-center">
-              <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Deleting...
-            </span>
-            <span v-else>Delete</span>
+            <svg v-if="isDeleting" class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+            {{ isDeleting ? 'Deleting...' : 'Delete' }}
           </button>
         </div>
       </div>
@@ -1617,6 +1688,84 @@ onMounted(async () => {
         </div>
       </div>
     </div>
+
+    <!-- Success Notification -->
+    <Transition
+      enter-active-class="transform transition-all duration-300 ease-out"
+      enter-from-class="translate-x-full opacity-0"
+      enter-to-class="translate-x-0 opacity-100"
+      leave-active-class="transform transition-all duration-300 ease-in"
+      leave-from-class="translate-x-0 opacity-100"
+      leave-to-class="translate-x-full opacity-0"
+    >
+      <div
+        v-if="showSuccessNotification"
+        class="fixed top-4 right-4 z-50 max-w-sm w-full bg-white border border-green-200 rounded-lg shadow-lg p-4"
+      >
+        <div class="flex items-start">
+          <div class="flex-shrink-0">
+            <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+              <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+          </div>
+          <div class="ml-3 flex-1">
+            <h3 class="text-sm font-medium text-green-800">Success!</h3>
+            <p class="mt-1 text-sm text-green-700">{{ successMessage }}</p>
+          </div>
+          <div class="ml-4 flex-shrink-0">
+            <button
+              @click="hideSuccessNotification"
+              class="inline-flex text-green-400 hover:text-green-600 focus:outline-none focus:text-green-600 transition-colors"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- Error Notification -->
+    <Transition
+      enter-active-class="transform transition-all duration-300 ease-out"
+      enter-from-class="translate-x-full opacity-0"
+      enter-to-class="translate-x-0 opacity-100"
+      leave-active-class="transform transition-all duration-300 ease-in"
+      leave-from-class="translate-x-0 opacity-100"
+      leave-to-class="translate-x-full opacity-0"
+    >
+      <div
+        v-if="showErrorNotification"
+        class="fixed top-20 right-4 z-50 max-w-sm w-full bg-white border border-red-200 rounded-lg shadow-lg p-4"
+      >
+        <div class="flex items-start">
+          <div class="flex-shrink-0">
+            <div class="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
+              <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </div>
+          </div>
+          <div class="ml-3 flex-1">
+            <h3 class="text-sm font-medium text-red-800">Error!</h3>
+            <p class="mt-1 text-sm text-red-700">{{ errorMessage }}</p>
+          </div>
+          <div class="ml-4 flex-shrink-0">
+            <button
+              @click="hideErrorNotification"
+              class="inline-flex text-red-400 hover:text-red-600 focus:outline-none focus:text-red-600 transition-colors"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 

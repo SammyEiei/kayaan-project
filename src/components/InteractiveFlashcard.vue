@@ -397,25 +397,25 @@ onMounted(() => {
       </div>
 
       <!-- Navigation -->
-      <div class="flex justify-between max-w-md mx-auto">
+      <div class="flex justify-between max-w-md mx-auto px-4 pb-4">
         <button
           @click="previousCard"
           :disabled="currentCardIndex === 0"
-          class="px-4 py-2 text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          class="px-4 py-2 text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors min-w-[100px]"
         >
           Previous
         </button>
         <button
           v-if="studyMode === 'learn'"
           @click="nextCard"
-          class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+          class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors min-w-[100px]"
         >
           {{ isLastCard ? 'Finish' : 'Next' }}
         </button>
         <button
           v-else-if="studyMode === 'test' && showAnswer"
           @click="nextCard"
-          class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+          class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors min-w-[100px]"
         >
           {{ isLastCard ? 'Finish' : 'Next' }}
         </button>

@@ -7,10 +7,10 @@
     <div class="mb-8 text-center">
       <div class="flex items-center justify-center gap-2 text-3xl font-bold text-white">
         <span
-          class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white text-red-500 text-lg font-semibold shadow"
+          class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white text-blue-500 text-lg font-semibold shadow"
           >✓</span
         >
-        Pomofocus
+        Pomodoro Timer
       </div>
     </div>
 
@@ -39,7 +39,7 @@
         {{ formattedTime }}
       </div>
       <button
-        class="px-16 py-4 bg-white text-red-500 font-bold text-lg rounded-full shadow-lg uppercase tracking-widest hover:bg-red-50 active:scale-95 transition"
+        class="px-16 py-4 bg-white text-blue-500 font-bold text-lg rounded-full shadow-lg uppercase tracking-widest hover:bg-blue-50 active:scale-95 transition"
         @click="toggleTimer"
       >
         {{ buttonText }}
@@ -157,9 +157,15 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
-import { usePomodoroStore } from '@/stores/pomodoro'
+import { usePomodoroStore, type PomodoroMode } from '@/stores/pomodoro'
+
+interface Task {
+  id: number
+  text: string
+  completed: boolean
+}
 
 const pomodoro = usePomodoroStore()
 
@@ -170,7 +176,6 @@ const modes = [
 ]
 
 const mode = computed(() => pomodoro.mode)
-const timeLeft = computed(() => pomodoro.timeLeft)
 const isRunning = computed(() => pomodoro.isRunning)
 const isPaused = computed(() => pomodoro.isPaused)
 const currentSession = computed(() => pomodoro.currentSession)
@@ -186,13 +191,13 @@ const buttonText = computed(() => {
 const themeClass = computed(() => {
   switch (mode.value) {
     case 'pomodoro':
-      return 'bg-gradient-to-br from-[#BA4949] to-[#D65454]'
+      return 'bg-gradient-to-br from-blue-500 to-indigo-600'
     case 'shortBreak':
-      return 'bg-gradient-to-br from-[#4C9196] to-[#5BA3A8]'
+      return 'bg-gradient-to-br from-blue-400 to-blue-500'
     case 'longBreak':
-      return 'bg-gradient-to-br from-[#457CA3] to-[#5A95C0]'
+      return 'bg-gradient-to-br from-indigo-500 to-purple-600'
     default:
-      return ''
+      return 'bg-gradient-to-br from-blue-500 to-indigo-600'
   }
 })
 
@@ -207,13 +212,6 @@ function toggleTimer() {
   pomodoro.toggleTimer()
 }
 
-function startTimer() {
-  pomodoro.startTimer()
-}
-
-function pauseTimer() {
-  pomodoro.pauseTimer()
-}
 
 function resetTimer() {
   pomodoro.resetTimer()
@@ -223,41 +221,18 @@ function skipSession() {
   pomodoro.skipSession()
 }
 
-function completeSession() {
-  pomodoro.completeSession()
-}
 
-function switchMode(newMode) {
-  pomodoro.switchMode(newMode)
+function switchMode(newMode: string) {
+  pomodoro.switchMode(newMode as PomodoroMode)
   document.title = `${formattedTime.value} - ${getModeName(newMode)}`
 }
 
-function getModeName(mode) {
+function getModeName(mode: string) {
   return modes.find((m) => m.value === mode)?.label || ''
 }
 
-function playNotification() {
-  // Simple beep
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)()
-    const osc = ctx.createOscillator()
-    const gain = ctx.createGain()
-    osc.connect(gain)
-    gain.connect(ctx.destination)
-    osc.frequency.value = 820
-    gain.gain.value = 0.1
-    osc.start()
-    osc.stop(ctx.currentTime + 0.18)
-  } catch {}
-  // Web Notification
-  if (window.Notification && Notification.permission === 'granted') {
-    new Notification('Pomodoro Timer', {
-      body: mode.value === 'pomodoro' ? 'Focus session complete!' : 'Break time is over!',
-    })
-  }
-}
 
-function handleKeyboard(e) {
+function handleKeyboard(e: KeyboardEvent) {
   switch (e.key.toLowerCase()) {
     case ' ':
       e.preventDefault()
@@ -296,13 +271,13 @@ watch(mode, () => {
 
 // ------------------- Task List --------------------
 
-const tasks = ref([
+const tasks = ref<Task[]>([
   // { id: 1, text: 'Finish Pomodoro component', completed: false }
 ])
 const newTask = ref('')
-const editingIdx = ref(null)
+const editingIdx = ref<number | null>(null)
 const editText = ref('')
-const editInput = ref(null)
+const editInput = ref<HTMLInputElement | null>(null)
 
 function addTask() {
   if (!newTask.value.trim()) return
@@ -314,16 +289,16 @@ function addTask() {
   newTask.value = ''
 }
 
-function toggleTask(id) {
+function toggleTask(id: number) {
   const task = tasks.value.find((t) => t.id === id)
   if (task) task.completed = !task.completed
 }
 
-function removeTask(id) {
+function removeTask(id: number) {
   tasks.value = tasks.value.filter((t) => t.id !== id)
 }
 
-function editTask(idx) {
+function editTask(idx: number) {
   editingIdx.value = idx
   editText.value = tasks.value[idx].text
   nextTick(() => {
@@ -331,7 +306,7 @@ function editTask(idx) {
   })
 }
 
-function saveTaskEdit(idx) {
+function saveTaskEdit(idx: number) {
   if (editText.value.trim()) {
     tasks.value[idx].text = editText.value.trim()
   }

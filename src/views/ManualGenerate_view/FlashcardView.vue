@@ -190,7 +190,7 @@
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
               <span class="text-sm font-medium text-slate-900">Card {{ index + 1 }}</span>
-              <button
+              <!-- <button
                 @click="flipCard(card.id)"
                 :class="[
                   'text-xs px-2 py-1 rounded-md border transition-all duration-150 flex items-center gap-1',
@@ -208,7 +208,7 @@
                   />
                 </svg>
                 Flip
-              </button>
+              </button> -->
             </div>
             <button
               v-if="cards.length > 1"
