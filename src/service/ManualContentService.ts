@@ -6,6 +6,7 @@
 import api from './api'
 import { useAuthStore } from '../stores/auth'
 import { JSONContentValidator, type QuizJSON, type NoteJSON, type FlashcardJSON } from '../utils/jsonContentValidators'
+import { useStudyStreakStore } from '../stores/studyStreak'
 
 // Response interfaces
 export interface ManualContentResponse {
@@ -133,6 +134,33 @@ export class ManualContentService {
       console.log('✅ Content created successfully')
       console.log('📡 Response status:', response.status)
       console.log('📡 Response data:', response.data)
+
+      // 🔥 Update Study Streak - สร้าง content
+      try {
+        console.log('🔥 ManualContentService: Starting streak update process...')
+        const streakStore = useStudyStreakStore()
+        const contentId = response.data.id
+
+        console.log('🔥 ManualContentService: Updating study streak for content creation', {
+          contentId,
+          contentType: request.contentType,
+          contentTitle: request.contentTitle
+        })
+
+        const result = await streakStore.completeContentCreation(
+          contentId,
+          `Created ${request.contentType}: ${request.contentTitle}`
+        )
+
+        console.log('✅ ManualContentService: Study streak updated successfully', result)
+      } catch (streakError) {
+        console.error('❌ ManualContentService: Failed to update study streak', streakError)
+        console.error('❌ Error details:', {
+          message: (streakError as Error).message,
+          stack: (streakError as Error).stack
+        })
+        // ไม่ throw error เพื่อไม่ให้กระทบการสร้าง content
+      }
 
       return response.data
     } catch (error: unknown) {
@@ -469,13 +497,21 @@ export class ManualContentService {
 
   /**
    * Delete content
+   * @param id - Content ID to delete
+   * @returns Promise with deletion result
    */
   static async deleteContent(id: number): Promise<DeleteContentResponse> {
     try {
-      console.log('🗑️ Deleting content:', id)
+      console.log('🗑️ Deleting manual content:', id)
+      console.log('🔧 ID type:', typeof id, 'Is NaN:', isNaN(id))
       console.log('🔧 Full URL will be:', `${api.defaults.baseURL}${this.BASE_URL}/${id}`)
       console.log('🔧 API baseURL:', api.defaults.baseURL)
       console.log('🔧 ManualContentService BASE_URL:', this.BASE_URL)
+
+      // ✅ ตรวจสอบว่า ID เป็น number ที่ถูกต้อง
+      if (isNaN(id) || id <= 0) {
+        throw new Error(`Invalid content ID: ${id}. ID must be a positive number.`)
+      }
 
       // Get auth token from store
       const authStore = useAuthStore()
@@ -486,10 +522,16 @@ export class ManualContentService {
       }
 
       console.log('🔑 Using auth token:', token.substring(0, 20) + '...')
+      console.log('👤 Current user info:', {
+        username: authStore.user?.username,
+        userId: authStore.user?.id,
+        isAuthenticated: authStore.isAuthenticated
+      })
 
       const response = await api.delete(`${this.BASE_URL}/${id}`, {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
       })
 
@@ -505,13 +547,20 @@ export class ManualContentService {
         response?: {
           status?: number;
           statusText?: string;
-          data?: unknown
+          data?: {
+            success?: boolean;
+            message?: string;
+            error?: string;
+            contentId?: number;
+            errorType?: string;
+          }
         };
         config?: {
           url?: string;
           baseURL?: string
         }
       }
+
       console.error('❌ Error details:', {
         message: axiosError.message,
         status: axiosError.response?.status,
@@ -520,7 +569,23 @@ export class ManualContentService {
         url: axiosError.config?.url,
         baseURL: axiosError.config?.baseURL
       })
-      throw error
+
+      // Handle specific error cases according to the API documentation
+      if (axiosError.response?.status === 404) {
+        throw new Error('Content not found or you don\'t have permission to delete it')
+      } else if (axiosError.response?.status === 403) {
+        throw new Error('Access denied. You can only delete your own content.')
+      } else if (axiosError.response?.status === 400) {
+        const errorMessage = axiosError.response.data?.message || 'Invalid request'
+        throw new Error(errorMessage)
+      } else if (axiosError.response?.status === 401) {
+        throw new Error('Authentication required. Please login again.')
+      } else if (axiosError.response?.status === 500) {
+        throw new Error('Server error. Please try again later.')
+      } else {
+        const errorMessage = axiosError.response?.data?.message || 'Failed to delete content'
+        throw new Error(errorMessage)
+      }
     }
   }
 

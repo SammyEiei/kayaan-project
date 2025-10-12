@@ -326,6 +326,9 @@
         <!-- Notification Toast -->
         <NotificationToast />
 
+        <!-- Streak Notifications -->
+        <StreakNotificationContainer />
+
         <!-- Footer -->
         <footer
           v-if="!isAuthPage && !isLoggedIn"
@@ -446,6 +449,7 @@ import { computed, onMounted, h, ref, watch } from 'vue' // 🆕 Add ref, watch
 import PomodoroWidget from '@/components/PomodoroWidget.vue'
 
 import NotificationToast from '@/components/NotificationToast.vue'
+import StreakNotificationContainer from '@/components/StreakNotificationContainer.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useThemeStore } from '@/stores/theme'
 import { useAIGenerationStore } from '@/stores/aiGeneration'

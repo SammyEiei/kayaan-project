@@ -17,11 +17,23 @@ export async function requestSignedUrl(userId: number, file: File): Promise<Sign
 }
 
 export async function uploadViaBackendProxy(signedUrl: string, file: File): Promise<void> {
+  console.log('🔧 uploadViaBackendProxy - START');
+  console.log('🔍 SignedUrl:', signedUrl.substring(0, 50) + '...');
+  console.log('🔍 File:', file.name, file.type, file.size);
+
   const formData = new FormData()
   formData.append('file', file)
   formData.append('signedUrl', signedUrl)
 
+  console.log('📤 Sending FormData to /avatar/upload-proxy...');
+
+  // ส่ง FormData โดยไม่ระบุ config เลย ให้:
+  // - axios set Content-Type เป็น multipart/form-data อัตโนมัติ
+  // - interceptor เพิ่ม Authorization header
   const resp = await api.post('/avatar/upload-proxy', formData)
+
+  console.log('✅ uploadViaBackendProxy - Response:', resp.status);
+
   if (resp.status < 200 || resp.status >= 300) {
     throw new Error(`Backend proxy upload failed: ${resp.status}`)
   }

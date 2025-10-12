@@ -6,9 +6,9 @@ import router from '@/router';
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api',
   timeout: 10000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  // ไม่ set default Content-Type เพื่อให้ axios จัดการตามชนิดของ data:
+  // - object → application/json
+  // - FormData → multipart/form-data
 });
 
 // Token validation helper
@@ -48,39 +48,56 @@ const validateToken = (token: string): boolean => {
 // Request interceptor - เพิ่ม JWT token
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
+    console.log('🚀 ========== REQUEST INTERCEPTOR START ==========');
+    console.log('🔍 Request URL:', config.url);
+    console.log('🔍 Request method:', config.method?.toUpperCase());
+
     let tokenAdded = false;
 
-    // Try to get token from auth store first
-    try {
-      const authStore = useAuthStore();
-      if (authStore.token && validateToken(authStore.token)) {
-        config.headers.Authorization = `Bearer ${authStore.token}`;
-        console.log('🔐 Authorization header added (from store):', `Bearer ${authStore.token.substring(0, 20)}...`);
+    // ลำดับความสำคัญ: localStorage ก่อน (เพื่อไม่พึ่ง Pinia store)
+    // 1. Try localStorage first (most reliable)
+    const localStorageToken = localStorage.getItem('access_token');
+    console.log('🔍 localStorage token:', localStorageToken ? `EXISTS (${localStorageToken.substring(0, 30)}...)` : 'NOT FOUND');
+
+    if (localStorageToken) {
+      const isValid = validateToken(localStorageToken);
+      console.log('🔍 Token validation result:', isValid);
+
+      if (isValid && config.headers) {
+        config.headers.Authorization = `Bearer ${localStorageToken}`;
+        console.log('✅ Authorization header SET (from localStorage)');
+        console.log('🔑 Header value:', config.headers.Authorization.substring(0, 50) + '...');
         tokenAdded = true;
-      } else {
-        console.log('⚠️ No valid token in auth store');
       }
-    } catch (error) {
-      console.log('⚠️ Auth store not available, trying localStorage...');
     }
 
-    // Fallback to localStorage if store is not available or token is invalid
+    // 2. Fallback to auth store if localStorage doesn't have token
     if (!tokenAdded) {
-      const token = localStorage.getItem('access_token');
-      if (token && validateToken(token) && config.headers) {
-        config.headers.Authorization = `Bearer ${token}`;
-        console.log('🔐 Authorization header added (from localStorage):', `Bearer ${token.substring(0, 20)}...`);
-        tokenAdded = true;
-      } else {
-        console.log('❌ No valid token found in localStorage');
+      console.log('⚠️ Trying auth store...');
+      try {
+        const authStore = useAuthStore();
+        console.log('🔍 Auth store token:', authStore.token ? 'EXISTS' : 'NOT FOUND');
+
+        if (authStore.token && validateToken(authStore.token)) {
+          if (config.headers) {
+            config.headers.Authorization = `Bearer ${authStore.token}`;
+            console.log('✅ Authorization header SET (from auth store)');
+            tokenAdded = true;
+          }
+        } else {
+          console.log('❌ No valid token in auth store');
+        }
+      } catch (error) {
+        console.log('❌ Auth store not available:', error);
       }
     }
 
-    // Log request details
-    console.log('🔍 Request URL:', config.url);
-    console.log('🔍 Request method:', config.method);
-    console.log('🔍 Request headers:', config.headers);
-    console.log('🔍 Token added:', tokenAdded);
+    if (!tokenAdded) {
+      console.log('🚨 WARNING: No token added to request!');
+    }
+
+    console.log('🔍 Final Authorization header:', config.headers?.Authorization ? 'SET ✅' : 'NOT SET ❌');
+    console.log('🏁 ========== REQUEST INTERCEPTOR END ==========');
 
     return config;
   },

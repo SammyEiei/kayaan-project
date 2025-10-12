@@ -1,7 +1,7 @@
 <template>
-  <div class="min-h-screen bg-slate-50">
+  <div class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
     <!-- Tab Navigation -->
-    <div class="bg-white border-b border-slate-200 shadow-sm">
+    <div class="bg-white/80 backdrop-blur-sm border-b-2 border-blue-100 shadow-lg">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <!-- Grid Layout for Tabs -->
         <nav class="grid grid-cols-2 gap-4 py-4 md:flex md:justify-center md:space-x-8 md:py-0">
@@ -11,16 +11,16 @@
             @click="activeTab = tab.id as 'create' | 'content'"
             :class="
               activeTab === tab.id
-                ? 'border-green-500 text-green-600 bg-green-50 md:bg-transparent'
-                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 hover:bg-slate-50 md:hover:bg-transparent'
+                ? 'border-blue-500 text-blue-600 bg-transparent shadow-md md:shadow-none'
+                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-blue-300 hover:bg-blue-50/50 md:hover:bg-transparent'
             "
-            class="group flex flex-col items-center gap-2 py-3 px-4 md:py-4 md:px-2 border-2 md:border-b-2 md:border-l-0 md:border-r-0 md:border-t-0 rounded-lg md:rounded-none font-medium text-sm transition-all duration-200 whitespace-nowrap"
+            class="group flex flex-col items-center gap-2 py-3 px-4 md:py-4 md:px-2 border-2 md:border-b-2 md:border-l-0 md:border-r-0 md:border-t-0 rounded-xl md:rounded-none font-medium text-sm transition-all duration-200 whitespace-nowrap transform hover:scale-105 md:hover:scale-100"
           >
             <!-- Icon Container -->
             <div
-              class="p-2 rounded-lg transition-colors duration-200"
+              class="p-2 rounded-xl transition-all duration-200 shadow-sm"
               :class="
-                activeTab === tab.id ? 'bg-green-100' : 'bg-slate-100 group-hover:bg-slate-200'
+                activeTab === tab.id ? 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white' : 'bg-slate-100 group-hover:bg-blue-100 text-slate-600 group-hover:text-blue-600'
               "
             >
               <svg
@@ -59,14 +59,14 @@
     <!-- Tab Content -->
     <div v-show="activeTab === 'create'" class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <!-- Progress Steps -->
-      <div class="mb-8">
+      <div class="mb-8 bg-white rounded-2xl border-2 border-blue-100 shadow-lg p-6">
         <div class="flex items-center justify-center">
           <div class="flex items-center">
             <div class="flex items-center">
               <div
-                class="w-8 h-8 rounded-full flex items-center justify-center bg-green-500 text-white"
+                class="w-10 h-10 rounded-full flex items-center justify-center bg-gradient-to-br from-green-500 to-emerald-600 text-white shadow-md"
               >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     stroke-linecap="round"
                     stroke-linejoin="round"
@@ -75,14 +75,14 @@
                   />
                 </svg>
               </div>
-              <span class="ml-2 text-sm font-medium text-green-600">Manual Creation</span>
-              <div class="ml-4 w-12 h-0.5 bg-green-500"></div>
+              <span class="ml-3 text-sm font-semibold text-green-600">Manual Creation</span>
+              <div class="ml-4 w-16 h-1 bg-gradient-to-r from-green-500 to-blue-500 rounded-full"></div>
             </div>
             <div class="flex items-center">
               <div
-                class="w-8 h-8 rounded-full flex items-center justify-center bg-blue-500 text-white"
+                class="w-10 h-10 rounded-full flex items-center justify-center bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-md"
               >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     stroke-linecap="round"
                     stroke-linejoin="round"
@@ -91,16 +91,16 @@
                   />
                 </svg>
               </div>
-              <span class="ml-2 text-sm font-medium text-blue-600">Choose Type</span>
-              <div class="ml-4 w-12 h-0.5 bg-slate-200"></div>
+              <span class="ml-3 text-sm font-semibold text-blue-600">Choose Type</span>
+              <div class="ml-4 w-16 h-1 bg-gradient-to-r from-blue-300 to-slate-300 rounded-full"></div>
             </div>
             <div class="flex items-center">
               <div
-                class="w-8 h-8 rounded-full flex items-center justify-center bg-slate-300 text-slate-600"
+                class="w-10 h-10 rounded-full flex items-center justify-center bg-gradient-to-br from-slate-300 to-slate-400 text-white shadow-md border-2 border-white"
               >
-                <span class="text-xs font-medium">3</span>
+                <span class="text-sm font-bold">3</span>
               </div>
-              <span class="ml-2 text-sm font-medium text-slate-500">Create</span>
+              <span class="ml-3 text-sm font-semibold text-slate-500">Create</span>
             </div>
           </div>
         </div>
@@ -150,24 +150,35 @@
 
       <!-- Manual Content Creation -->
       <div class="space-y-6">
-        <div class="bg-white rounded-lg border border-slate-200 p-6">
-          <h2 class="text-xl font-semibold text-slate-900 mb-4">Manual Content Creation</h2>
+        <div class="bg-white rounded-2xl border-2 border-blue-100 shadow-lg p-8 hover:shadow-xl transition-shadow duration-300">
+          <!-- Header with gradient icon -->
+          <div class="flex items-center gap-4 mb-6">
+            <div class="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-md">
+              <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+              </svg>
+            </div>
+            <h2 class="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Manual Content Creation</h2>
+          </div>
 
           <!-- Content Type Selection -->
           <div class="mb-8">
-            <label class="block text-sm font-medium text-slate-700 mb-4">Choose Content Type</label>
+            <label class="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-6">
+              <div class="w-2 h-2 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full"></div>
+              Choose Content Type
+            </label>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               <!-- Create Notes -->
               <button
                 @click="() => navigateToCreate('note')"
-                class="group p-6 border-2 rounded-xl text-left transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 border-slate-200 hover:border-blue-300 bg-white"
+                class="group p-6 border-2 rounded-2xl text-left transition-all duration-300 hover:shadow-xl hover:-translate-y-1 border-blue-200 hover:border-blue-400 bg-gradient-to-br from-white to-blue-50/30 hover:from-blue-50 hover:to-indigo-50 transform"
               >
-                <div class="flex flex-col items-center text-center space-y-3">
-                  <div class="p-3 rounded-lg bg-slate-100 group-hover:bg-blue-50">
+                <div class="flex flex-col items-center text-center space-y-4">
+                  <div class="p-4 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 group-hover:from-blue-600 group-hover:to-indigo-700 shadow-lg group-hover:shadow-xl transition-all duration-300 transform group-hover:scale-110">
                     <!-- Note Icon -->
                     <svg
-                      class="w-8 h-8 text-slate-600 group-hover:text-blue-500"
+                      class="w-8 h-8 text-white"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -188,8 +199,8 @@
                     </svg>
                   </div>
                   <div>
-                    <h3 class="font-semibold text-slate-900 mb-1">Notes</h3>
-                    <p class="text-sm text-slate-500 leading-relaxed">
+                    <h3 class="font-bold text-slate-900 mb-2 text-lg">Notes</h3>
+                    <p class="text-sm text-slate-600 leading-relaxed">
                       Write comprehensive study notes with rich formatting and organization
                     </p>
                   </div>
@@ -198,13 +209,13 @@
               <!-- Create Quiz -->
               <button
                 @click="() => navigateToCreate('quiz')"
-                class="group p-6 border-2 rounded-xl text-left transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 border-slate-200 hover:border-blue-300 bg-white"
+                class="group p-6 border-2 rounded-2xl text-left transition-all duration-300 hover:shadow-xl hover:-translate-y-1 border-orange-200 hover:border-orange-400 bg-gradient-to-br from-white to-orange-50/30 hover:from-orange-50 hover:to-amber-50 transform"
               >
-                <div class="flex flex-col items-center text-center space-y-3">
-                  <div class="p-3 rounded-lg bg-slate-100 group-hover:bg-blue-50">
+                <div class="flex flex-col items-center text-center space-y-4">
+                  <div class="p-4 rounded-xl bg-gradient-to-br from-orange-500 to-amber-600 group-hover:from-orange-600 group-hover:to-amber-700 shadow-lg group-hover:shadow-xl transition-all duration-300 transform group-hover:scale-110">
                     <!-- Quiz Icon -->
                     <svg
-                      class="w-8 h-8 text-slate-600 group-hover:text-blue-500"
+                      class="w-8 h-8 text-white"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -227,8 +238,8 @@
                     </svg>
                   </div>
                   <div>
-                    <h3 class="font-semibold text-slate-900 mb-1">Quiz</h3>
-                    <p class="text-sm text-slate-500 leading-relaxed">
+                    <h3 class="font-bold text-slate-900 mb-2 text-lg">Quiz</h3>
+                    <p class="text-sm text-slate-600 leading-relaxed">
                       Build interactive quizzes with multiple choice, true/false, and short answer
                       questions
                     </p>
@@ -239,13 +250,13 @@
               <!-- Create Flashcards -->
               <button
                 @click="() => navigateToCreate('flashcard')"
-                class="group p-6 border-2 rounded-xl text-left transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 border-slate-200 hover:border-blue-300 bg-white"
+                class="group p-6 border-2 rounded-2xl text-left transition-all duration-300 hover:shadow-xl hover:-translate-y-1 border-purple-200 hover:border-purple-400 bg-gradient-to-br from-white to-purple-50/30 hover:from-purple-50 hover:to-pink-50 transform"
               >
-                <div class="flex flex-col items-center text-center space-y-3">
-                  <div class="p-3 rounded-lg bg-slate-100 group-hover:bg-blue-50">
+                <div class="flex flex-col items-center text-center space-y-4">
+                  <div class="p-4 rounded-xl bg-gradient-to-br from-purple-500 to-pink-600 group-hover:from-purple-600 group-hover:to-pink-700 shadow-lg group-hover:shadow-xl transition-all duration-300 transform group-hover:scale-110">
                     <!-- Flashcard Icon -->
                     <svg
-                      class="w-8 h-8 text-slate-600 group-hover:text-blue-500"
+                      class="w-8 h-8 text-white"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -259,8 +270,8 @@
                     </svg>
                   </div>
                   <div>
-                    <h3 class="font-semibold text-slate-900 mb-1">Flashcards</h3>
-                    <p class="text-sm text-slate-500 leading-relaxed">
+                    <h3 class="font-bold text-slate-900 mb-2 text-lg">Flashcards</h3>
+                    <p class="text-sm text-slate-600 leading-relaxed">
                       Design study cards with questions and answers for effective memorization
                     </p>
                   </div>
@@ -271,12 +282,12 @@
         </div>
 
         <!-- Manual Creation Advantages -->
-        <div class="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 mt-6">
+        <div class="bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 rounded-2xl p-8 mt-6 border-2 border-green-200 shadow-lg hover:shadow-xl transition-shadow duration-300">
           <div class="flex items-start gap-4">
             <div
-              class="w-10 h-10 bg-green-500 rounded-xl flex items-center justify-center flex-shrink-0"
+              class="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md"
             >
-              <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   stroke-linecap="round"
                   stroke-linejoin="round"
@@ -285,15 +296,15 @@
                 />
               </svg>
             </div>
-            <div>
-              <h3 class="text-lg font-semibold text-green-900 mb-2">Why Choose Manual Creation?</h3>
+            <div class="flex-1">
+              <h3 class="text-xl font-bold text-green-900 mb-4">Why Choose Manual Creation?</h3>
               <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="flex items-start gap-3">
+                <div class="flex items-start gap-3 bg-white/60 backdrop-blur-sm p-4 rounded-xl border border-green-200 hover:bg-white transition-colors duration-200">
                   <div
-                    class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0"
+                    class="w-10 h-10 bg-gradient-to-br from-green-400 to-emerald-500 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm"
                   >
                     <svg
-                      class="w-4 h-4 text-green-600"
+                      class="w-5 h-5 text-white"
                       fill="currentColor"
                       viewBox="0 0 1025 1024"
                     >
@@ -301,18 +312,18 @@
                     </svg>
                   </div>
                   <div>
-                    <h4 class="font-medium text-green-800 mb-1">Full Control</h4>
-                    <p class="text-sm text-green-700">
+                    <h4 class="font-bold text-green-900 mb-1">Full Control</h4>
+                    <p class="text-sm text-green-700 leading-relaxed">
                       Create exactly what you need with complete customization over every detail
                     </p>
                   </div>
                 </div>
-                <div class="flex items-start gap-3">
+                <div class="flex items-start gap-3 bg-white/60 backdrop-blur-sm p-4 rounded-xl border border-green-200 hover:bg-white transition-colors duration-200">
                   <div
-                    class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0"
+                    class="w-10 h-10 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm"
                   >
                     <svg
-                      class="w-4 h-4 text-green-600"
+                      class="w-5 h-5 text-white"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -326,18 +337,18 @@
                     </svg>
                   </div>
                   <div>
-                    <h4 class="font-medium text-green-800 mb-1">Instant Results</h4>
-                    <p class="text-sm text-green-700">
+                    <h4 class="font-bold text-green-900 mb-1">Instant Results</h4>
+                    <p class="text-sm text-green-700 leading-relaxed">
                       No waiting for AI processing - create and edit your content immediately
                     </p>
                   </div>
                 </div>
-                <div class="flex items-start gap-3">
+                <div class="flex items-start gap-3 bg-white/60 backdrop-blur-sm p-4 rounded-xl border border-green-200 hover:bg-white transition-colors duration-200">
                   <div
-                    class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0"
+                    class="w-10 h-10 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm"
                   >
                     <svg
-                      class="w-4 h-4 text-green-600"
+                      class="w-5 h-5 text-white"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -351,8 +362,8 @@
                     </svg>
                   </div>
                   <div>
-                    <h4 class="font-medium text-green-800 mb-1">Perfect Fit</h4>
-                    <p class="text-sm text-green-700">
+                    <h4 class="font-bold text-green-900 mb-1">Perfect Fit</h4>
+                    <p class="text-sm text-green-700 leading-relaxed">
                       Design content that matches your exact learning style and requirements
                     </p>
                   </div>
@@ -381,7 +392,7 @@ const route = useRoute()
 const activeTab = ref<'create' | 'content'>('create')
 
 // UI state
-const showBackendWarning = ref(true)
+// const showBackendWarning = ref(true)
 
 // ตรวจสอบ query parameter เมื่อ component โหลด
 onMounted(() => {
@@ -442,7 +453,7 @@ const navigateToCreate = (type: string) => {
   }
 }
 
-const hideBackendWarning = () => {
-  showBackendWarning.value = false
-}
+// const hideBackendWarning = () => {
+//   showBackendWarning.value = false
+// }
 </script>

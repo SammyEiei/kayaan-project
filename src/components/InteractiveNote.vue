@@ -1,13 +1,18 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { markdownToHtml } from '@/utils/markdownConverter'
+import { useStudyStreakStore } from '@/stores/studyStreak'
 
 interface Props {
   content: string
   title: string
+  contentId?: number
 }
 
 const props = defineProps<Props>()
+
+// Study Streak Store
+const streakStore = useStudyStreakStore()
 
 // Reading state
 const fontSize = ref(16)
@@ -16,6 +21,8 @@ const theme = ref<'light' | 'dark' | 'sepia'>('light')
 const showTableOfContents = ref(true)
 const readingProgress = ref(0)
 const activeSection = ref('')
+const readingStarted = ref(false)
+const readingCompleted = ref(false)
 
 // ✅ Enhanced content parsing with Markdown support
 const parseContent = (content: string) => {
@@ -336,11 +343,21 @@ const scrollToSection = (title: string) => {
 }
 
 // Update reading progress on scroll
-const updateReadingProgress = () => {
+const updateReadingProgress = async () => {
   const scrollTop = window.scrollY
   const docHeight = document.documentElement.scrollHeight - window.innerHeight
   const progress = docHeight > 0 ? Math.min((scrollTop / docHeight) * 100, 100) : 0
   readingProgress.value = Math.round(progress)
+
+  // Mark reading as started when user scrolls
+  if (!readingStarted.value && progress > 5) {
+    readingStarted.value = true
+  }
+
+  // Complete reading when user reaches 70% of content (ลดจาก 80% เป็น 70%)
+  if (!readingCompleted.value && progress >= 70) {
+    await completeReading()
+  }
 
   // Update active section
   const sectionElements = document.querySelectorAll('[id^="section-"]')
@@ -356,6 +373,30 @@ const updateReadingProgress = () => {
 
   if (currentSection) {
     activeSection.value = currentSection
+  }
+}
+
+// Complete reading and update streak
+const completeReading = async () => {
+  if (readingCompleted.value) return
+
+  readingCompleted.value = true
+
+  // Update Study Streak
+  if (props.contentId) {
+    try {
+      console.log('🔥 InteractiveNote: Completing interactive mode for streak', props.contentId)
+
+      await streakStore.completeInteractiveMode(
+        props.contentId,
+        `Completed note reading: ${props.title}`
+      )
+
+      console.log('✅ InteractiveNote: Study streak updated successfully')
+    } catch (streakError) {
+      console.warn('⚠️ InteractiveNote: Failed to update study streak', streakError)
+      // ไม่ throw error เพื่อไม่ให้กระทบการแสดงผล note
+    }
   }
 }
 
@@ -455,6 +496,38 @@ onUnmounted(() => {
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
           </svg>
         </button>
+
+        <!-- Mark as Complete Button -->
+        <button
+          v-if="!readingCompleted"
+          @click="completeReading"
+          class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+          title="Mark as complete"
+        >
+          <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+          Mark as Complete
+        </button>
+
+        <!-- Progress Indicator -->
+        <div v-if="!readingCompleted" class="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-800 rounded-lg text-sm">
+          <div class="w-16 bg-blue-200 rounded-full h-2">
+            <div class="bg-blue-600 h-2 rounded-full transition-all duration-300" :style="{ width: `${readingProgress}%` }"></div>
+          </div>
+          <span class="font-medium">{{ readingProgress }}%</span>
+        </div>
+
+        <!-- Completed Status -->
+        <div
+          v-else
+          class="flex items-center gap-2 px-4 py-2 bg-green-100 text-green-800 rounded-lg text-sm font-medium"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+          Reading Completed
+        </div>
       </div>
     </div>
 

@@ -866,6 +866,7 @@ onUnmounted(() => {
             v-if="contentType?.toLowerCase() === 'quiz'"
             :content="getProcessedContent()"
             :title="contentData.title"
+            :content-id="parseInt(contentData.id)"
           />
 
           <!-- Flashcard Content -->
@@ -873,6 +874,7 @@ onUnmounted(() => {
             v-else-if="contentType?.toLowerCase() === 'flashcard'"
             :content="getProcessedContent()"
             :title="contentData.title"
+            :content-id="parseInt(contentData.id)"
           />
 
 
@@ -1104,6 +1106,7 @@ onUnmounted(() => {
           <InteractiveNote
             :content="getProcessedContent()"
             :title="contentData.title"
+            :content-id="parseInt(contentData.id)"
           />
                     </div>
                   </article>

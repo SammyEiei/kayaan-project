@@ -1,4 +1,5 @@
 import AxiosClient from './AxiosClient'
+import { useStudyStreakStore } from '@/stores/studyStreak'
 
 // Data Models
 export interface CreateGenerationRequest {
@@ -453,6 +454,33 @@ class AIContentService {
 
     if (!response.data.success) {
       throw new Error(response.data.message)
+    }
+
+    // 🔥 Update Study Streak - AI generated content saved
+    try {
+      console.log('🔥 AIContentService: Starting streak update process...')
+      const streakStore = useStudyStreakStore()
+      const contentId = response.data.data.id
+
+      console.log('🔥 AIContentService: Updating study streak for AI content save', {
+        contentId,
+        contentType: data.contentType,
+        contentTitle: data.contentTitle
+      })
+
+      const result = await streakStore.completeContentCreation(
+        contentId,
+        `Saved AI generated ${data.contentType}: ${data.contentTitle}`
+      )
+
+      console.log('✅ AIContentService: Study streak updated successfully', result)
+    } catch (streakError) {
+      console.error('❌ AIContentService: Failed to update study streak', streakError)
+      console.error('❌ Error details:', {
+        message: (streakError as Error).message,
+        stack: (streakError as Error).stack
+      })
+      // ไม่ throw error เพื่อไม่ให้กระทบการ save content
     }
 
     return response.data.data

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useStudyStreakStore } from '@/stores/studyStreak'
 
 interface Flashcard {
   id: number
@@ -10,9 +11,13 @@ interface Flashcard {
 
 interface Props {
   content: string
+  contentId?: number
 }
 
 const props = defineProps<Props>()
+
+// Study Streak Store
+const streakStore = useStudyStreakStore()
 
 // Flashcard state
 const flashcards = ref<Flashcard[]>([])
@@ -24,6 +29,7 @@ const userAnswer = ref('')
 const correctAnswers = ref(0)
 const totalAnswered = ref(0)
 const studySession = ref(false)
+const sessionCompleted = ref(false)
 
 // Parse content to extract flashcards
 const parseFlashcards = (content: string) => {
@@ -168,7 +174,7 @@ const flipCard = () => {
   isFlipped.value = !isFlipped.value
 }
 
-const nextCard = () => {
+const nextCard = async () => {
   if (currentCardIndex.value < totalCards.value - 1) {
     currentCardIndex.value++
     isFlipped.value = false
@@ -176,7 +182,32 @@ const nextCard = () => {
     userAnswer.value = ''
   } else {
     // End of session
-    studySession.value = false
+    await completeStudySession()
+  }
+}
+
+// Complete study session and update streak
+const completeStudySession = async () => {
+  if (sessionCompleted.value) return
+
+  sessionCompleted.value = true
+  studySession.value = false
+
+  // Update Study Streak
+  if (props.contentId) {
+    try {
+      console.log('🔥 InteractiveFlashcard: Completing interactive mode for streak', props.contentId)
+
+      await streakStore.completeInteractiveMode(
+        props.contentId,
+        `Completed flashcard session: ${studyMode.value} mode, ${totalCards.value} cards, Score: ${score.value}%`
+      )
+
+      console.log('✅ InteractiveFlashcard: Study streak updated successfully')
+    } catch (streakError) {
+      console.warn('⚠️ InteractiveFlashcard: Failed to update study streak', streakError)
+      // ไม่ throw error เพื่อไม่ให้กระทบการแสดงผล flashcard
+    }
   }
 }
 
@@ -197,15 +228,15 @@ const checkAnswer = () => {
   showAnswer.value = true
 }
 
-const markAsCorrect = () => {
+const markAsCorrect = async () => {
   correctAnswers.value++
   totalAnswered.value++
-  nextCard()
+  await nextCard()
 }
 
-const markAsIncorrect = () => {
+const markAsIncorrect = async () => {
   totalAnswered.value++
-  nextCard()
+  await nextCard()
 }
 
 const restartSession = () => {
@@ -216,6 +247,7 @@ const restartSession = () => {
   userAnswer.value = ''
   correctAnswers.value = 0
   totalAnswered.value = 0
+  sessionCompleted.value = false
 }
 
 onMounted(() => {

@@ -1637,17 +1637,20 @@ onMounted(async () => {
                 v-if="selectedContent.outputFormat === 'quiz'"
                 :key="`quiz-${selectedContent.id}`"
                 :content="selectedContent.content"
+                :content-id="selectedContent.id"
               />
               <InteractiveNote
                 v-else-if="selectedContent.outputFormat === 'note'"
                 :key="`note-${selectedContent.id}`"
                 :content="prepareNoteContentForInteractive(selectedContent)"
                 :title="extractTopicTitle(selectedContent)"
+                :content-id="selectedContent.id"
               />
               <InteractiveFlashcard
                 v-else-if="selectedContent.outputFormat === 'flashcard'"
                 :key="`flashcard-${selectedContent.id}`"
                 :content="selectedContent.content"
+                :content-id="selectedContent.id"
               />
               <!-- Summary Interactive View -->
               <div

@@ -63,14 +63,14 @@ const customFields = ref<Record<string, string>>({})
 
 // Auto-redirect settings
 const autoRedirectToContent = ref(true) // สามารถเปลี่ยนเป็น false ถ้าไม่ต้องการ auto-redirect
-const showBackendIntegrationWarning = ref(true)
+// const showBackendIntegrationWarning = ref(true)
 const redirectTimeoutId = ref<NodeJS.Timeout | null>(null)
 const redirectCountdown = ref(2) // Countdown timer for redirect
 
 // Methods for warnings
-const hideBackendIntegrationWarning = () => {
-  showBackendIntegrationWarning.value = false
-}
+// const hideBackendIntegrationWarning = () => {
+//   showBackendIntegrationWarning.value = false
+// }
 const redirectCountdownInterval = ref<NodeJS.Timeout | null>(null)
 
 // Rate limiting
@@ -597,69 +597,69 @@ This shows exact URLs that will be sent to backend.`
 // Navigation function removed - using auto-redirect instead
 
 // Test navigation function for debugging
-const testNavigation = async () => {
-  console.log('🧪 Testing navigation manually...')
-  console.log('📍 Current route before test:', router.currentRoute.value.fullPath)
+// const testNavigation = async () => {
+//   console.log('🧪 Testing navigation manually...')
+//   console.log('📍 Current route before test:', router.currentRoute.value.fullPath)
 
-  try {
-    // Test Method 1: router.replace
-    console.log('🔄 Testing router.replace...')
-    await router.replace({
-      name: 'ai-content-generator',
-      query: { tab: 'saved' }
-    })
-    console.log('✅ Manual navigation test successful!')
-    console.log('📍 Route after test:', router.currentRoute.value.fullPath)
+//   try {
+//     // Test Method 1: router.replace
+//     console.log('🔄 Testing router.replace...')
+//     await router.replace({
+//       name: 'ai-content-generator',
+//       query: { tab: 'saved' }
+//     })
+//     console.log('✅ Manual navigation test successful!')
+//     console.log('📍 Route after test:', router.currentRoute.value.fullPath)
 
-    // Test content loading
-    setTimeout(async () => {
-      try {
-        await aiGenerationStore.loadSavedContent()
-        console.log('✅ Content loaded after test navigation')
-      } catch (error) {
-        console.error('❌ Failed to load content after test:', error)
-      }
-    }, 200)
+//     // Test content loading
+//     setTimeout(async () => {
+//       try {
+//         await aiGenerationStore.loadSavedContent()
+//         console.log('✅ Content loaded after test navigation')
+//       } catch (error) {
+//         console.error('❌ Failed to load content after test:', error)
+//       }
+//     }, 200)
 
-  } catch (error) {
-    console.error('❌ Manual navigation test failed:', error)
-    alert('Navigation test failed. Check console for details.')
-  }
-}
+//   } catch (error) {
+//     console.error('❌ Manual navigation test failed:', error)
+//     alert('Navigation test failed. Check console for details.')
+//   }
+// }
 
 // Test navigation with window.location
-const testNavigationWithLocation = () => {
-  console.log('🧪 Testing navigation with window.location...')
-  const currentUrl = new URL(window.location.href)
-  currentUrl.searchParams.set('tab', 'saved')
-  currentUrl.searchParams.set('_t', Date.now().toString())
-  console.log('🔄 Redirecting to:', currentUrl.toString())
-  window.location.href = currentUrl.toString()
-}
+// const testNavigationWithLocation = () => {
+//   console.log('🧪 Testing navigation with window.location...')
+//   const currentUrl = new URL(window.location.href)
+//   currentUrl.searchParams.set('tab', 'saved')
+//   currentUrl.searchParams.set('_t', Date.now().toString())
+//   console.log('🔄 Redirecting to:', currentUrl.toString())
+//   window.location.href = currentUrl.toString()
+// }
 
 // Test direct navigation to saved content
-const testDirectNavigation = () => {
-  console.log('🧪 Testing direct navigation to saved content...')
-  console.log('📍 Current route:', router.currentRoute.value.fullPath)
-  console.log('📍 Current route name:', router.currentRoute.value.name)
-  console.log('📍 Current route params:', router.currentRoute.value.params)
-  console.log('📍 Current route query:', router.currentRoute.value.query)
+// const testDirectNavigation = () => {
+//   console.log('🧪 Testing direct navigation to saved content...')
+//   console.log('📍 Current route:', router.currentRoute.value.fullPath)
+//   console.log('📍 Current route name:', router.currentRoute.value.name)
+//   console.log('📍 Current route params:', router.currentRoute.value.params)
+//   console.log('📍 Current route query:', router.currentRoute.value.query)
 
-  // Try to navigate to the same route but with different query
-  router.push({
-    name: 'ai-content-generator',
-    query: {
-      tab: 'saved',
-      test: 'direct',
-      timestamp: Date.now()
-    }
-  }).then(() => {
-    console.log('✅ Direct navigation completed')
-    console.log('📍 New route:', router.currentRoute.value.fullPath)
-  }).catch((error) => {
-    console.error('❌ Direct navigation failed:', error)
-  })
-}
+//   // Try to navigate to the same route but with different query
+//   router.push({
+//     name: 'ai-content-generator',
+//     query: {
+//       tab: 'saved',
+//       test: 'direct',
+//       timestamp: Date.now()
+//     }
+//   }).then(() => {
+//     console.log('✅ Direct navigation completed')
+//     console.log('📍 New route:', router.currentRoute.value.fullPath)
+//   }).catch((error) => {
+//     console.error('❌ Direct navigation failed:', error)
+//   })
+// }
 
 // Cancel auto-redirect
 const cancelAutoRedirect = () => {
@@ -930,92 +930,73 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                    <!--
-    Development Mode Controls (Commented out - not shown)
-    <div v-if="isDevelopment" class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-      <h3 class="text-sm font-medium text-blue-900 mb-2">⚙️ Development Mode Controls</h3>
+  <div class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <!-- Header Section -->
+      <div class="mb-8">
+        <div class="relative overflow-hidden bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 rounded-2xl p-8 text-white shadow-xl">
+          <!-- Background Pattern -->
+          <div class="absolute inset-0 opacity-10">
+            <div class="absolute top-0 right-0 w-64 h-64 bg-white rounded-full -translate-y-32 translate-x-32"></div>
+            <div class="absolute bottom-0 left-0 w-96 h-96 bg-white rounded-full translate-y-48 -translate-x-48"></div>
+          </div>
 
-      Auto-redirect setting
-      <div class="mb-3 flex items-center gap-2">
-        <input
-          id="auto-redirect"
-          v-model="autoRedirectToContent"
-          type="checkbox"
-          class="w-4 h-4 text-purple-600 bg-blue-50 border-blue-200 rounded focus:ring-purple-500 focus:ring-2"
-        >
-        <label for="auto-redirect" class="text-sm text-blue-800">
-          Auto-redirect to content view after generation
-        </label>
-      </div>
-
-      Main Controls
-      <div class="flex gap-2 flex-wrap">
-
-        <button
-          @click="debugApi"
-          class="px-3 py-1 text-xs bg-yellow-600 text-white rounded hover:bg-yellow-700 transition-colors"
-        >
-          Test API Connection
-        </button>
-        <button
-          @click="debugPaths"
-          class="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-        >
-          Detect Backend
-        </button>
-        <button
-          @click="debugUrls"
-          class="px-3 py-1 text-xs bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
-        >
-          Check URLs
-        </button>
-      </div>
-    </div>
-    -->
-
-    <!-- Progress Steps -->
-    <div class="mb-8">
-      <div class="flex items-center justify-center">
-        <div class="flex items-center space-x-4">
-           <div
-            v-for="(step, index) in ['Prompt', 'Preview', 'Generating', 'Result']"
-            :key="step"
-            class="flex items-center"
-          >
-            <div
-              class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors"
-              :class="
-                currentStep === step.toLowerCase() as any
-                  ? 'bg-blue-600 text-white'
-                  : index < ['prompt', 'preview', 'generating', 'result'].indexOf(currentStep)
-                  ? 'bg-green-500 text-white'
-                  : 'bg-slate-200 text-slate-600'
-              "
-            >
-              {{ index + 1 }}
+          <div class="relative z-10">
+            <div class="flex items-center gap-4 mb-4">
+              <div class="w-14 h-14 bg-white bg-opacity-20 backdrop-blur-sm rounded-xl flex items-center justify-center ring-4 ring-white ring-opacity-30 shadow-lg">
+                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+              </div>
+              <div>
+                <h1 class="text-3xl font-bold mb-1">AI Content Generator</h1>
+                <p class="text-blue-100">Create intelligent study materials with AI assistance</p>
+              </div>
             </div>
-            <span
-              class="ml-2 text-sm font-medium"
-              :class="
-                currentStep === step.toLowerCase() as any
-                  ? 'text-blue-600'
-                  : index < ['prompt', 'preview', 'generating', 'result'].indexOf(currentStep)
-                  ? 'text-green-600'
-                  : 'text-slate-500'
-              "
-            >
-              {{ step }}
-            </span>
-            <div
-              v-if="index < 3"
-              class="ml-4 w-12 h-0.5 bg-slate-200"
-              :class="index < ['prompt', 'preview', 'generating', 'result'].indexOf(currentStep) ? 'bg-green-500' : ''"
-            ></div>
+
+            <!-- Progress Steps -->
+            <div class="flex items-center justify-center gap-2 bg-white bg-opacity-10 backdrop-blur-sm rounded-xl p-4 mt-6">
+              <div
+                v-for="(step, index) in ['Prompt', 'Preview', 'Generating', 'Result']"
+                :key="step"
+                class="flex items-center"
+              >
+                <div class="flex items-center gap-2">
+                  <div
+                    class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-200 shadow-md"
+                    :class="
+                      currentStep === step.toLowerCase() as any
+                        ? 'bg-white text-blue-600 scale-110'
+                        : index < ['prompt', 'preview', 'generating', 'result'].indexOf(currentStep)
+                        ? 'bg-white text-green-600'
+                        : 'bg-white bg-opacity-40 text-white'
+                    "
+                  >
+                    {{ index + 1 }}
+                  </div>
+                  <span
+                    class="text-sm font-semibold hidden sm:inline transition-all duration-200"
+                    :class="
+                      currentStep === step.toLowerCase() as any
+                        ? 'text-white scale-105'
+                        : index < ['prompt', 'preview', 'generating', 'result'].indexOf(currentStep)
+                        ? 'text-white'
+                        : 'text-white text-opacity-60'
+                    "
+                  >
+                    {{ step }}
+                  </span>
+                </div>
+                <div
+                  v-if="index < 3"
+                  class="mx-2 w-8 sm:w-12 h-1 rounded-full transition-all duration-200"
+                  :class="index < ['prompt', 'preview', 'generating', 'result'].indexOf(currentStep) ? 'bg-white' : 'bg-white bg-opacity-30'"
+                ></div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
     <!-- Backend Status Warning for Manual Content Integration -->
     <!-- <div v-if="showBackendIntegrationWarning" class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
@@ -1051,26 +1032,34 @@ onMounted(() => {
       </div>
     </div> -->
 
-    <!-- Step 1: Prompt Configuration -->
-    <div v-if="currentStep === 'prompt'" class="space-y-6">
-      <div class="bg-white rounded-lg border border-slate-200 p-6">
-        <h2 class="text-xl font-semibold text-slate-900 mb-4">Step 1: Configure Your Content</h2>
+      <!-- Step 1: Prompt Configuration -->
+      <div v-if="currentStep === 'prompt'" class="space-y-6">
+        <div class="bg-white rounded-2xl border-2 border-gray-200 p-8 shadow-lg hover:shadow-xl transition-all duration-200">
+          <div class="flex items-center gap-3 mb-6">
+            <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-md">
+              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-900">Step 1: Configure Your Content</h2>
+          </div>
 
-        <!-- Content Type Selection -->
-        <div class="mb-8">
-          <label class="block text-sm font-medium text-slate-700 mb-4">Content Type</label>
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <button
-              v-for="format in outputFormats"
-              :key="format.value"
-              @click="handleContentTypeChange(format.value as 'quiz' | 'flashcard' | 'note')"
-              class="group p-6 border-2 rounded-xl text-left transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5"
-              :class="
-                outputFormat === format.value
-                  ? 'border-blue-500 bg-blue-50 shadow-md'
-                  : 'border-slate-200 hover:border-blue-300 bg-white'
-              "
-            >
+          <!-- Content Type Selection -->
+          <div class="mb-8">
+            <label class="block text-base font-semibold text-gray-800 mb-4">Content Type</label>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <button
+                v-for="format in outputFormats"
+                :key="format.value"
+                @click="handleContentTypeChange(format.value as 'quiz' | 'flashcard' | 'note')"
+                class="group p-6 border-2 rounded-2xl text-left transition-all duration-300 hover:shadow-xl hover:-translate-y-1 transform"
+                :class="
+                  outputFormat === format.value
+                    ? 'border-blue-500 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-lg scale-105'
+                    : 'border-gray-300 hover:border-blue-400 bg-white'
+                "
+              >
               <div class="flex flex-col items-center text-center space-y-3">
                 <div class="p-3 rounded-lg"
                      :class="outputFormat === format.value ? 'bg-blue-100' : 'bg-slate-100 group-hover:bg-blue-50'"
@@ -1111,72 +1100,76 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- File Upload -->
-        <div class="mb-6">
-          <label class="block text-sm font-medium text-slate-700 mb-3">Attach File (Optional)</label>
-          <div class="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
-            <input
-              ref="fileInput"
-              type="file"
-              accept=".pdf,.doc,.docx,.txt,.md"
-              @change="handleFileUpload"
-              class="hidden"
-            />
-            <button
-              @click="fileInput?.click()"
-              class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-              </svg>
-              Choose File
-            </button>
-            <p class="text-sm text-slate-500 mt-2">Support: PDF, DOC, DOCX, TXT, MD (Max 10MB) - Optional. Content will be processed to generate English study materials.</p>
-          </div>
-
-          <!-- Attached File -->
-          <div v-if="attachedFile" class="mt-4">
-            <h4 class="text-sm font-medium text-slate-700 mb-2">Attached File:</h4>
-            <div class="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-              <div class="flex items-center gap-3">
-                <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                <div>
-                  <p class="text-sm font-medium text-slate-900">{{ attachedFile.name }}</p>
-                  <p class="text-xs text-slate-500">{{ (attachedFile.size / 1024 / 1024).toFixed(2) }} MB</p>
-                </div>
-              </div>
+          <!-- File Upload -->
+          <div class="mb-8">
+            <label class="block text-base font-semibold text-gray-800 mb-3">Attach File (Optional)</label>
+            <div class="border-2 border-dashed border-blue-300 bg-blue-50 bg-opacity-30 rounded-2xl p-8 text-center hover:border-blue-500 hover:bg-blue-50 transition-all duration-200 cursor-pointer">
+              <input
+                ref="fileInput"
+                type="file"
+                accept=".pdf,.doc,.docx,.txt,.md"
+                @change="handleFileUpload"
+                class="hidden"
+              />
               <button
-                @click="removeFile()"
-                class="text-red-500 hover:text-red-700 transition-colors"
-                title="Remove file"
+                @click="fileInput?.click()"
+                class="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 font-medium"
               >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                 </svg>
+                Choose File
               </button>
+              <p class="text-sm text-gray-600 mt-3 leading-relaxed">Support: PDF, DOC, DOCX, TXT, MD (Max 10MB) - Optional<br/>Content will be processed to generate English study materials</p>
+            </div>
+
+            <!-- Attached File -->
+            <div v-if="attachedFile" class="mt-4">
+              <h4 class="text-sm font-semibold text-gray-700 mb-3">Attached File:</h4>
+              <div class="flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-xl shadow-sm">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                    <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p class="text-sm font-semibold text-gray-900">{{ attachedFile.name }}</p>
+                    <p class="text-xs text-gray-600">{{ (attachedFile.size / 1024 / 1024).toFixed(2) }} MB</p>
+                  </div>
+                </div>
+                <button
+                  @click="removeFile()"
+                  class="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-all duration-200"
+                  title="Remove file"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
             </div>
           </div>
-        </div>
 
-                <!-- Prompt Presets (only show when no file attached) -->
-        <div v-if="!attachedFile" class="mb-6">
-          <label class="flex items-center gap-2 text-sm font-medium text-slate-700 mb-3">
-            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-            Quick Start Templates
-            <span class="text-xs text-slate-500 ml-2">(Choose a template to get started faster)</span>
-          </label>
+          <!-- Prompt Presets (only show when no file attached) -->
+          <div v-if="!attachedFile" class="mb-8">
+            <label class="flex items-center gap-3 text-base font-semibold text-gray-800 mb-4">
+              <div class="w-8 h-8 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-lg flex items-center justify-center shadow-sm">
+                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              Quick Start Templates
+              <span class="text-xs text-gray-500 ml-2">(Choose a template to get started faster)</span>
+            </label>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <button
-              v-for="preset in getCurrentPresets()"
-              :key="preset.id"
-              @click="handlePresetSelect(preset.id)"
-              class="p-4 border-2 border-dashed border-slate-300 rounded-lg text-left hover:border-blue-400 hover:bg-blue-50 transition-all duration-200 group"
-            >
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <button
+                v-for="preset in getCurrentPresets()"
+                :key="preset.id"
+                @click="handlePresetSelect(preset.id)"
+                class="p-5 border-2 border-gray-300 rounded-2xl text-left hover:border-blue-500 hover:bg-gradient-to-br hover:from-blue-50 hover:to-indigo-50 transition-all duration-200 group hover:shadow-lg transform hover:-translate-y-0.5"
+              >
               <div class="flex items-start gap-3">
                 <div class="w-10 h-10 bg-slate-100 group-hover:bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
                   <!-- BookOpen Icon -->
@@ -1244,180 +1237,211 @@ onMounted(() => {
             </button>
           </div>
 
-          <div class="mt-3 text-center">
-            <span class="text-xs text-slate-500">Or write your own custom prompt below ↓</span>
+            <div class="mt-4 text-center">
+              <span class="text-sm text-gray-500 font-medium">Or write your own custom prompt below ↓</span>
+            </div>
           </div>
-        </div>
 
-        <!-- Prompt Input -->
-        <div class="mb-6">
-          <label class="block text-sm font-medium text-slate-700 mb-2">
-            {{ attachedFile ? 'File Processing Instructions' : 'Custom Prompt' }}
-            <span v-if="!attachedFile" class="text-xs text-blue-600 ml-2">(Or use a template above)</span>
-            <span v-else class="text-xs text-green-600 ml-2">(Describe how to process your attached file)</span>
-          </label>
-          <textarea
-            v-model="promptText"
-            rows="6"
-            class="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                        :placeholder="attachedFile ?
-              'Describe how you want to process your attached file. Be specific about the output format and academic requirements. The AI will analyze your file and generate content accordingly.' :
-              'Describe what educational content you want to generate in English. Be specific about the subject, academic level, and key topics. Example: Create high school biology quiz on photosynthesis with 10 multiple choice questions.'"
-            :class="{ 'border-red-300 focus:ring-red-500': promptText.length > 0 && !isValid }"
-          ></textarea>
-          <div class="flex justify-between items-start mt-2 text-sm">
-            <div class="flex-1">
-              <span class="text-slate-500">
-                Minimum 10 characters, maximum 2000 characters. Please write in English for best results.
+          <!-- Prompt Input -->
+          <div class="mb-8">
+            <label class="block text-base font-semibold text-gray-800 mb-3">
+              {{ attachedFile ? 'File Processing Instructions' : 'Custom Prompt' }}
+              <span v-if="!attachedFile" class="text-xs text-blue-600 ml-2 font-normal">(Or use a template above)</span>
+              <span v-else class="text-xs text-green-600 ml-2 font-normal">(Describe how to process your attached file)</span>
+            </label>
+            <textarea
+              v-model="promptText"
+              rows="7"
+              class="w-full px-5 py-4 border-2 border-gray-300 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none transition-all duration-200 hover:border-blue-400"
+              :placeholder="attachedFile ?
+                'Describe how you want to process your attached file. Be specific about the output format and academic requirements. The AI will analyze your file and generate content accordingly.' :
+                'Describe what educational content you want to generate in English. Be specific about the subject, academic level, and key topics. Example: Create high school biology quiz on photosynthesis with 10 multiple choice questions.'"
+              :class="{ 'border-red-400 focus:ring-red-500 focus:border-red-500': promptText.length > 0 && !isValid }"
+            ></textarea>
+            <div class="flex justify-between items-start mt-3 text-sm">
+              <div class="flex-1">
+                <span class="text-gray-600">
+                  Minimum 10 characters, maximum 2000 characters. Please write in English for best results.
+                </span>
+                <div v-if="validationMessage" class="text-red-600 text-xs mt-2 font-medium">
+                  {{ validationMessage }}
+                </div>
+              </div>
+              <span
+                :class="
+                  characterCount > 2000
+                    ? 'text-red-600'
+                    : isValid
+                    ? 'text-green-600'
+                    : 'text-gray-400'
+                "
+                class="ml-4 whitespace-nowrap font-semibold"
+              >
+                {{ characterCount }}/2000
               </span>
-              <div v-if="validationMessage" class="text-red-500 text-xs mt-1">
-                {{ validationMessage }}
+            </div>
+          </div>
+
+          <!-- Dynamic Help Section -->
+          <div v-if="!attachedFile" class="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 rounded-2xl p-5 mb-6 shadow-sm">
+            <div class="flex items-start gap-4">
+              <div class="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm">
+                <svg class="w-5 h-5 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                </svg>
+              </div>
+              <div>
+                <h4 class="text-sm font-bold text-gray-800 mb-2 flex items-center gap-2">
+                  <span>No File Attached</span>
+                  <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-amber-200 text-amber-800">
+                    Required Info
+                  </span>
+                </h4>
+                <p class="text-sm text-gray-700 leading-relaxed">
+                  <span class="font-semibold text-gray-800">Please specify the following in your prompt:</span> subject area, academic level, and key topics you want covered.
+                  <span class="font-semibold text-gray-800">Be as specific as possible for better results.</span>
+                </p>
               </div>
             </div>
-            <span
-              :class="
-                characterCount > 2000
-                  ? 'text-red-500'
-                  : isValid
-                  ? 'text-green-500'
-                  : 'text-slate-400'
-              "
-              class="ml-4 whitespace-nowrap"
-            >
-              {{ characterCount }}/2000
-            </span>
+          </div>
+
+          <div v-else class="bg-gradient-to-r from-emerald-50 to-green-50 border-2 border-emerald-300 rounded-2xl p-5 mb-6 shadow-sm">
+            <div class="flex items-start gap-4">
+              <div class="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm">
+                <svg class="w-5 h-5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+              </div>
+              <div>
+                <h4 class="text-sm font-bold text-gray-800 mb-2 flex items-center gap-2">
+                  <span>File Attached: {{ attachedFile.name }}</span>
+                  <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-200 text-emerald-800">
+                    Ready to Process
+                  </span>
+                </h4>
+                <p class="text-sm text-gray-700 leading-relaxed">
+                  <span class="font-semibold text-gray-800">Your file will be analyzed and processed.</span> Please describe how you want the AI to transform this content into study materials
+                  <span class="font-semibold text-gray-800">(e.g., difficulty level, specific focus areas, question types).</span>
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 
-        <!-- Dynamic Help Section -->
-        <div v-if="!attachedFile" class="bg-amber-50/50 border border-amber-200 rounded-lg p-4 mb-4">
-          <div class="flex items-start gap-3">
-            <div class="w-5 h-5 bg-amber-50 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 border border-amber-200">
-              <svg class="w-3.5 h-3.5 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+        <!-- Navigation -->
+        <div class="flex justify-end">
+          <button
+            @click="handleNext"
+            :disabled="!isValid"
+            class="px-8 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl hover:from-blue-600 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 disabled:transform-none"
+          >
+            Next: Preview
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 2: Preview -->
+      <div v-if="currentStep === 'preview'" class="space-y-6">
+        <div class="bg-white rounded-2xl border-2 border-gray-200 p-8 shadow-lg hover:shadow-xl transition-all duration-200">
+          <div class="flex items-center gap-3 mb-6">
+            <div class="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-md">
+              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
               </svg>
             </div>
-            <div>
-              <h4 class="text-sm font-medium text-slate-700 mb-1 flex items-center gap-2">
-                <span>No File Attached</span>
-                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
-                  Required Info
-                </span>
-              </h4>
-              <p class="text-sm text-slate-600 leading-relaxed">
-                <span class="font-medium text-slate-700">Please specify the following in your prompt:</span> subject area, academic level, and key topics you want covered.
-                <span class="font-medium text-slate-700">Be as specific as possible for better results.</span>
-              </p>
+            <h2 class="text-2xl font-bold text-gray-900">Step 2: Preview & Generate</h2>
+          </div>
+
+          <!-- Settings Summary -->
+          <div class="mb-8 p-6 bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-2xl shadow-sm">
+            <h3 class="font-bold text-gray-900 mb-4 text-lg">Generation Settings</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div class="flex items-start gap-3">
+                <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+                  </svg>
+                </div>
+                <div>
+                  <span class="text-sm text-gray-600 font-medium">Content Type:</span>
+                  <p class="font-bold text-gray-900">{{ outputFormats.find(f => f.value === outputFormat)?.label }}</p>
+                </div>
+              </div>
+              <div class="flex items-start gap-3">
+                <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                  </svg>
+                </div>
+                <div>
+                  <span class="text-sm text-gray-600 font-medium">File Attached:</span>
+                  <p class="font-bold text-gray-900">{{ attachedFile ? '1 file' : 'No file' }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Prompt Preview -->
+          <div class="mb-8">
+            <h3 class="font-bold text-gray-900 mb-3 text-lg">Prompt Preview</h3>
+            <div class="p-5 bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-300 rounded-2xl shadow-sm">
+              <p class="text-gray-900 leading-relaxed">{{ promptText }}</p>
+            </div>
+          </div>
+
+          <!-- File Preview -->
+          <div v-if="attachedFile" class="mb-8">
+            <h3 class="font-bold text-gray-900 mb-3 text-lg">Attached File</h3>
+            <div class="flex items-center gap-4 p-5 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-2xl shadow-sm">
+              <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <div>
+                <p class="text-sm font-bold text-gray-900">{{ attachedFile.name }}</p>
+                <p class="text-xs text-gray-600">{{ (attachedFile.size / 1024 / 1024).toFixed(2) }} MB</p>
+              </div>
+            </div>
+          </div>
+          <div v-else class="mb-8">
+            <h3 class="font-bold text-gray-900 mb-3 text-lg">Attached File</h3>
+            <div class="p-6 bg-gray-100 border-2 border-gray-300 rounded-2xl text-center">
+              <p class="text-gray-500 font-medium">No file attached</p>
             </div>
           </div>
         </div>
 
-        <div v-else class="bg-emerald-50/50 border border-emerald-200 rounded-lg p-4 mb-4">
-          <div class="flex items-start gap-3">
-            <div class="w-5 h-5 bg-emerald-50 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 border border-emerald-200">
-              <svg class="w-3.5 h-3.5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+        <!-- Navigation -->
+        <div class="flex justify-between">
+          <button
+            @click="handleBack"
+            class="px-6 py-3 text-gray-700 bg-white border-2 border-gray-300 rounded-xl hover:bg-gray-50 transition-all duration-200 font-semibold shadow-md hover:shadow-lg"
+          >
+            Back
+          </button>
+          <button
+            @click="handleGenerate"
+            :disabled="!isValid || (currentStep as string) === 'generating'"
+            class="px-8 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl hover:from-blue-600 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 disabled:transform-none"
+          >
+            {{ (currentStep as string) === 'generating' ? 'Generating...' : 'Generate Content' }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 3: Generating -->
+      <div v-if="currentStep === 'generating'" class="space-y-6">
+        <div class="bg-white rounded-2xl border-2 border-gray-200 p-8 shadow-lg text-center">
+          <div class="flex items-center justify-center gap-3 mb-8">
+            <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center shadow-md animate-pulse">
+              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
             </div>
-            <div>
-              <h4 class="text-sm font-medium text-slate-700 mb-1 flex items-center gap-2">
-                <span>File Attached: {{ attachedFile.name }}</span>
-                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
-                  Ready to Process
-                </span>
-              </h4>
-              <p class="text-sm text-slate-600 leading-relaxed">
-                <span class="font-medium text-slate-700">Your file will be analyzed and processed.</span> Please describe how you want the AI to transform this content into study materials
-                <span class="font-medium text-slate-700">(e.g., difficulty level, specific focus areas, question types).</span>
-              </p>
-            </div>
+            <h2 class="text-2xl font-bold text-gray-900">Generating Your Content</h2>
           </div>
-        </div>
-      </div>
-
-      <!-- Navigation -->
-      <div class="flex justify-end">
-        <button
-          @click="handleNext"
-          :disabled="!isValid"
-          class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        >
-          Next: Preview
-        </button>
-      </div>
-    </div>
-
-    <!-- Step 2: Preview -->
-    <div v-if="currentStep === 'preview'" class="space-y-6">
-      <div class="bg-white rounded-lg border border-slate-200 p-6">
-        <h2 class="text-xl font-semibold text-slate-900 mb-4">Step 2: Preview & Generate</h2>
-
-        <!-- Settings Summary -->
-        <div class="mb-6 p-4 bg-slate-50 rounded-lg">
-          <h3 class="font-medium text-slate-900 mb-3">Generation Settings</h3>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-            <div>
-              <span class="text-slate-500">Content Type:</span>
-              <p class="font-medium">{{ outputFormats.find(f => f.value === outputFormat)?.label }}</p>
-            </div>
-            <div>
-              <span class="text-slate-500">File Attached:</span>
-              <p class="font-medium">{{ attachedFile ? '1 file' : 'No file' }}</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Prompt Preview -->
-        <div class="mb-6">
-          <h3 class="font-medium text-slate-900 mb-3">Prompt Preview</h3>
-          <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <p class="text-blue-900">{{ promptText }}</p>
-          </div>
-        </div>
-
-        <!-- File Preview -->
-        <div v-if="attachedFile" class="mb-6">
-          <h3 class="font-medium text-slate-900 mb-3">Attached File</h3>
-          <div class="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
-            <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            <div>
-              <p class="text-sm font-medium text-slate-900">{{ attachedFile.name }}</p>
-              <p class="text-xs text-slate-500">{{ (attachedFile.size / 1024 / 1024).toFixed(2) }} MB</p>
-            </div>
-          </div>
-        </div>
-        <div v-else class="mb-6">
-          <h3 class="font-medium text-slate-900 mb-3">Attached File</h3>
-          <div class="p-4 bg-slate-50 border border-slate-200 rounded-lg text-center">
-            <p class="text-slate-500">No file attached</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Navigation -->
-      <div class="flex justify-between">
-        <button
-          @click="handleBack"
-          class="px-6 py-3 text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
-        >
-          Back
-        </button>
-        <button
-          @click="handleGenerate"
-          :disabled="!isValid || (currentStep as string) === 'generating'"
-          class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        >
-          {{ (currentStep as string) === 'generating' ? 'Generating...' : 'Generate Content' }}
-        </button>
-      </div>
-    </div>
-
-    <!-- Step 3: Generating -->
-    <div v-if="currentStep === 'generating'" class="space-y-6">
-      <div class="bg-white rounded-lg border border-slate-200 p-6 text-center">
-        <h2 class="text-xl font-semibold text-slate-900 mb-6">Generating Your Content</h2>
 
         <!-- Kayaan Cute Loading Animation -->
         <div class="relative mb-8">
@@ -1482,126 +1506,161 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- Rate Limit Warning (if applicable) -->
-        <div v-if="generationStatus.includes('Rate limit') || generationStatus.includes('rate limit')" class="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
-          <div class="flex items-center justify-center gap-2">
-            <svg class="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.732 15.5c-.77.833.192 2.5 1.732 2.5z" />
-            </svg>
-            <div class="text-center">
-              <p class="text-orange-800 text-sm font-medium">
-                Rate Limit Exceeded
-              </p>
-              <p class="text-orange-700 text-xs mt-1">
-                The server is temporarily limiting requests. Please wait a moment before trying again.
-              </p>
-            </div>
-          </div>
-        </div>
-
-
-
-        <!-- Cancel Button -->
-        <button
-          @click="resetGeneration"
-          class="px-6 py-3 text-red-600 bg-white border border-red-300 rounded-lg hover:bg-red-50 transition-colors"
-        >
-          Cancel Generation
-        </button>
-      </div>
-    </div>
-
-    <!-- Step 4: Result -->
-    <div v-if="currentStep === 'result'" class="space-y-6">
-      <div class="bg-white rounded-lg border border-slate-200 p-6">
-        <div class="text-center mb-6">
-          <!-- Success Icon -->
-          <div class="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-            <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-
-          <h2 class="text-2xl font-semibold text-slate-900 mb-2">Generation Complete!</h2>
-          <p class="text-slate-600">
-            Your <span class="font-semibold text-green-600">{{ outputFormats.find(f => f.value === outputFormat)?.label }}</span> has been created successfully
-          </p>
-        </div>
-
-        <!-- Generation Summary -->
-        <div class="mb-6 p-4 bg-slate-50 rounded-lg">
-          <h3 class="font-medium text-slate-900 mb-3">Generation Summary</h3>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-            <div>
-              <span class="text-slate-500">Content Type:</span>
-              <p class="font-medium text-slate-900">{{ outputFormats.find(f => f.value === outputFormat)?.label }}</p>
-            </div>
-            <div>
-              <span class="text-slate-500">Source Material:</span>
-              <p class="font-medium text-slate-900">{{ attachedFile ? attachedFile.name : 'Custom Prompt' }}</p>
-            </div>
-            <div>
-              <span class="text-slate-500">Generated At:</span>
-              <p class="font-medium text-slate-900">{{ new Date().toLocaleString() }}</p>
-            </div>
-            <div>
-              <span class="text-slate-500">Status:</span>
-              <div class="flex items-center gap-2">
-                <div class="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span class="font-medium text-green-700">Ready to Use</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Auto-redirect info (only show if auto-redirect is enabled) -->
-        <div v-if="autoRedirectToContent && redirectTimeoutId" class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <div class="flex items-center justify-between gap-2">
-            <div class="flex items-center gap-3">
-              <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                <svg class="w-5 h-5 text-blue-600 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          <!-- Rate Limit Warning (if applicable) -->
+          <div v-if="generationStatus.includes('Rate limit') || generationStatus.includes('rate limit')" class="mb-6 p-5 bg-gradient-to-r from-orange-50 to-red-50 border-2 border-orange-300 rounded-2xl shadow-sm">
+            <div class="flex items-center justify-center gap-3">
+              <div class="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.732 15.5c-.77.833.192 2.5 1.732 2.5z" />
                 </svg>
               </div>
-              <div>
-                <h4 class="font-medium text-blue-900">Redirecting to My Content</h4>
-                <p class="text-sm text-blue-700">
-                  Taking you to view your saved content in
-                  <span class="font-semibold">{{ redirectCountdown }}</span>
-                  second{{ redirectCountdown !== 1 ? 's' : '' }}...
+              <div class="text-center">
+                <p class="text-orange-900 text-base font-bold">
+                  Rate Limit Exceeded
+                </p>
+                <p class="text-orange-800 text-sm mt-1">
+                  The server is temporarily limiting requests. Please wait a moment before trying again.
                 </p>
               </div>
             </div>
-            <button
-              @click="cancelAutoRedirect"
-              class="px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Cancel
-            </button>
           </div>
 
-          <!-- Progress Bar -->
-          <div class="mt-3">
-            <div class="w-full bg-blue-200 rounded-full h-2">
-              <div
-                class="bg-blue-600 h-2 rounded-full transition-all duration-1000 ease-linear"
-                :style="{ width: `${((2 - redirectCountdown) / 2) * 100}%` }"
-              ></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Quick Action: Generate New Content -->
-        <div class="text-center">
+          <!-- Cancel Button -->
           <button
             @click="resetGeneration"
-            class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 mx-auto"
+            class="px-8 py-4 text-red-600 bg-white border-2 border-red-400 rounded-xl hover:bg-red-50 hover:border-red-500 transition-all duration-200 font-semibold shadow-md hover:shadow-lg transform hover:scale-105"
           >
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            Generate New Content
+            Cancel Generation
           </button>
+        </div>
+      </div>
+
+      <!-- Step 4: Result -->
+      <div v-if="currentStep === 'result'" class="space-y-6">
+        <div class="bg-white rounded-2xl border-2 border-gray-200 p-8 shadow-lg">
+          <div class="text-center mb-8">
+            <!-- Success Icon -->
+            <div class="mx-auto w-24 h-24 bg-gradient-to-br from-green-100 to-emerald-100 rounded-2xl flex items-center justify-center mb-6 shadow-lg border-4 border-green-200 animate-bounce">
+              <svg class="w-12 h-12 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+
+            <h2 class="text-3xl font-bold text-gray-900 mb-3">Generation Complete!</h2>
+            <p class="text-lg text-gray-700">
+              Your <span class="font-bold text-green-600">{{ outputFormats.find(f => f.value === outputFormat)?.label }}</span> has been created successfully
+            </p>
+          </div>
+
+          <!-- Generation Summary -->
+          <div class="mb-8 p-6 bg-gradient-to-br from-gray-50 to-blue-50 border-2 border-gray-300 rounded-2xl shadow-sm">
+            <div class="flex items-center gap-3 mb-5">
+              <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-md">
+                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                </svg>
+              </div>
+              <h3 class="font-bold text-gray-900 text-xl">Generation Summary</h3>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div class="flex items-start gap-3">
+                <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+                  </svg>
+                </div>
+                <div>
+                  <span class="text-sm text-gray-600 font-medium">Content Type:</span>
+                  <p class="font-bold text-gray-900">{{ outputFormats.find(f => f.value === outputFormat)?.label }}</p>
+                </div>
+              </div>
+              <div class="flex items-start gap-3">
+                <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <div>
+                  <span class="text-sm text-gray-600 font-medium">Source Material:</span>
+                  <p class="font-bold text-gray-900">{{ attachedFile ? attachedFile.name : 'Custom Prompt' }}</p>
+                </div>
+              </div>
+              <div class="flex items-start gap-3">
+                <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <span class="text-sm text-gray-600 font-medium">Generated At:</span>
+                  <p class="font-bold text-gray-900">{{ new Date().toLocaleString() }}</p>
+                </div>
+              </div>
+              <div class="flex items-start gap-3">
+                <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <span class="text-sm text-gray-600 font-medium">Status:</span>
+                  <div class="flex items-center gap-2">
+                    <div class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                    <span class="font-bold text-green-700">Ready to Use</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Auto-redirect info (only show if auto-redirect is enabled) -->
+          <div v-if="autoRedirectToContent && redirectTimeoutId" class="mb-8 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-300 rounded-2xl shadow-sm">
+            <div class="flex items-center justify-between gap-3">
+              <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                  <svg class="w-6 h-6 text-blue-600 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                </div>
+                <div>
+                  <h4 class="font-bold text-blue-900 text-lg">Redirecting to My Content</h4>
+                  <p class="text-sm text-blue-700">
+                    Taking you to view your saved content in
+                    <span class="font-bold">{{ redirectCountdown }}</span>
+                    second{{ redirectCountdown !== 1 ? 's' : '' }}...
+                  </p>
+                </div>
+              </div>
+              <button
+                @click="cancelAutoRedirect"
+                class="px-5 py-2.5 text-sm bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 font-semibold shadow-md hover:shadow-lg"
+              >
+                Cancel
+              </button>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="mt-4">
+              <div class="w-full bg-blue-200 rounded-full h-3">
+                <div
+                  class="bg-gradient-to-r from-blue-500 to-indigo-600 h-3 rounded-full transition-all duration-1000 ease-linear"
+                  :style="{ width: `${((2 - redirectCountdown) / 2) * 100}%` }"
+                ></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Action: Generate New Content -->
+          <div class="text-center mb-8">
+            <button
+              @click="resetGeneration"
+              class="px-8 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl flex items-center gap-3 mx-auto transform hover:scale-105"
+            >
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              Generate New Content
+            </button>
 
           <!-- Debug: Manual Test Navigation Buttons -->
           <!-- <div class="flex gap-2 justify-center mt-3">
@@ -1627,152 +1686,165 @@ onMounted(() => {
           </div> -->
         </div>
 
-        <!-- Success Information -->
-        <div class="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-          <div class="flex items-start gap-3">
-            <svg class="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-            </svg>
-            <div>
-              <h4 class="font-medium text-green-900 mb-1">Content Ready!</h4>
-              <p class="text-sm text-green-800">
-                Your generated content has been automatically saved and you'll be redirected to the "My Content" section shortly.
-                You can also generate more content anytime using the button above!
-              </p>
+          <!-- Success Information -->
+          <div class="p-6 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-2xl shadow-sm">
+            <div class="flex items-start gap-4">
+              <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                <svg class="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+              </div>
+              <div>
+                <h4 class="font-bold text-green-900 text-lg mb-2">Content Ready!</h4>
+                <p class="text-sm text-green-800 leading-relaxed">
+                  Your generated content has been automatically saved and you'll be redirected to the "My Content" section shortly.
+                  You can also generate more content anytime using the button above!
+                </p>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Preset Customization Modal -->
-    <div v-if="showPresetModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[70]">
-      <div class="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-hidden">
-        <!-- Modal Header -->
-        <div class="flex items-center justify-between p-6 border-b border-slate-200">
-          <div class="flex items-center gap-3">
-            <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-              <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 011-1h1a2 2 0 100-4H7a1 1 0 01-1-1V7a1 1 0 011-1h3a1 1 0 001-1V4z" />
-              </svg>
-            </div>
-            <div>
-              <h3 class="text-lg font-semibold text-slate-900">Customize Template</h3>
-              <p class="text-sm text-slate-500">
-                {{ getCurrentPresets().find(p => p.id === selectedPreset)?.title }}
-              </p>
-            </div>
-          </div>
-          <button
-            @click="showPresetModal = false"
-            class="text-slate-400 hover:text-slate-600 transition-colors"
-          >
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        <!-- Modal Content -->
-        <div class="p-6 overflow-y-auto max-h-[60vh]">
-          <div v-if="selectedPreset" class="space-y-6">
-            <!-- Template Preview -->
-            <div class="bg-slate-50 p-4 rounded-lg">
-              <h4 class="font-medium text-slate-900 mb-2">Template Preview:</h4>
-              <p class="text-sm text-slate-700 leading-relaxed">
-                {{ getCurrentPresets().find(p => p.id === selectedPreset)?.template }}
-              </p>
-            </div>
-
-            <!-- Custom Fields -->
-            <div class="space-y-4">
-              <h4 class="font-medium text-slate-900">Fill in the details:</h4>
-
-              <div
-                v-for="placeholder in getCurrentPresets().find(p => p.id === selectedPreset)?.placeholders || []"
-                :key="placeholder"
-                class="space-y-2"
-              >
-                <label class="block text-sm font-medium text-slate-700">
-                  {{ getFieldLabel(placeholder) }}
-                  <span class="text-red-500">*</span>
-                  <span v-if="isNumberField(placeholder)" class="text-xs text-slate-500 ml-2">
-                    (Enter whole number 1-10)
-                  </span>
-                </label>
-
-                <!-- Number Input Fields -->
-                <div v-if="isNumberField(placeholder)" class="relative">
-                  <input
-                    v-model="customFields[placeholder]"
-                    type="text"
-                    inputmode="numeric"
-                    pattern="[1-9]|10"
-                    maxlength="2"
-                    :placeholder="getPlaceholderHint(placeholder)"
-                    @input="customFields[placeholder] = validateNumberInput(customFields[placeholder])"
-                    @blur="customFields[placeholder] = customFields[placeholder] || '5'"
-                    class="w-full px-3 py-2 pr-12 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                  <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                    <span class="text-slate-400 text-sm">questions</span>
-                  </div>
-                  <div class="mt-1 text-xs text-slate-500">
-                    How many {{ placeholder === 'NUMBER' ? 'questions or cards' :
-                                 placeholder === 'MC_COUNT' ? 'multiple choice questions' :
-                                 placeholder === 'TF_COUNT' ? 'true/false questions' :
-                                 'short answer questions' }} to generate
-                  </div>
-                </div>
-
-                <!-- Text Input Fields -->
-                <input
-                  v-else
-                  v-model="customFields[placeholder]"
-                  type="text"
-                  :placeholder="getPlaceholderHint(placeholder)"
-                  class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+      <!-- Preset Customization Modal -->
+      <div v-if="showPresetModal" class="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center p-4 z-[70]">
+        <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl border-2 border-gray-200">
+          <!-- Modal Header -->
+          <div class="flex items-center justify-between p-6 border-b-2 border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+            <div class="flex items-center gap-4">
+              <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-md">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 011-1h1a2 2 0 100-4H7a1 1 0 01-1-1V7a1 1 0 011-1h3a1 1 0 001-1V4z" />
+                </svg>
+              </div>
+              <div>
+                <h3 class="text-xl font-bold text-gray-900">Customize Template</h3>
+                <p class="text-sm text-gray-600 font-medium">
+                  {{ getCurrentPresets().find(p => p.id === selectedPreset)?.title }}
+                </p>
               </div>
             </div>
+            <button
+              @click="showPresetModal = false"
+              class="text-gray-400 hover:text-gray-600 hover:bg-gray-100 p-2 rounded-lg transition-all duration-200"
+            >
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
 
-            <!-- Example Section -->
-            <div class="bg-blue-50 p-4 rounded-lg">
-              <h4 class="font-medium text-blue-900 mb-2">Example:</h4>
-              <p class="text-sm text-blue-800">
-                {{ getCurrentPresets().find(p => p.id === selectedPreset)?.example }}
-              </p>
-              <button
-                @click="usePresetExample"
-                class="mt-2 text-xs text-blue-600 hover:text-blue-800 underline"
-              >
-                Use this example
-              </button>
+          <!-- Modal Content -->
+          <div class="p-6 overflow-y-auto max-h-[60vh]">
+            <div v-if="selectedPreset" class="space-y-6">
+              <!-- Template Preview -->
+              <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 p-5 rounded-2xl shadow-sm">
+                <h4 class="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                  <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Template Preview:
+                </h4>
+                <p class="text-sm text-gray-800 leading-relaxed">
+                  {{ getCurrentPresets().find(p => p.id === selectedPreset)?.template }}
+                </p>
+              </div>
+
+              <!-- Custom Fields -->
+              <div class="space-y-5">
+                <h4 class="font-bold text-gray-900 text-lg">Fill in the details:</h4>
+
+                <div
+                  v-for="placeholder in getCurrentPresets().find(p => p.id === selectedPreset)?.placeholders || []"
+                  :key="placeholder"
+                  class="space-y-2"
+                >
+                  <label class="block text-sm font-semibold text-gray-700">
+                    {{ getFieldLabel(placeholder) }}
+                    <span class="text-red-600 ml-1">*</span>
+                    <span v-if="isNumberField(placeholder)" class="text-xs text-gray-500 ml-2 font-normal">
+                      (Enter whole number 1-10)
+                    </span>
+                  </label>
+
+                  <!-- Number Input Fields -->
+                  <div v-if="isNumberField(placeholder)" class="relative">
+                    <input
+                      v-model="customFields[placeholder]"
+                      type="text"
+                      inputmode="numeric"
+                      pattern="[1-9]|10"
+                      maxlength="2"
+                      :placeholder="getPlaceholderHint(placeholder)"
+                      @input="customFields[placeholder] = validateNumberInput(customFields[placeholder])"
+                      @blur="customFields[placeholder] = customFields[placeholder] || '5'"
+                      class="w-full px-4 py-3 pr-24 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                    />
+                    <div class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
+                      <span class="text-gray-500 text-sm font-medium">questions</span>
+                    </div>
+                    <div class="mt-2 text-xs text-gray-600">
+                      How many {{ placeholder === 'NUMBER' ? 'questions or cards' :
+                                   placeholder === 'MC_COUNT' ? 'multiple choice questions' :
+                                   placeholder === 'TF_COUNT' ? 'true/false questions' :
+                                   'short answer questions' }} to generate
+                    </div>
+                  </div>
+
+                  <!-- Text Input Fields -->
+                  <input
+                    v-else
+                    v-model="customFields[placeholder]"
+                    type="text"
+                    :placeholder="getPlaceholderHint(placeholder)"
+                    class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                  />
+                </div>
+              </div>
+
+              <!-- Example Section -->
+              <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 p-5 rounded-2xl shadow-sm">
+                <h4 class="font-bold text-blue-900 mb-3 flex items-center gap-2">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  </svg>
+                  Example:
+                </h4>
+                <p class="text-sm text-blue-800 leading-relaxed mb-3">
+                  {{ getCurrentPresets().find(p => p.id === selectedPreset)?.example }}
+                </p>
+                <button
+                  @click="usePresetExample"
+                  class="text-sm text-blue-600 hover:text-blue-800 font-semibold underline hover:no-underline transition-all duration-200"
+                >
+                  Use this example
+                </button>
+              </div>
             </div>
           </div>
-        </div>
 
-        <!-- Modal Footer -->
-        <div class="flex items-center justify-between p-6 border-t border-slate-200">
-          <button
-            @click="showPresetModal = false"
-            class="px-4 py-2 text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
-          >
-            Cancel
-          </button>
-          <div class="flex gap-3">
+          <!-- Modal Footer -->
+          <div class="flex items-center justify-between p-6 border-t-2 border-gray-200 bg-gray-50">
             <button
-              @click="usePresetExample"
-              class="px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors"
+              @click="showPresetModal = false"
+              class="px-5 py-2.5 text-gray-700 bg-white border-2 border-gray-300 rounded-xl hover:bg-gray-50 transition-all duration-200 font-semibold shadow-sm hover:shadow-md"
             >
-              Use Example
+              Cancel
             </button>
-            <button
-              @click="applyPreset"
-              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Apply Template
-            </button>
+            <div class="flex gap-3">
+              <button
+                @click="usePresetExample"
+                class="px-5 py-2.5 bg-gray-600 text-white rounded-xl hover:bg-gray-700 transition-all duration-200 font-semibold shadow-md hover:shadow-lg"
+              >
+                Use Example
+              </button>
+              <button
+                @click="applyPreset"
+                class="px-5 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 font-semibold shadow-md hover:shadow-lg transform hover:scale-105"
+              >
+                Apply Template
+              </button>
+            </div>
           </div>
         </div>
       </div>

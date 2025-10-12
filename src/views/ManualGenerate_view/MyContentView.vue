@@ -233,12 +233,16 @@
                   </svg>
                 </button> -->
                 <button
-                  @click.stop="emitDelete(item)"
-                  class="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
+                  @click.stop="showDeleteConfirmation(item)"
+                  :disabled="isDeleting"
+                  class="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                   title="Delete"
                 >
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg v-if="!isDeleting" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  <svg v-else class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
                 </button>
               </div>
@@ -334,12 +338,16 @@
                       </svg>
                     </button> -->
                     <button
-                      @click.stop="emitDelete(item)"
-                      class="text-red-600 hover:text-red-900 transition-colors"
+                      @click.stop="showDeleteConfirmation(item)"
+                      :disabled="isDeleting"
+                      class="text-red-600 hover:text-red-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       title="Delete"
                     >
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg v-if="!isDeleting" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                      <svg v-else class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                       </svg>
                     </button>
                   </div>
@@ -482,16 +490,19 @@
                   v-if="selectedContent.type === 'quiz'"
                   :content="prepareContentForInteractive(selectedContent)"
                   :title="selectedContent.title"
+                  :content-id="extractContentId(selectedContent.id)"
                 />
                 <InteractiveNote
                   v-else-if="selectedContent.type === 'note'"
                   :content="prepareContentForInteractive(selectedContent)"
                   :title="selectedContent.title"
+                  :content-id="extractContentId(selectedContent.id)"
                 />
                 <InteractiveFlashcard
                   v-else-if="selectedContent.type === 'flashcard'"
                   :content="prepareContentForInteractive(selectedContent)"
                   :title="selectedContent.title"
+                  :content-id="extractContentId(selectedContent.id)"
                 />
               </div>
             </div>
@@ -499,15 +510,75 @@
         </div>
       </div>
     </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div v-if="showDeleteConfirm" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[70]">
+      <div class="bg-white rounded-xl max-w-md w-full shadow-2xl">
+        <div class="p-6">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+              <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+              </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900">Confirm Delete</h3>
+          </div>
+
+          <p class="text-gray-600 mb-2">
+            Are you sure you want to delete <strong>"{{ contentToDelete?.title }}"</strong>?
+          </p>
+          <p class="text-sm text-red-600 font-medium">
+            This action cannot be undone.
+          </p>
+
+          <div class="flex gap-3 mt-6">
+            <button
+              @click="cancelDelete"
+              :disabled="isDeleting"
+              class="flex-1 px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              @click="confirmDelete"
+              :disabled="isDeleting"
+              class="flex-1 px-4 py-2 text-white bg-red-600 hover:bg-red-700 rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              <svg v-if="isDeleting" class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              {{ isDeleting ? 'Deleting...' : 'Yes, Delete' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Success Toast -->
+    <div v-if="showSuccessToast" class="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-[80] flex items-center gap-3 animate-slide-in">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <span>{{ toastMessage }}</span>
+    </div>
+
+    <!-- Error Toast -->
+    <div v-if="showErrorToast" class="fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-[80] flex items-center gap-3 animate-slide-in">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+      </svg>
+      <span>{{ toastMessage }}</span>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+// import { useRouter } from 'vue-router'
 // Legacy services ไม่ใช้แล้ว - ใช้ UnifiedContentService แทน
 import api from '@/service/api'
 import UnifiedContentService, { type UnifiedContentDTO, type UnifiedContentResponse } from '@/service/UnifiedContentService'
+import ManualContentService from '@/service/ManualContentService'
 import InteractiveQuiz from '@/components/InteractiveQuiz.vue'
 import InteractiveNote from '@/components/InteractiveNote.vue'
 import InteractiveFlashcard from '@/components/InteractiveFlashcard.vue'
@@ -518,8 +589,8 @@ interface Props {
 }
 const { embedded } = defineProps<Props>()
 
-const emit = defineEmits(['edit-content'])
-const router = useRouter()
+// const emit = defineEmits(['edit-content'])
+// const router = useRouter()
 
 // UI state
 const searchQuery = ref('')
@@ -539,6 +610,16 @@ const showDetailModal = ref(false)
 const selectedContent = ref<ContentItem | null>(null)
 const currentViewMode = ref<'detail' | 'interactive'>('detail')
 const loadingDetailedContent = ref(false)
+
+// Delete confirmation state
+const showDeleteConfirm = ref(false)
+const contentToDelete = ref<ContentItem | null>(null)
+const isDeleting = ref(false)
+
+// Toast notification state
+const showSuccessToast = ref(false)
+const showErrorToast = ref(false)
+const toastMessage = ref('')
 
 // Data state
 const quizzes = ref<QuizData[]>([])
@@ -711,7 +792,7 @@ const contentItems = computed(() => {
         switch (item.contentType) {
           case 'flashcard':
             return {
-              id: `deck-${item.id}`,
+              id: item.id, // ✅ ใช้ ID จาก UnifiedContentService โดยตรง (manual-flashcard-${id})
               type: 'flashcard' as const,
               title: item.title || 'Untitled Flashcard Deck',
               subject: item.subject || 'General',
@@ -725,7 +806,7 @@ const contentItems = computed(() => {
 
           case 'quiz':
             return {
-              id: `quiz-${item.id}`,
+              id: item.id, // ✅ ใช้ ID จาก UnifiedContentService โดยตรง (manual-quiz-${id})
               type: 'quiz' as const,
               title: item.title || 'Untitled Quiz',
               subject: item.subject || 'General',
@@ -771,7 +852,7 @@ const contentItems = computed(() => {
             console.log('✅ Parsed note content:', noteContent)
 
             return {
-              id: `note-${item.id}`,
+              id: item.id, // ✅ ใช้ ID จาก UnifiedContentService โดยตรง (manual-note-${id})
               type: 'note' as const,
               title: item.title || 'Untitled Note',
               subject: item.subject || 'General',
@@ -849,41 +930,107 @@ function viewContent(item: ContentItem) {
   showDetailModal.value = true
 }
 
-function emitEdit(item: ContentItem, type: string) {
-  emit('edit-content', { item, type })
-  // Navigate to appropriate edit page
-  const id = item.id.split('-')[1]
-  switch (type) {
-    case 'quiz':
-      router.push(`/QuizView?edit=${id}`)
-      break
-    case 'note':
-      router.push(`/NoteView?edit=${id}`)
-      break
-    case 'flashcard':
-      router.push(`/FlashcardView?edit=${id}`)
-      break
-  }
+// function emitEdit(item: ContentItem, type: string) {
+//   emit('edit-content', { item, type })
+//   // Navigate to appropriate edit page
+//   const id = item.id.split('-')[1]
+//   switch (type) {
+//     case 'quiz':
+//       router.push(`/QuizView?edit=${id}`)
+//       break
+//     case 'note':
+//       router.push(`/NoteView?edit=${id}`)
+//       break
+//     case 'flashcard':
+//       router.push(`/FlashcardView?edit=${id}`)
+//       break
+//   }
+// }
+
+// Show delete confirmation dialog
+function showDeleteConfirmation(item: ContentItem) {
+  contentToDelete.value = item
+  showDeleteConfirm.value = true
 }
 
-async function emitDelete(item: ContentItem) {
-  if (confirm(`Are you sure you want to delete "${item.title}"?`)) {
-    try {
-      const contentId = item.id.replace(/^(deck|quiz|note)-/, '')
+// Cancel delete confirmation
+function cancelDelete() {
+  showDeleteConfirm.value = false
+  contentToDelete.value = null
+}
 
-      // ใช้ Unified API สำหรับลบ content
-      await api.delete(`/content/user/${contentId}`)
+// Execute delete after confirmation
+async function confirmDelete() {
+  if (!contentToDelete.value) return
 
-      console.log('✅ Content deleted successfully')
+  const item = contentToDelete.value
+  isDeleting.value = true
+  showDeleteConfirm.value = false
+
+  try {
+    // ✅ แก้ไขการ parse content ID ให้ถูกต้อง
+    // UnifiedContentService สร้าง ID ในรูปแบบ: manual-${contentType}-${id}
+    // เช่น: manual-quiz-123, manual-flashcard-456, manual-note-789
+    const rawId = item.id.replace(/^manual-(quiz|flashcard|note)-/, '')
+    console.log('🔍 Raw ID from item:', rawId, 'Type:', typeof rawId)
+    console.log('🔍 Original item.id:', item.id)
+
+    const contentId = parseInt(rawId)
+    console.log('🔍 Parsed content ID:', contentId, 'Is NaN:', isNaN(contentId))
+
+    if (isNaN(contentId)) {
+      throw new Error(`Invalid content ID: ${rawId}. Please refresh the page and try again.`)
+    }
+
+    console.log('🗑️ Deleting content:', {
+      originalId: item.id,
+      rawId: rawId,
+      contentId: contentId,
+      title: item.title
+    })
+
+    // ใช้ ManualContentService สำหรับลบ content
+    const result = await ManualContentService.deleteContent(contentId)
+
+    if (result.success) {
+      console.log('✅ Content deleted successfully:', result)
+
+      // Show success toast
+      toastMessage.value = `"${item.title}" has been deleted successfully!`
+      showSuccessToast.value = true
 
       // Reload content
       await loadContentItems()
-    } catch (error) {
-      console.error('❌ Failed to delete content:', error)
-      alert('Failed to delete content. Please try again.')
+
+      // Auto-hide success toast after 3 seconds
+      setTimeout(() => {
+        showSuccessToast.value = false
+      }, 3000)
+    } else {
+      throw new Error(result.message || 'Failed to delete content')
     }
+  } catch (error) {
+    console.error('❌ Failed to delete content:', error)
+
+    // Show error toast
+    const errorMessage = error instanceof Error ? error.message : 'Failed to delete content. Please try again.'
+    toastMessage.value = `Delete failed: ${errorMessage}`
+    showErrorToast.value = true
+
+    // Auto-hide error toast after 5 seconds
+    setTimeout(() => {
+      showErrorToast.value = false
+    }, 5000)
+  } finally {
+    isDeleting.value = false
+    contentToDelete.value = null
   }
 }
+
+// Legacy function for backward compatibility
+// async function emitDelete(item: ContentItem) {
+//   showDeleteConfirmation(item)
+// }
 
 
 
@@ -947,8 +1094,9 @@ async function loadDetailedContent(item: ContentItem) {
     // ไม่ต้องใช้ itemId และ username แล้วสำหรับ Unified API
 
     // ใช้ Unified API สำหรับโหลด content details
-    const contentId = item.id.replace(/^(deck|quiz|note)-/, '')
+    const contentId = item.id.replace(/^manual-(quiz|flashcard|note)-/, '')
     console.log('🔄 Loading content details from Unified API for ID:', contentId)
+    console.log('🔄 Original item.id:', item.id)
 
     const response = await api.get(`/api/content/user/${contentId}`)
 
@@ -1328,6 +1476,29 @@ function canShowInteractive(item: ContentItem | null): boolean {
   return item !== null && ['quiz', 'note', 'flashcard'].includes(item.type)
 }
 
+/**
+ * Extract numeric content ID from unified content ID format
+ * Format: "manual-{type}-{id}" or "ai-{type}-{id}"
+ * Example: "manual-quiz-123" → 123
+ */
+function extractContentId(id: string): number {
+  console.log('🔍 Extracting content ID from:', id)
+
+  // Split by '-' and get the last part (the numeric ID)
+  const parts = id.split('-')
+  const numericId = parts[parts.length - 1]
+
+  const parsed = parseInt(numericId)
+  console.log('✅ Extracted content ID:', parsed)
+
+  if (isNaN(parsed)) {
+    console.error('❌ Failed to extract numeric ID from:', id)
+    return 0
+  }
+
+  return parsed
+}
+
 // Utility functions
 function getTypeColor(type: string) {
   const colors = {
@@ -1432,5 +1603,21 @@ onMounted(async () => {
   line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+/* Toast animations */
+@keyframes slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in {
+  animation: slide-in 0.3s ease-out;
 }
 </style>

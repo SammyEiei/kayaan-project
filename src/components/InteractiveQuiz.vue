@@ -6,6 +6,7 @@ import {
   parseMixedQuizCounts,
   type SimpleQuestion
 } from '@/utils/quizParser'
+import { useStudyStreakStore } from '@/stores/studyStreak'
 
 interface QuizQuestion {
   id: number
@@ -24,9 +25,13 @@ interface QuizQuestion {
 
 interface Props {
   content: string
+  contentId?: number
 }
 
 const props = defineProps<Props>()
+
+// Study Streak Store
+const streakStore = useStudyStreakStore()
 
 // Quiz state
 const questions = ref<QuizQuestion[]>([])
@@ -34,6 +39,7 @@ const currentQuestionIndex = ref(0)
 const userAnswers = ref<Record<number, string | string[]>>({})
 const showResults = ref(false)
 const quizStarted = ref(false)
+const quizCompleted = ref(false)
 
 // Helper functions for better type handling
 const getQuestionTypeDisplay = (type: string) => {
@@ -720,11 +726,36 @@ const handleAnswerInput = () => {
   console.log('Answer input changed:', userAnswers.value[currentQuestion.value.id])
 }
 
-const nextQuestion = () => {
+const nextQuestion = async () => {
   if (currentQuestionIndex.value < totalQuestions.value - 1) {
     currentQuestionIndex.value++
   } else {
     showResults.value = true
+    await completeQuiz()
+  }
+}
+
+// Complete quiz and update streak
+const completeQuiz = async () => {
+  if (quizCompleted.value) return
+
+  quizCompleted.value = true
+
+  // Update Study Streak
+  if (props.contentId) {
+    try {
+      console.log('🔥 InteractiveQuiz: Completing interactive mode for streak', props.contentId)
+
+      await streakStore.completeInteractiveMode(
+        props.contentId,
+        `Completed quiz: ${totalQuestions.value} questions, Score: ${score.value}%`
+      )
+
+      console.log('✅ InteractiveQuiz: Study streak updated successfully')
+    } catch (streakError) {
+      console.warn('⚠️ InteractiveQuiz: Failed to update study streak', streakError)
+      // ไม่ throw error เพื่อไม่ให้กระทบการแสดงผล quiz
+    }
   }
 }
 
@@ -739,6 +770,7 @@ const restartQuiz = () => {
   showResults.value = false
   currentQuestionIndex.value = 0
   userAnswers.value = {}
+  quizCompleted.value = false
 }
 
 const isAnswerSelected = (answer: string) => {
