@@ -815,6 +815,24 @@ const isAnswerCorrect = (questionId: number, answer: string | string[]) => {
     return false
   }
 
+  // ✅ สำหรับ multiple-choice questions ให้เปรียบเทียบแบบ case-insensitive
+  if (question.type === 'multiple-choice') {
+    const userAnswer = String(answer).toLowerCase().trim()
+    const correctAnswer = String(question.correctAnswer).toLowerCase().trim()
+
+    // ✅ เปรียบเทียบแบบ case-insensitive
+    return userAnswer === correctAnswer
+  }
+
+  // ✅ สำหรับ short-answer และ open-ended questions ให้เปรียบเทียบแบบ case-insensitive
+  if (question.type === 'short-answer' || question.type === 'open-ended') {
+    const userAnswer = String(answer).toLowerCase().trim()
+    const correctAnswer = String(question.correctAnswer).toLowerCase().trim()
+
+    // ✅ เปรียบเทียบแบบ case-insensitive
+    return userAnswer === correctAnswer
+  }
+
   return question.correctAnswer === answer
 }
 
@@ -917,7 +935,7 @@ watch(() => props.content, () => {
 </script>
 
 <template>
-  <div class="max-w-4xl mx-auto">
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
     <!-- Quiz Start Screen -->
     <div v-if="!quizStarted" class="text-center py-12">
       <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -936,7 +954,7 @@ watch(() => props.content, () => {
     </div>
 
     <!-- Quiz Questions -->
-    <div v-else-if="!showResults" class="space-y-6">
+    <div v-else-if="!showResults" class="space-y-6 py-4">
       <!-- Progress Bar -->
       <div class="bg-slate-200 rounded-full h-2">
         <div
@@ -950,7 +968,7 @@ watch(() => props.content, () => {
       </div>
 
       <!-- Question Card -->
-      <div class="bg-white rounded-lg border border-slate-200 p-6">
+      <div class="bg-white rounded-lg border border-slate-200 p-6 sm:p-8">
         <h3 class="text-lg font-semibold text-slate-900 mb-6">
           {{ currentQuestion.question }}
         </h3>
@@ -1076,18 +1094,18 @@ watch(() => props.content, () => {
       </div>
 
       <!-- Navigation -->
-      <div class="flex justify-between">
+      <div class="flex justify-between items-center mt-8 px-6 sm:px-8">
         <button
           @click="previousQuestion"
           :disabled="currentQuestionIndex === 0"
-          class="px-4 py-2 text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          class="px-6 py-3 text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium min-w-[100px]"
         >
           Previous
         </button>
         <button
           @click="nextQuestion"
           :disabled="!isAnswerProvided"
-          class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium min-w-[100px]"
         >
           {{ isLastQuestion ? 'Finish Quiz' : 'Next' }}
         </button>
@@ -1095,7 +1113,7 @@ watch(() => props.content, () => {
     </div>
 
     <!-- Results Screen -->
-    <div v-else class="text-center py-12">
+    <div v-else class="text-center py-12 px-4 sm:px-6">
       <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
         <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -1117,7 +1135,7 @@ watch(() => props.content, () => {
       </div>
 
       <!-- Review Questions -->
-      <div class="bg-white rounded-lg border border-slate-200 p-6 text-left">
+      <div class="bg-white rounded-lg border border-slate-200 p-6 sm:p-8 text-left">
         <h3 class="text-lg font-semibold text-slate-900 mb-4">Question Review</h3>
         <div class="space-y-4">
           <div
@@ -1129,13 +1147,13 @@ watch(() => props.content, () => {
               <h4 class="font-medium text-slate-900">{{ question.question }}</h4>
               <span
                 :class="
-                  isAnswerCorrect(question.id, getUserAnswer(question.id))
+                  isAnswerCorrect(question.id, userAnswers[question.id] || '')
                     ? 'bg-green-100 text-green-800'
                     : 'bg-red-100 text-red-800'
                 "
                 class="px-2 py-1 text-xs font-medium rounded-full"
               >
-                {{ isAnswerCorrect(question.id, getUserAnswer(question.id)) ? 'Correct' : 'Incorrect' }}
+                {{ isAnswerCorrect(question.id, userAnswers[question.id] || '') ? 'Correct' : 'Incorrect' }}
               </span>
             </div>
             <div class="text-sm text-slate-600">

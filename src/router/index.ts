@@ -38,16 +38,16 @@ const router = createRouter({
       name: 'register',
       component: () => import('../views/authentication_view/RegisterView.vue'),
     },
-    // {
-    //   path: '/forgot-password',
-    //   name: 'forgot-password',
-    //   component: () => import('../views/authentication_view/ForgotPasswordView.vue'),
-    // },
-    // {
-    //   path: '/reset-password',
-    //   name: 'reset-password',
-    //   component: () => import('../views/authentication_view/ResetPasswordView.vue'),
-    // },
+    {
+      path: '/forgot-password',
+      name: 'forgot-password',
+      component: () => import('../views/authentication_view/ForgotPasswordView.vue'),
+    },
+    {
+      path: '/reset-password',
+      name: 'reset-password',
+      component: () => import('../views/authentication_view/ResetPassword.vue'),
+    },
     {
       path: '/dashboard',
       name: 'dashboard',

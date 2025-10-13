@@ -29,22 +29,27 @@
                     <div
                       class="relative w-16 h-16 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-110"
                     >
-                      <!-- Modern K Logo SVG -->
-                      <!-- <svg
-                        class="w-8 h-8 text-white font-bold"
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                      >
-                        <path d="M3 3h4v18H3V3zm6 0h2l6 8-6 8h-2l6-8-6-8zm8 0h4v18h-4V3z" />
-                        <circle cx="12" cy="12" r="2" fill="currentColor" opacity="0.7" />
-                      </svg> -->
-                      <svg class="w-6 h-6 text-white" viewBox="0 0 32 32" fill="currentColor">
-                        <path d="M7 6c0-1.1.9-2 2-2s2 .9 2 2v20c0 1.1-.9 2-2 2s-2-.9-2-2V6z" />
-                        <path
-                          d="M11 16c0-.6.4-1 1-1h.5c.3 0 .6.1.8.3l6.4 6.4c.8.8 2.1.8 2.8 0 .8-.8.8-2.1 0-2.8L16.8 13c-.2-.2-.3-.5-.3-.8V12c0-.3.1-.6.3-.8l5.7-5.7c.8-.8.8-2.1 0-2.8-.8-.8-2.1-.8-2.8 0L13.3 9.1c-.2.2-.5.3-.8.3H12c-.6 0-1 .4-1 1v5z"
-                        />
-                        <circle cx="22" cy="16" r="2.5" opacity="0.4" />
-                      </svg>
+                      <!-- Kayaan Minimal Face Logo -->
+                      <div class="w-10 h-10 bg-white rounded-full flex items-center justify-center kayaan-face relative kayaan-logo">
+                        <!-- Sparkles -->
+                        <div class="absolute top-1 right-1 w-1 h-1 bg-yellow-300 rounded-full opacity-70 kayaan-sparkle"></div>
+                        <div class="absolute bottom-1 left-1 w-0.5 h-0.5 bg-pink-300 rounded-full opacity-60 kayaan-sparkle-small"></div>
+
+                        <!-- Cheeks -->
+                        <div class="absolute left-1 bottom-3 w-1 h-1 bg-pink-300 rounded-full opacity-60 kayaan-blush"></div>
+                        <div class="absolute right-1 bottom-3 w-1 h-1 bg-pink-300 rounded-full opacity-60 kayaan-blush"></div>
+
+                        <!-- Minimal Face -->
+                        <div class="relative kayaan-eye-container">
+                          <!-- Eyes -->
+                          <div class="flex gap-1.5 mb-1">
+                            <div class="w-2 h-2 bg-slate-600 rounded-full kayaan-eye"></div>
+                            <div class="w-2 h-2 bg-slate-600 rounded-full kayaan-eye"></div>
+                          </div>
+                          <!-- Smile -->
+                          <div class="w-4 h-2 border-b-2 border-slate-600 rounded-full kayaan-smile"></div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </router-link>
@@ -222,12 +227,12 @@
                 </div>
 
                 <div class="text-sm">
-                  <a
-                    href="#"
+                  <router-link
+                    to="/forgot-password"
                     class="font-medium text-blue-600 hover:text-blue-500 transition-colors duration-200"
                   >
                     Forgot password?
-                  </a>
+                  </router-link>
                 </div>
               </div>
 
@@ -309,15 +314,28 @@
               <div class="text-center mb-8">
                 <div class="inline-flex items-center gap-3 mb-4">
                   <div
-                    class="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center"
+                    class="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center kayaan-logo"
                   >
-                    <svg class="w-6 h-6 text-white" viewBox="0 0 32 32" fill="currentColor">
-                      <path d="M7 6c0-1.1.9-2 2-2s2 .9 2 2v20c0 1.1-.9 2-2 2s-2-.9-2-2V6z" />
-                      <path
-                        d="M11 16c0-.6.4-1 1-1h.5c.3 0 .6.1.8.3l6.4 6.4c.8.8 2.1.8 2.8 0 .8-.8.8-2.1 0-2.8L16.8 13c-.2-.2-.3-.5-.3-.8V12c0-.3.1-.6.3-.8l5.7-5.7c.8-.8.8-2.1 0-2.8-.8-.8-2.1-.8-2.8 0L13.3 9.1c-.2.2-.5.3-.8.3H12c-.6 0-1 .4-1 1v5z"
-                      />
-                      <circle cx="22" cy="16" r="2.5" opacity="0.4" />
-                    </svg>
+                    <div class="w-10 h-10 bg-white rounded-full flex items-center justify-center kayaan-face relative kayaan-logo">
+                      <!-- Sparkles -->
+                      <div class="absolute top-1 right-1 w-1 h-1 bg-yellow-300 rounded-full opacity-70 kayaan-sparkle"></div>
+                      <div class="absolute bottom-1 left-1 w-0.5 h-0.5 bg-pink-300 rounded-full opacity-60 kayaan-sparkle-small"></div>
+
+                      <!-- Cheeks -->
+                      <div class="absolute left-1 bottom-3 w-1 h-1 bg-pink-300 rounded-full opacity-60 kayaan-blush"></div>
+                      <div class="absolute right-1 bottom-3 w-1 h-1 bg-pink-300 rounded-full opacity-60 kayaan-blush"></div>
+
+                      <!-- Minimal Face -->
+                      <div class="relative kayaan-eye-container">
+                        <!-- Eyes -->
+                        <div class="flex gap-1.5 mb-1">
+                          <div class="w-2 h-2 bg-slate-600 rounded-full kayaan-eye"></div>
+                          <div class="w-2 h-2 bg-slate-600 rounded-full kayaan-eye"></div>
+                        </div>
+                        <!-- Smile -->
+                        <div class="w-4 h-2 border-b-2 border-slate-600 rounded-full kayaan-smile"></div>
+                      </div>
+                    </div>
                   </div>
                   <div>
                     <div class="text-2xl font-bold text-white">Kayaan</div>
@@ -491,6 +509,81 @@ const onSubmit = handleSubmit(async (values) => {
 .bg-clip-text {
   -webkit-background-clip: text;
   background-clip: text;
+}
+
+/* Kayaan Logo Animations */
+.kayaan-logo {
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.kayaan-logo:hover {
+  transform: scale(1.02);
+  border-color: #f472b6;
+  box-shadow: 0 4px 12px rgba(244, 114, 182, 0.15);
+}
+
+.kayaan-face {
+  /* No default animation for minimal look */
+}
+
+.kayaan-eye-container {
+  animation: eye-movement 8s ease-in-out infinite;
+}
+
+.kayaan-eye {
+  animation: blink 3s infinite;
+}
+
+@keyframes blink {
+  0%, 90%, 100% { opacity: 1; }
+  95% { opacity: 0.3; }
+}
+
+@keyframes eye-movement {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(0.5px); }
+  50% { transform: translateX(0); }
+  75% { transform: translateX(-0.5px); }
+}
+
+.kayaan-smile {
+  /* No animation for minimal look */
+}
+
+/* Sparkle Animations */
+.kayaan-sparkle {
+  animation: sparkle-pulse 2s ease-in-out infinite;
+}
+
+.kayaan-sparkle-small {
+  animation: sparkle-pulse 2s ease-in-out infinite;
+  animation-delay: 1s;
+}
+
+@keyframes sparkle-pulse {
+  0%, 100% {
+    transform: scale(0.8);
+    opacity: 0.4;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+}
+
+/* Blush Animation */
+.kayaan-blush {
+  animation: blush-glow 4s ease-in-out infinite;
+}
+
+@keyframes blush-glow {
+  0%, 100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.8;
+  }
 }
 
 /* Smooth transitions */

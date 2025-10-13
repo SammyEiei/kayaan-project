@@ -13,25 +13,25 @@
         <div>
           <h3 class="text-base font-semibold text-gray-900 mb-4">Current Avatar</h3>
 
-          <div class="flex justify-center mb-6">
+          <div class="flex justify-center mb-4">
             <div class="relative group">
               <div
-                class="w-32 h-32 rounded-full bg-gray-100 border-2 border-gray-200 shadow-sm flex items-center justify-center text-gray-700 text-2xl font-semibold overflow-hidden"
+                class="w-24 h-24 rounded-full bg-gray-100 border-2 border-gray-200 shadow-sm flex items-center justify-center text-gray-700 text-xl font-semibold overflow-hidden"
               >
                 <img
                   v-if="selectedAvatar"
                   :src="selectedAvatar"
                   :style="{ transform: `rotate(${rotation}deg)` }"
-                  class="w-32 h-32 rounded-full object-cover"
+                  class="w-24 h-24 rounded-full object-cover"
                   alt="Your avatar"
                 />
                 <img
                   v-else-if="currentAvatar"
                   :src="currentAvatar"
-                  class="w-32 h-32 rounded-full object-cover"
+                  class="w-24 h-24 rounded-full object-cover"
                   alt="Current avatar"
                 />
-                <span v-else class="text-2xl">{{ displayNameInitials }}</span>
+                <span v-else class="text-xl">{{ displayNameInitials }}</span>
               </div>
 
               <!-- Loading overlay -->
@@ -39,7 +39,7 @@
                 v-if="isGenerating || isSaving"
                 class="absolute inset-0 bg-white bg-opacity-90 rounded-full flex items-center justify-center"
               >
-                <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
               </div>
 
               <!-- Edit overlay for uploaded images -->
@@ -49,7 +49,7 @@
                 @click="toggleEditing"
               >
                 <svg
-                  class="w-5 h-5 text-blue-600"
+                  class="w-4 h-4 text-blue-600"
                   fill="none"
                   stroke="currentColor"
                   stroke-width="2"
@@ -75,9 +75,9 @@
           <!-- Image Editor -->
           <div
             v-if="isEditing && uploadedImage"
-            class="p-4 bg-gray-50 rounded-xl border border-gray-200"
+            class="p-3 bg-gray-50 rounded-xl border border-gray-200"
           >
-            <h4 class="text-sm font-medium text-gray-900 mb-3">Adjust Photo</h4>
+            <h4 class="text-sm font-medium text-gray-900 mb-2">Adjust Photo</h4>
             <div class="flex justify-center gap-2">
               <button
                 @click="rotateImage('left')"
@@ -288,17 +288,17 @@
             </button>
 
             <!-- Generated Avatars Grid -->
-            <div v-if="generatedAvatars.length > 0" class="max-h-64 overflow-y-auto">
-              <div class="grid grid-cols-4 gap-2">
+            <div v-if="generatedAvatars.length > 0">
+              <div class="grid grid-cols-3 gap-3">
                 <div
-                  v-for="(avatar, index) in generatedAvatars"
+                  v-for="(avatar, index) in generatedAvatars.slice(0, 6)"
                   :key="`generated-${index}`"
                   class="relative cursor-pointer"
                   @click="selectAvatar(avatar)"
                 >
                   <img
                     :src="avatar"
-                    class="w-full aspect-square rounded-lg object-cover border-2"
+                    class="w-full aspect-square rounded-lg object-contain border-2 h-20 bg-gray-50"
                     :class="
                       selectedAvatar === avatar && !uploadedImage
                         ? 'border-blue-600'
