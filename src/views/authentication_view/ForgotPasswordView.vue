@@ -69,7 +69,7 @@
                   <span class="text-sm text-gray-500 font-medium">Learning Hub</span>
                 </div>
                 <p class="text-gray-600">
-                  {{ emailSent ? 'Check your email' : 'Enter your email to reset password' }}
+                  {{ emailSent ? 'We have sent you a reset code!' : 'Enter your email to reset password' }}
                 </p>
               </div>
             </div>
@@ -87,9 +87,14 @@
                   </svg>
                 </div>
                 <div class="ml-3">
-                  <p class="text-sm text-green-700">
-                    If an account exists with that email, we've sent a password reset link. Please
-                    check your inbox.
+                  <p class="text-sm font-semibold text-green-700 mb-1">
+                    Reset code sent successfully!
+                  </p>
+                  <p class="text-sm text-green-600">
+                    If an account exists with that email, we've sent a 6-character reset code. Please check your inbox and spam folder.
+                  </p>
+                  <p class="text-xs text-green-600 mt-2">
+                    ⏰ The code will expire in 15 minutes
                   </p>
                 </div>
               </div>
@@ -180,6 +185,26 @@
               </button>
             </form>
 
+            <!-- Continue to Reset Password Button (shown after email sent) -->
+            <div v-if="emailSent" class="mt-6">
+              <router-link
+                to="/reset-password"
+                class="relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-xl text-white bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+              >
+                <span class="flex items-center gap-2">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M13 7l5 5m0 0l-5 5m5-5H6"
+                    />
+                  </svg>
+                  Continue to Reset Password
+                </span>
+              </router-link>
+            </div>
+
             <!-- Back to Login -->
             <div class="mt-6 text-center">
               <router-link
@@ -206,12 +231,10 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
 import { useForm, useField } from 'vee-validate'
 import * as yup from 'yup'
-import apiClient from '@/service/AxiosClient'
+import { forgotPassword } from '@/service/authService'
 
-const router = useRouter()
 const isLoading = ref(false)
 const errorMessage = ref('')
 const emailSent = ref(false)
@@ -229,24 +252,66 @@ const { handleSubmit, errors } = useForm({
 const { value: email } = useField('email')
 
 // Submit handler
-const onSubmit = handleSubmit(async (values) => {
+const onSubmit = handleSubmit(async (values: { email: string }) => {
   isLoading.value = true
   errorMessage.value = ''
+  emailSent.value = false
+
+  console.log('🔐 [Forgot Password] Sending request to:', '/api/auth/forgot-password')
+  console.log('📧 [Forgot Password] Email:', values.email)
 
   try {
-    await apiClient.post('/v1/auth/request-password-reset', {
-      email: values.email,
+    const response = await forgotPassword({ email: values.email })
+
+    console.log('✅ [Forgot Password] Success response:', response)
+    console.log('✅ [Forgot Password] Response data:', response.data)
+    console.log('✅ [Forgot Password] Response status:', response.status)
+
+    // Show detailed backend response
+    if (response.data) {
+      console.log('📨 [Backend Response]:', {
+        success: response.data.success,
+        message: response.data.message,
+        email: response.data.email,
+        fullData: response.data
+      })
+    }
+
+    // Show success message
+    emailSent.value = true
+
+    // Do NOT auto-redirect - let user click "Continue to Reset Password" button
+    // This gives them time to read the success message and check their email
+  } catch (err) {
+    console.error('❌ [Forgot Password] Error:', err)
+
+    const error = err as {
+      response?: {
+        data?: { message?: string; success?: boolean }
+        status?: number
+      }
+      message?: string
+    }
+
+    console.error('❌ [Forgot Password] Error details:', {
+      status: error.response?.status,
+      message: error.response?.data?.message,
+      success: error.response?.data?.success,
+      fullError: error
     })
 
-    emailSent.value = true
-
-    // Redirect to login after 5 seconds
-    setTimeout(() => {
-      router.push('/login')
-    }, 5000)
-  } catch (error: any) {
-    // Always show the same message for security
-    emailSent.value = true
+    // Check if it's a real error or just security response
+    if (error.response?.status && error.response.status >= 500) {
+      // Server error - show error message
+      errorMessage.value = error.response?.data?.message || 'Server error. Please try again later.'
+    } else if (error.response?.status === 400) {
+      // Validation error
+      errorMessage.value = error.response?.data?.message || 'Invalid email address.'
+    } else {
+      // For security, show success message even on other errors
+      // This prevents email enumeration attacks
+      emailSent.value = true
+    }
   } finally {
     isLoading.value = false
   }

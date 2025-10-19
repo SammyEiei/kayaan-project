@@ -69,7 +69,7 @@
                   <span class="text-sm text-gray-500 font-medium">Learning Hub</span>
                 </div>
                 <p class="text-gray-600">
-                  {{ success ? 'Password reset successful!' : 'Enter your new password below' }}
+                  {{ success ? 'Password reset successful!' : 'Enter the 6-digit code from your email and set a new password' }}
                 </p>
               </div>
             </div>
@@ -112,33 +112,60 @@
               </div>
             </div>
 
-            <!-- Invalid Token Message -->
-            <div v-if="invalidToken" class="mb-6 bg-red-50 border border-red-200 rounded-xl p-4">
-              <div class="flex items-center">
-                <div class="flex-shrink-0">
-                  <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path
-                      fill-rule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                      clip-rule="evenodd"
-                    />
-                  </svg>
-                </div>
-                <div class="ml-3">
-                  <p class="text-sm text-red-700">
-                    This password reset link is invalid or has expired. Please request a new one.
-                  </p>
-                </div>
-              </div>
-            </div>
 
             <!-- Form -->
             <form
-              v-if="!success && !invalidToken"
+              v-if="!success"
               @submit.prevent="onSubmit"
               class="space-y-6"
               novalidate
             >
+              <!-- Reset Code Input -->
+              <div>
+                <label for="resetCode" class="block text-sm font-medium text-gray-700 mb-2"
+                  >Reset Code (6 characters)</label
+                >
+                <div class="relative">
+                  <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg
+                      class="h-5 w-5 text-gray-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
+                      />
+                    </svg>
+                  </div>
+                  <input
+                    id="resetCode"
+                    name="resetCode"
+                    type="text"
+                    v-model="resetCode"
+                    :disabled="isLoading"
+                    maxlength="6"
+                    :class="[
+                      'block w-full pl-10 pr-3 py-3 bg-white/50 border rounded-xl shadow-sm transition-all duration-200 uppercase tracking-widest font-mono text-center text-lg',
+                      errors.resetCode
+                        ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
+                        : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500',
+                      'placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-opacity-50',
+                    ]"
+                    placeholder="a1b2c3"
+                  />
+                </div>
+                <p v-if="errors.resetCode" class="mt-2 text-sm text-red-600">
+                  {{ errors.resetCode }}
+                </p>
+                <p class="mt-2 text-xs text-gray-500">
+                  Enter the 6-character code sent to your email (letters and numbers only)
+                </p>
+              </div>
+
               <div>
                 <label for="password" class="block text-sm font-medium text-gray-700 mb-2"
                   >New Password</label
@@ -221,6 +248,16 @@
                 </p>
               </div>
 
+              <!-- Request New Code Link -->
+              <div class="text-center">
+                <router-link
+                  to="/forgot-password"
+                  class="text-sm text-blue-600 hover:text-blue-500 transition-colors duration-200"
+                >
+                  Didn't receive a code? Request a new one
+                </router-link>
+              </div>
+
               <button
                 type="submit"
                 :disabled="isLoading"
@@ -272,22 +309,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { useForm, useField } from 'vee-validate'
 import * as yup from 'yup'
-import apiClient from '@/service/AxiosClient'
+import { resetPassword } from '@/service/authService'
 
 const router = useRouter()
-const route = useRoute()
 const isLoading = ref(false)
 const errorMessage = ref('')
 const success = ref(false)
-const invalidToken = ref(false)
-const token = ref('')
 
 // Validation schema
 const schema = yup.object({
+  resetCode: yup
+    .string()
+    .matches(/^[a-z0-9]{6}$/, 'Reset code must be exactly 6 characters (a-z, 0-9 only)')
+    .required('Reset code is required'),
   password: yup
     .string()
     .min(6, 'Password must be at least 6 characters')
@@ -303,40 +341,64 @@ const { handleSubmit, errors } = useForm({
   validationSchema: schema,
 })
 
+const { value: resetCode } = useField('resetCode')
 const { value: password } = useField('password')
 const { value: confirmPassword } = useField('confirmPassword')
 
-// Check token on mount
-onMounted(() => {
-  token.value = route.query.token as string
-  if (!token.value) {
-    invalidToken.value = true
-  }
-})
-
 // Submit handler
-const onSubmit = handleSubmit(async (values) => {
+const onSubmit = handleSubmit(async (values: { resetCode: string; password: string }) => {
   isLoading.value = true
   errorMessage.value = ''
 
+  console.log('🔑 [Reset Password] Sending request to:', '/api/auth/reset-password')
+  console.log('🔑 [Reset Password] Reset Code:', values.resetCode)
+  console.log('🔑 [Reset Password] Password length:', values.password.length)
+
   try {
-    await apiClient.post('/api/v1/auth/reset-password', {
-      token: token.value,
+    const response = await resetPassword({
+      resetCode: values.resetCode.toLowerCase(),
       newPassword: values.password,
     })
 
+    console.log('✅ [Reset Password] Success response:', response)
+
     success.value = true
 
-    // Redirect to login after 3 seconds
+    // Redirect to login after 3 seconds (give user time to read success message)
     setTimeout(() => {
       router.push('/login')
     }, 3000)
-  } catch (error: any) {
-    if (error.response?.status === 400) {
-      invalidToken.value = true
+  } catch (err) {
+    console.error('❌ [Reset Password] Error:', err)
+
+    const error = err as {
+      response?: {
+        data?: { message?: string; success?: boolean }
+        status?: number
+      }
+      message?: string
+    }
+
+    console.error('❌ [Reset Password] Error details:', {
+      status: error.response?.status,
+      message: error.response?.data?.message,
+      success: error.response?.data?.success,
+      fullError: error
+    })
+
+    const apiError = error.response?.data?.message || error.message
+
+    // Handle different error types
+    if (apiError?.toLowerCase().includes('invalid') || apiError?.toLowerCase().includes('expired')) {
+      errorMessage.value = 'Invalid or expired reset code. Please request a new one.'
+    } else if (apiError?.toLowerCase().includes('used')) {
+      errorMessage.value = 'This reset code has already been used. Please request a new one.'
+    } else if (error.response?.status === 400) {
+      errorMessage.value = apiError || 'Invalid reset code or password. Please try again.'
+    } else if (error.response?.status && error.response.status >= 500) {
+      errorMessage.value = 'Server error. Please try again later.'
     } else {
-      errorMessage.value =
-        error.response?.data?.message || 'Failed to reset password. Please try again.'
+      errorMessage.value = apiError || 'Failed to reset password. Please try again.'
     }
   } finally {
     isLoading.value = false
