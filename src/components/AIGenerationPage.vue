@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useAIGenerationStore } from '@/stores/aiGeneration'
 // import { useAIContentStore } from '@/stores/aiContent'
 import { ApiTestUtil } from '@/utils/apiTestUtil'
@@ -14,6 +14,7 @@ const emit = defineEmits<{
 const aiGenerationStore = useAIGenerationStore()
 // const aiContentStore = useAIContentStore()
 const router = useRouter()
+const route = useRoute()
 
 // Step management
 const currentStep = ref<'prompt' | 'preview' | 'generating' | 'result'>('prompt')
@@ -920,11 +921,18 @@ const resetGeneration = () => {
 }
 
 onMounted(() => {
+  // Check query parameter for content type selection from Dashboard
+  const typeFromQuery = route.query.type as string
+  if (typeFromQuery && ['note', 'flashcard', 'quiz'].includes(typeFromQuery)) {
+    outputFormat.value = typeFromQuery as 'quiz' | 'flashcard' | 'note'
+    console.log('🎯 Content type set from Dashboard:', outputFormat.value)
+  }
+
   // Set default prompt based on file attachment status
   const currentPrompts = getCurrentPrompts()
-  promptText.value = currentPrompts.note
+  promptText.value = currentPrompts[outputFormat.value]
   // Store initial prompt for comparison
-  initialPromptText.value = currentPrompts.note
+  initialPromptText.value = currentPrompts[outputFormat.value]
   isPromptModified.value = false
 })
 </script>

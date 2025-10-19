@@ -111,6 +111,13 @@ const router = createRouter({
       }
     },
     {
+      path: '/my-content',
+      name: 'my-content',
+      redirect: _to => {
+        return { path: '/create-content', query: { tab: 'content' } }
+      }
+    },
+    {
       path: '/ai-content-generator',
       name: 'ai-content-generator',
       component: () => import('../views/features_view/AIContentGeneratorView.vue'),

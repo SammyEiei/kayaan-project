@@ -87,9 +87,15 @@
             Cancel
           </button>
           <button
-            class="px-5 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl transition-all duration-200 font-medium shadow-md hover:shadow-lg flex items-center gap-2 transform hover:scale-105"
+            :class="[
+              'px-5 py-2.5 rounded-xl transition-all duration-200 font-medium flex items-center gap-2',
+              isFormValid && !isSaving
+                ? 'bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-md hover:shadow-lg transform hover:scale-105 cursor-pointer'
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-sm'
+            ]"
             @click="handleSave"
-            :disabled="isSaving"
+            :disabled="!isFormValid || isSaving"
+            :title="saveButtonTooltip"
           >
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12" />
@@ -245,9 +251,9 @@
                     {{ index + 1 }}
                   </div>
                   <h4 class="text-lg font-bold text-gray-900">Question {{ index + 1 }}</h4>
-                  <div v-if="question.question.trim()" class="text-sm text-gray-600 truncate max-w-md hidden sm:block">
+                  <!-- <div v-if="question.question.trim()" class="text-sm text-gray-600 truncate max-w-md hidden sm:block">
                     "{{ question.question.slice(0, 50) }}{{ question.question.length > 50 ? '...' : '' }}"
-                  </div>
+                  </div> -->
                 </div>
                 <div class="flex items-center gap-2">
                   <button
@@ -463,7 +469,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, onMounted, onUnmounted } from 'vue'
+import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import ManualContentService from '@/service/ManualContentService'
 import { JSONContentValidator, ContentConverter } from '@/utils/jsonContentValidators'
@@ -529,6 +535,65 @@ const errorMessage = ref('')
 const successMessage = ref('')
 const collapsedQuestions = ref<Set<string>>(new Set())
 const showFloatingMenu = ref(false)
+
+// Computed property to check if form is valid for saving
+const isFormValid = computed(() => {
+  // Check if title is filled
+  if (!title.value.trim()) return false
+
+  // Check if at least one question exists
+  if (questions.value.length === 0) return false
+
+  // Check if all questions are properly filled
+  for (const q of questions.value) {
+    // Check if question text is filled
+    if (!q.question.trim()) return false
+
+    // Check based on question type
+    if (q.type === 'multiple-choice') {
+      const filledOptions = q.options.filter(o => o.trim())
+      if (filledOptions.length < 2) return false
+      if (!q.correctAnswer || !filledOptions.includes(q.correctAnswer)) return false
+      if (q.options.some(o => !o.trim())) return false // All options must have content
+    } else if (q.type === 'true-false') {
+      if (!q.correctAnswer || !['true', 'false'].includes(q.correctAnswer.toLowerCase())) return false
+    } else if (q.type === 'open-ended') {
+      if (!q.correctAnswer || !q.correctAnswer.trim()) return false
+    }
+  }
+
+  return true
+})
+
+// Computed property for save button tooltip message
+const saveButtonTooltip = computed(() => {
+  if (isSaving.value) return 'กำลังบันทึก...'
+  if (!isFormValid.value) {
+    if (!title.value.trim()) return 'กรุณากรอกชื่อ Quiz'
+    if (questions.value.length === 0) return 'กรุณาเพิ่มคำถามอย่างน้อย 1 ข้อ'
+
+    // Check specific question issues
+    for (let i = 0; i < questions.value.length; i++) {
+      const q = questions.value[i]
+      const questionNumber = i + 1
+
+      if (!q.question.trim()) return `กรุณากรอกข้อความคำถามที่ ${questionNumber}`
+
+      if (q.type === 'multiple-choice') {
+        const filledOptions = q.options.filter(o => o.trim())
+        if (filledOptions.length < 2) return `คำถามที่ ${questionNumber} ต้องมีตัวเลือกอย่างน้อย 2 ข้อ`
+        if (!q.correctAnswer || !filledOptions.includes(q.correctAnswer)) return `คำถามที่ ${questionNumber} ต้องเลือกคำตอบที่ถูกต้อง`
+      } else if (q.type === 'true-false') {
+        if (!q.correctAnswer || !['true', 'false'].includes(q.correctAnswer.toLowerCase())) return `คำถามที่ ${questionNumber} ต้องเลือก True หรือ False`
+      } else if (q.type === 'open-ended') {
+        if (!q.correctAnswer || !q.correctAnswer.trim()) return `คำถามที่ ${questionNumber} ต้องกรอกคำตอบ`
+      }
+    }
+
+    return 'กรุณากรอกข้อมูลให้ครบถ้วน'
+  }
+  return 'บันทึก Quiz'
+})
 
 function addQuestion() {
   const newId = Date.now().toString()
@@ -625,34 +690,36 @@ async function handleSave() {
 
   for (let i = 0; i < questions.value.length; i++) {
     const q = questions.value[i]
+    const questionNumber = i + 1 // Display number (1-based)
+
     if (!q.question.trim()) {
-      errorMessage.value = `Question ${i + 1} cannot be empty`
+      errorMessage.value = `Question ${questionNumber} cannot be empty`
       return
     }
     if (q.type === 'multiple-choice') {
       const filled = q.options.filter(o => o.trim())
       if (filled.length < 2) {
-        errorMessage.value = `Question ${i + 1} must have at least 2 answer choices`
+        errorMessage.value = `Question ${questionNumber} must have at least 2 answer choices`
         return
       }
       // Ensure correctAnswer is one of the valid choices
       if (!q.correctAnswer || !filled.includes(q.correctAnswer)) {
-        errorMessage.value = `Question ${i + 1}: correct answer must be one of the provided choices`
+        errorMessage.value = `Question ${questionNumber}: correct answer must be one of the provided choices`
         return
       }
       // Ensure all options have content
       if (q.options.some(o => !o.trim())) {
-        errorMessage.value = `Question ${i + 1}: all options must have content`
+        errorMessage.value = `Question ${questionNumber}: all options must have content`
         return
       }
     } else if (q.type === 'true-false') {
       if (!q.correctAnswer || !['true', 'false'].includes(q.correctAnswer.toLowerCase())) {
-        errorMessage.value = `Question ${i + 1}: correct answer must be "true" or "false"`
+        errorMessage.value = `Question ${questionNumber}: correct answer must be "true" or "false"`
         return
       }
     } else if (q.type === 'open-ended') {
       if (!q.correctAnswer || !q.correctAnswer.trim()) {
-        errorMessage.value = `Question ${i + 1}: answer cannot be empty`
+        errorMessage.value = `Question ${questionNumber}: answer cannot be empty`
         return
       }
     }
@@ -769,8 +836,8 @@ async function handleSave() {
   }
 
   // Success handling
-  isSaving.value = false
   setTimeout(() => {
+    isSaving.value = false
     onBack()
   }, 1500)
 }

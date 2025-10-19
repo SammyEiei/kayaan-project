@@ -323,6 +323,28 @@ export const useAIContentStore = defineStore('aiContent', () => {
 
       // Remove from saved content list
       savedContent.value = savedContent.value.filter(c => c.id !== contentId)
+
+      // Update generation request status to 'deleted' if it exists
+      console.log('🔍 Looking for generation request with contentId:', contentId)
+      console.log('📋 Available generation requests:', generationRequests.value.map(r => ({
+        requestId: r.requestId,
+        status: r.status,
+        createdAt: r.createdAt
+      })))
+
+      const relatedRequest = generationRequests.value.find(r => r.requestId === contentId)
+      if (relatedRequest) {
+        relatedRequest.status = 'deleted'
+        console.log('✅ Updated generation request status to deleted:', contentId)
+        console.log('📋 Updated request:', relatedRequest)
+      } else {
+        console.log('❌ No generation request found for contentId:', contentId)
+        console.log('💡 This might be because the requestId and contentId are different')
+        console.log('📋 Available requests:', generationRequests.value.map(r => ({
+          id: r.requestId,
+          status: r.status
+        })))
+      }
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to delete content'
       throw err
@@ -336,7 +358,7 @@ export const useAIContentStore = defineStore('aiContent', () => {
       // Extract content array from response and map to GenerationStatusDTO format
       generationRequests.value = response.content.map(item => ({
         requestId: item.id,
-        status: item.status.toLowerCase() as 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled',
+        status: item.status.toLowerCase() as 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled' | 'deleted',
         progress: item.progress,
         retryCount: 0,
         maxRetries: 3,

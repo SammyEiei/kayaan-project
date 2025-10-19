@@ -87,9 +87,14 @@
             Cancel
           </button>
           <button
-            class="px-5 py-2.5 bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white rounded-xl transition-all duration-200 font-medium shadow-md hover:shadow-lg flex items-center gap-2 transform hover:scale-105"
+            :class="[
+              'px-5 py-2.5 rounded-xl transition-all duration-200 font-medium shadow-md flex items-center gap-2',
+              isSaveDisabled
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed border-2 border-gray-400'
+                : 'bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white hover:shadow-lg transform hover:scale-105'
+            ]"
             @click="handleSave"
-            :disabled="isLoading"
+            :disabled="isSaveDisabled"
           >
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
@@ -105,6 +110,12 @@
         </div>
 
         <!-- Error/Success Messages -->
+        <div v-if="warningMessage" class="bg-amber-50 border-2 border-amber-200 text-amber-700 px-5 py-4 rounded-xl shadow-md flex items-center gap-3">
+          <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <span>{{ warningMessage }}</span>
+        </div>
         <div v-if="errorMessage" class="bg-red-50 border-2 border-red-200 text-red-700 px-5 py-4 rounded-xl shadow-md flex items-center gap-3">
           <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -347,6 +358,45 @@ const router = useRouter()
 const isLoading = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')
+
+// ตรวจสอบว่าข้อมูล deck information ไม่ครบถ้วน
+const isDeckInfoIncomplete = computed(() => {
+  return !title.value.trim() || !subject.value.trim() || !tags.value.trim()
+})
+
+// ตรวจสอบว่าไม่มีการ์ดเลยหรือการ์ดทั้งหมดว่างเปล่า
+const hasNoOrEmptyCards = computed(() => {
+  return cards.value.length === 0 || cards.value.every(card => !card.front.trim() && !card.back.trim())
+})
+
+// ตรวจสอบว่ามี flashcard ที่กรอกข้อมูลไม่สมบูรณ์หรือไม่ (กรอกแค่ front หรือ back)
+const hasIncompleteCards = computed(() => {
+  return cards.value.some(card => {
+    const hasFront = card.front.trim().length > 0
+    const hasBack = card.back.trim().length > 0
+    // ถ้ากรอกแค่ front side หรือแค่ back side (ไม่ครบทั้งสองฝั่ง) ถือว่าไม่สมบูรณ์
+    return (hasFront && !hasBack) || (!hasFront && hasBack)
+  })
+})
+
+// ตรวจสอบว่าควร disable ปุ่ม Save หรือไม่
+const isSaveDisabled = computed(() => {
+  return isLoading.value || isDeckInfoIncomplete.value || hasNoOrEmptyCards.value || hasIncompleteCards.value
+})
+
+// ข้อความเตือนที่เหมาะสมตามลำดับความสำคัญ
+const warningMessage = computed(() => {
+  if (isDeckInfoIncomplete.value) {
+    return 'Please fill in all deck information fields (Title, Subject, Tags).'
+  }
+  if (hasNoOrEmptyCards.value) {
+    return 'Please add at least one complete flashcard or fill in existing ones.'
+  }
+  if (hasIncompleteCards.value) {
+    return 'Please complete all fields: Some cards have only Front Side or Back Side. Please fill both sides or delete unwanted cards.'
+  }
+  return ''
+})
 
 interface EditingContent {
   title?: string;

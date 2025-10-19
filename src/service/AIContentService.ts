@@ -131,7 +131,7 @@ export interface ApiResponseDTO<T> {
 
 export interface GenerationStatusDTO {
   requestId: number
-  status: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled'
+  status: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled' | 'deleted'
   progress: number
   errorMessage?: string
   retryCount: number

@@ -25,24 +25,59 @@ export const useThemeStore = defineStore('theme', {
   },
 
   getters: {
-    activeTheme: (state) => state.currentTheme || state.systemThemes[0],
-    isDarkMode: (state) => state.currentTheme?.isDark || false,
+    activeTheme: (state) => {
+      try {
+        return state.currentTheme || state.systemThemes[0] || predefinedThemes[0]
+      } catch (error) {
+        console.error('Error getting active theme:', error)
+        return predefinedThemes[0]
+      }
+    },
+    isDarkMode: (state) => {
+      try {
+        return state.currentTheme?.isDark || false
+      } catch (error) {
+        console.error('Error getting dark mode:', error)
+        return false
+      }
+    },
     // Get themes by category
     lightThemes: (state) => {
-      const themes = state.systemThemes.filter(theme => !theme.isDark)
-      console.log('Light themes count:', themes.length, 'from total:', state.systemThemes.length)
-      return themes
+      try {
+        if (!state.systemThemes || state.systemThemes.length === 0) {
+          return predefinedThemes.filter(theme => !theme.isDark)
+        }
+        const themes = state.systemThemes.filter(theme => theme && !theme.isDark)
+        return themes
+      } catch (error) {
+        console.error('Error getting light themes:', error)
+        return predefinedThemes.filter(theme => !theme.isDark)
+      }
     },
     darkThemes: (state) => {
-      const themes = state.systemThemes.filter(theme => theme.isDark)
-      console.log('Dark themes count:', themes.length, 'from total:', state.systemThemes.length)
-      return themes
+      try {
+        if (!state.systemThemes || state.systemThemes.length === 0) {
+          return predefinedThemes.filter(theme => theme.isDark)
+        }
+        const themes = state.systemThemes.filter(theme => theme && theme.isDark)
+        return themes
+      } catch (error) {
+        console.error('Error getting dark themes:', error)
+        return predefinedThemes.filter(theme => theme.isDark)
+      }
     },
     // Get popular themes (first 6)
     popularThemes: (state) => {
-      const themes = state.systemThemes.slice(0, 6)
-      console.log('Popular themes count:', themes.length, 'from total:', state.systemThemes.length)
-      return themes
+      try {
+        if (!state.systemThemes || state.systemThemes.length === 0) {
+          return predefinedThemes.slice(0, 6)
+        }
+        const themes = state.systemThemes.slice(0, 6)
+        return themes
+      } catch (error) {
+        console.error('Error getting popular themes:', error)
+        return predefinedThemes.slice(0, 6)
+      }
     },
   },
 
@@ -82,32 +117,61 @@ export const useThemeStore = defineStore('theme', {
     },
 
     applyTheme(theme: Theme) {
-      // Apply CSS variables at runtime
-      const root = document.documentElement
+      try {
+        // Validate theme object
+        if (!theme || !theme.colors) {
+          console.error('Invalid theme provided to applyTheme:', theme)
+          return
+        }
 
-      // Set color variables
-      root.style.setProperty('--primary', theme.colors.primary)
-      root.style.setProperty('--secondary', theme.colors.secondary)
-      root.style.setProperty('--background', theme.colors.background)
-      root.style.setProperty('--surface', theme.colors.surface)
-      root.style.setProperty('--text', theme.colors.text)
-      root.style.setProperty('--text-secondary', theme.colors.textSecondary)
-      root.style.setProperty('--border', theme.colors.border)
-      root.style.setProperty('--success', theme.colors.success)
-      root.style.setProperty('--warning', theme.colors.warning)
-      root.style.setProperty('--error', theme.colors.error)
+        // Apply CSS variables at runtime
+        const root = document.documentElement
 
-      // Toggle dark mode class
-      root.classList.toggle('dark', theme.isDark)
+        // Default colors as fallback
+        const defaultColors = {
+          primary: '#8b5cf6',
+          secondary: '#6366f1',
+          background: '#ffffff',
+          surface: '#f8fafc',
+          text: '#1e293b',
+          textSecondary: '#64748b',
+          border: '#e2e8f0',
+          success: '#10b981',
+          warning: '#f59e0b',
+          error: '#ef4444',
+        }
 
-      // Update current theme
-      this.currentTheme = theme
+        // Set color variables with fallback
+        Object.entries(theme.colors).forEach(([key, value]) => {
+          const colorValue = value || defaultColors[key as keyof typeof defaultColors] || '#000000'
+          root.style.setProperty(`--${key}`, colorValue)
+        })
+
+        // Toggle dark mode class safely
+        if (theme.isDark) {
+          root.classList.add('dark')
+        } else {
+          root.classList.remove('dark')
+        }
+
+        // Update current theme
+        this.currentTheme = theme
+      } catch (error) {
+        console.error('Error applying theme:', error)
+        // Apply fallback theme
+        const fallbackTheme = predefinedThemes[0]
+        if (fallbackTheme) {
+          this.applyTheme(fallbackTheme)
+        }
+      }
     },
 
-    async saveCurrent(userId: number) {
+    async saveCurrent(userId: number, silent: boolean = false) {
       if (!this.currentTheme) return
 
-      this.isLoading = true
+      if (!silent) {
+        this.isLoading = true
+      }
       this.error = null
       try {
         await saveUserTheme(userId, this.currentTheme)
@@ -191,9 +255,18 @@ export const useThemeStore = defineStore('theme', {
     },
 
     // Get random theme
-    getRandomTheme(): Theme {
-      const randomIndex = Math.floor(Math.random() * this.systemThemes.length)
-      return this.systemThemes[randomIndex]
+    getRandomTheme(): Theme | null {
+      try {
+        if (!this.systemThemes || this.systemThemes.length === 0) {
+          console.warn('No system themes available for random selection')
+          return null
+        }
+        const randomIndex = Math.floor(Math.random() * this.systemThemes.length)
+        return this.systemThemes[randomIndex] || null
+      } catch (error) {
+        console.error('Error getting random theme:', error)
+        return null
+      }
     },
 
     // Get themes by color family
@@ -214,30 +287,39 @@ export const useThemeStore = defineStore('theme', {
 
     // Initialize theme store
     async initialize() {
-      const authStore = useAuthStore()
+      try {
+        const authStore = useAuthStore()
 
-      // Load local predefined themes (backend doesn't have this endpoint)
-      await this.fetchThemes()
+        // Load local predefined themes (backend doesn't have this endpoint)
+        await this.fetchThemes()
 
-      // Ensure we have themes available
-      if (this.systemThemes.length === 0) {
-        console.warn('No themes available, using fallback')
-        this.systemThemes = predefinedThemes
-      }
-
-      // Check if user is authenticated and has valid token
-      if (authStore.currentUserId && authStore.isAuthenticated && authStore.token) {
-        try {
-          await this.fetchUserTheme(authStore.currentUserId)
-        } catch (error) {
-          console.info('Failed to fetch user theme during initialization, using default theme')
-          // Continue with default theme
-          this.applyTheme(this.systemThemes[0])
+        // Ensure we have themes available
+        if (!this.systemThemes || this.systemThemes.length === 0) {
+          console.warn('No themes available, using fallback')
+          this.systemThemes = [...predefinedThemes]
         }
-      } else {
-        console.info('User not authenticated, using default theme')
-        // Apply default theme for non-logged in users
-        this.applyTheme(this.systemThemes[0])
+
+        // Always apply a default theme first
+        const defaultTheme = this.systemThemes[0] || predefinedThemes[0]
+        this.applyTheme(defaultTheme)
+
+        // Check if user is authenticated and has valid token
+        if (authStore.currentUserId && authStore.isAuthenticated && authStore.token) {
+          try {
+            await this.fetchUserTheme(authStore.currentUserId)
+          } catch (error) {
+            console.info('Failed to fetch user theme during initialization, using default theme')
+            // Continue with default theme (already applied above)
+          }
+        } else {
+          console.info('User not authenticated, using default theme')
+          // Default theme already applied above
+        }
+      } catch (error) {
+        console.error('Error during theme store initialization:', error)
+        // Ensure we have a fallback theme
+        this.systemThemes = [...predefinedThemes]
+        this.applyTheme(predefinedThemes[0])
       }
     },
   },

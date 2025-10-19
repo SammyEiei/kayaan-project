@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAIContentStore } from '@/stores/aiContent'
 import type { GenerationStatusDTO } from '@/service/AIContentService'
@@ -12,6 +12,8 @@ const selectedStatus = ref<string>('all')
 const searchQuery = ref('')
 const currentPage = ref(1)
 const itemsPerPage = ref(10)
+const isLoading = ref(true)
+const loadError = ref<string | null>(null)
 
 // Status options
 const statusOptions = [
@@ -21,6 +23,7 @@ const statusOptions = [
   { value: 'completed', label: 'Completed', icon: 'CheckCircle', color: 'text-green-600 bg-green-50' },
   { value: 'failed', label: 'Failed', icon: 'XCircle', color: 'text-red-600 bg-red-50' },
   { value: 'cancelled', label: 'Cancelled', icon: 'X', color: 'text-slate-600 bg-slate-50' },
+  { value: 'deleted', label: 'Deleted', icon: 'Trash', color: 'text-gray-600 bg-gray-50' },
 ]
 
 // Computed properties
@@ -122,13 +125,45 @@ const getStatusColor = (status: string) => {
   return statusOption?.color || 'text-slate-600 bg-slate-50'
 }
 
-// Load data on mount
-onMounted(async () => {
+// Load data function
+const loadData = async () => {
+  console.log('📊 GenerationHistory: Loading generation requests...')
+  isLoading.value = true
+  loadError.value = null
+
   try {
     await aiStore.loadGenerationRequests()
+    console.log('✅ GenerationHistory: Loaded', aiStore.getGenerationRequests.length, 'requests')
+    console.log('📋 Requests:', aiStore.getGenerationRequests)
   } catch (error) {
-    console.error('Failed to load generation requests:', error)
+    console.error('❌ GenerationHistory: Failed to load generation requests:', error)
+    loadError.value = error instanceof Error ? error.message : 'Failed to load generation requests'
+  } finally {
+    isLoading.value = false
   }
+}
+
+// Watch for changes in generation requests to refresh data
+watch(() => aiStore.getGenerationRequests, (newRequests) => {
+  console.log('🔄 GenerationHistory: Generation requests updated:', newRequests.length, 'requests')
+  console.log('📋 Current requests:', newRequests.map(r => ({ id: r.requestId, status: r.status })))
+}, { deep: true })
+
+// Listen for content deletion events
+const handleContentDeleted = (contentId: number) => {
+  console.log('🗑️ GenerationHistory: Content deleted, refreshing data...', contentId)
+  // Force refresh the data
+  loadData()
+}
+
+// Expose the handler for external use
+defineExpose({
+  handleContentDeleted
+})
+
+// Load data on mount
+onMounted(() => {
+  loadData()
 })
 </script>
 
@@ -140,8 +175,38 @@ onMounted(async () => {
       <p class="text-slate-600">Track and manage your AI content generation requests</p>
     </div>
 
+    <!-- Loading State -->
+    <div v-if="isLoading" class="flex items-center justify-center py-16">
+      <div class="text-center">
+        <div class="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+        <p class="text-slate-600 font-medium">Loading generation history...</p>
+      </div>
+    </div>
+
+    <!-- Error State -->
+    <div v-else-if="loadError" class="bg-red-50 border border-red-200 rounded-lg p-6 mb-6">
+      <div class="flex items-start gap-3">
+        <svg class="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <div class="flex-1">
+          <h3 class="text-lg font-semibold text-red-900 mb-1">Failed to Load Data</h3>
+          <p class="text-red-700 mb-3">{{ loadError }}</p>
+          <button
+            @click="loadData"
+            class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div v-else>
+
     <!-- Stats Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 mb-8">
       <div class="bg-white rounded-lg border border-slate-200 p-4">
         <div class="flex items-center">
           <div class="p-2 bg-blue-100 rounded-lg">
@@ -215,6 +280,22 @@ onMounted(async () => {
             <p class="text-sm font-medium text-slate-600">Failed</p>
             <p class="text-lg font-semibold text-slate-900">
               {{ aiStore.getGenerationRequests.filter(r => r.status === 'failed').length }}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg border border-slate-200 p-4">
+        <div class="flex items-center">
+          <div class="p-2 bg-gray-100 rounded-lg">
+            <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </div>
+          <div class="ml-3">
+            <p class="text-sm font-medium text-slate-600">Deleted</p>
+            <p class="text-lg font-semibold text-slate-900">
+              {{ aiStore.getGenerationRequests.filter(r => r.status === 'deleted').length }}
             </p>
           </div>
         </div>
@@ -300,8 +381,9 @@ onMounted(async () => {
                     <path v-else-if="getStatusIcon(request.status) === 'Clock'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     <path v-else-if="getStatusIcon(request.status) === 'Loader'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     <path v-else-if="getStatusIcon(request.status) === 'CheckCircle'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    <path v-else-if="getStatusIcon(request.status) === 'XCircle'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                <path v-else-if="getStatusIcon(request.status) === 'XCircle'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <path v-else-if="getStatusIcon(request.status) === 'Trash'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                   </svg>
                   {{ request.status }}
                 </span>
@@ -363,11 +445,28 @@ onMounted(async () => {
 
       <!-- Empty State -->
       <div v-if="paginatedRequests.length === 0" class="text-center py-12">
-        <svg class="w-12 h-12 mx-auto text-slate-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-        </svg>
-        <h3 class="text-lg font-medium text-slate-900 mb-2">No generation requests found</h3>
-        <p class="text-slate-500">Start creating content to see your generation history here.</p>
+        <div class="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <svg class="w-10 h-10 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+        </div>
+        <h3 class="text-lg font-semibold text-slate-900 mb-2">No Generation History</h3>
+        <p class="text-slate-600 mb-4">
+          {{ searchQuery || selectedStatus !== 'all' ? 'No requests match your filters.' : 'You haven\'t created any AI content yet.' }}
+        </p>
+        <p class="text-sm text-slate-500 mb-6">
+          {{ searchQuery || selectedStatus !== 'all' ? 'Try adjusting your filters to see more results.' : 'Go to the "Generate" tab to create your first AI-powered study material!' }}
+        </p>
+        <button
+          v-if="!searchQuery && selectedStatus === 'all'"
+          @click="$router.push({ name: 'ai-content-generator', query: { tab: 'chat' } })"
+          class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium inline-flex items-center gap-2"
+        >
+          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M8 0.5L9.5 5.5L14.5 7L9.5 8.5L8 13.5L6.5 8.5L1.5 7L6.5 5.5L8 0.5Z" />
+          </svg>
+          Start Creating Content
+        </button>
       </div>
     </div>
 
@@ -411,6 +510,8 @@ onMounted(async () => {
         Showing {{ (currentPage - 1) * itemsPerPage + 1 }} to {{ Math.min(currentPage * itemsPerPage, filteredRequests.length) }} of {{ filteredRequests.length }} results
       </div>
     </div>
+    </div>
+    <!-- End Main Content -->
   </div>
 </template>
 

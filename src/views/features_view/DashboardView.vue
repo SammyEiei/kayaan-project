@@ -264,7 +264,7 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <!-- Interactive Study Notes -->
               <router-link
-                to="/ai-content-generator"
+                :to="{ path: '/ai-content-generator', query: { type: 'note' } }"
                 class="group relative overflow-hidden bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-5 transition-all duration-300 hover:shadow-lg cursor-pointer border-2 border-blue-200 hover:border-blue-400 block"
               >
                 <div class="absolute top-0 right-0 w-20 h-20 bg-blue-200 rounded-full opacity-20 -translate-y-10 translate-x-10 group-hover:scale-150 transition-transform duration-300"></div>
@@ -294,7 +294,7 @@
 
               <!-- Smart Flashcards -->
               <router-link
-                to="/ai-content-generator"
+                :to="{ path: '/ai-content-generator', query: { type: 'flashcard' } }"
                 class="group relative overflow-hidden bg-gradient-to-br from-purple-50 to-violet-50 rounded-xl p-5 transition-all duration-300 hover:shadow-lg cursor-pointer border-2 border-purple-200 hover:border-purple-400 block"
               >
                 <div class="absolute top-0 right-0 w-20 h-20 bg-purple-200 rounded-full opacity-20 -translate-y-10 translate-x-10 group-hover:scale-150 transition-transform duration-300"></div>
@@ -324,7 +324,7 @@
 
               <!-- Dynamic Quizzes -->
               <router-link
-                to="/ai-content-generator"
+                :to="{ path: '/ai-content-generator', query: { type: 'quiz' } }"
                 class="group relative overflow-hidden bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl p-5 transition-all duration-300 hover:shadow-lg cursor-pointer border-2 border-orange-200 hover:border-orange-400 block"
               >
                 <div class="absolute top-0 right-0 w-20 h-20 bg-orange-200 rounded-full opacity-20 -translate-y-10 translate-x-10 group-hover:scale-150 transition-transform duration-300"></div>
@@ -352,9 +352,9 @@
                 </div>
               </router-link>
 
-              <!-- Study Summaries -->
+              <!-- My Content -->
               <router-link
-                to="/ai-content-generator"
+                :to="{ path: '/ai-content-generator', query: { tab: 'saved' } }"
                 class="group relative overflow-hidden bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-5 transition-all duration-300 hover:shadow-lg cursor-pointer border-2 border-green-200 hover:border-green-400 block"
               >
                 <div class="absolute top-0 right-0 w-20 h-20 bg-green-200 rounded-full opacity-20 -translate-y-10 translate-x-10 group-hover:scale-150 transition-transform duration-300"></div>
@@ -362,19 +362,19 @@
                   <div class="flex items-start gap-3 mb-3">
                     <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl shadow-md flex items-center justify-center text-white group-hover:scale-110 transition-all duration-300 group-hover:rotate-3">
                       <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
                     </svg>
                   </div>
                   <div class="flex-1">
-                      <h4 class="font-bold text-gray-900 text-base mb-1 group-hover:text-green-700 transition-colors">Summaries</h4>
-                      <p class="text-xs text-gray-600 mb-2">Quick review</p>
+                      <h4 class="font-bold text-gray-900 text-base mb-1 group-hover:text-green-700 transition-colors">My Content</h4>
+                      <p class="text-xs text-gray-600 mb-2">Saved library</p>
                       <div class="flex items-center gap-2">
-                        <span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">Quick</span>
+                        <span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">Library</span>
                       </div>
                     </div>
                   </div>
                   <div class="flex items-center justify-between mt-3 pt-3 border-t border-green-200">
-                    <span class="text-xs text-gray-600">Essential insights</span>
+                    <span class="text-xs text-gray-600">View saved content</span>
                     <svg class="w-5 h-5 text-green-600 group-hover:translate-x-2 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                   </svg>

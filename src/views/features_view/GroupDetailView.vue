@@ -22,6 +22,7 @@ const activeTab = ref<'overview' | 'content' | 'security' | 'members' | 'library
 const showLeaveModal = ref(false)
 const showDeleteModal = ref(false)
 const showInviteCodeModal = ref(false)
+const showAllActivities = ref(false)
 
 const groupId = computed(() => route.params.id as string)
 const currentGroup = computed(() => groupStore.currentGroup)
@@ -43,6 +44,103 @@ const memberCountLocal = computed(
 )
 
 // const canManageGroup = computed(() => groupStore.canManageGroup)
+
+// Recent Activity computed property - รวมข้อมูลจริงจาก members, resources, และ posts
+interface Activity {
+  type: 'member' | 'resource' | 'post'
+  title: string
+  description: string
+  time: Date
+  icon: string
+  colorClass: string
+}
+
+const recentActivities = computed<Activity[]>(() => {
+  const activities: Activity[] = []
+
+  // เพิ่มสมาชิกใหม่
+  const recentMembers = groupStore.currentGroupMembers
+    .filter(m => m.joinedAt)
+    .sort((a, b) => new Date(b.joinedAt!).getTime() - new Date(a.joinedAt!).getTime())
+    .slice(0, 3)
+
+  recentMembers.forEach(member => {
+    activities.push({
+      type: 'member',
+      title: `${member.username} joined`,
+      description: 'New member has joined the group',
+      time: new Date(member.joinedAt!),
+      icon: 'user',
+      colorClass: 'blue'
+    })
+  })
+
+  // เพิ่ม resources ใหม่
+  const recentResources = groupStore.currentGroupResources
+    .filter(r => r.createdAt)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 3)
+
+  recentResources.forEach(resource => {
+    const uploaderName = resource.uploaderName || groupStore.getUploaderName(resource.uploaderId)
+    activities.push({
+      type: 'resource',
+      title: resource.title || 'New resource uploaded',
+      description: `${uploaderName} shared a new resource`,
+      time: new Date(resource.createdAt),
+      icon: 'file',
+      colorClass: 'green'
+    })
+  })
+
+  // เพิ่ม posts ใหม่
+  const recentPosts = groupStore.groupPosts
+    .filter(p => p.createdAt)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 3)
+
+  recentPosts.forEach(post => {
+    const authorName = post.authorName || 'Someone'
+    activities.push({
+      type: 'post',
+      title: post.title || 'New discussion started',
+      description: `${authorName} created a new discussion`,
+      time: new Date(post.createdAt),
+      icon: 'chat',
+      colorClass: 'purple'
+    })
+  })
+
+  // เรียงตามเวลาและเอาแค่ 10 รายการล่าสุด
+  return activities
+    .sort((a, b) => b.time.getTime() - a.time.getTime())
+    .slice(0, 10)
+})
+
+// Helper function สำหรับแสดงเวลาที่ผ่านมา
+const getTimeAgo = (date: Date): string => {
+  const now = new Date()
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000)
+
+  if (diffInSeconds < 60) return 'just now'
+  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes ago`
+  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`
+  if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)} days ago`
+  return `${Math.floor(diffInSeconds / 604800)} weeks ago`
+}
+
+// Computed property สำหรับแสดง activities ตามสถานะการแสดงผล
+const displayedActivities = computed(() => {
+  if (showAllActivities.value || recentActivities.value.length <= 4) {
+    return recentActivities.value
+  }
+  return recentActivities.value.slice(0, 4)
+})
+
+// นับจำนวน activities ที่ซ่อนอยู่
+const hiddenActivitiesCount = computed(() => {
+  return Math.max(0, recentActivities.value.length - 4)
+})
 
 onMounted(async () => {
   console.log('🔍 GroupDetailView mounted, groupId:', groupId.value)
@@ -423,57 +521,84 @@ const handleTabChange = (tabId: 'overview' | 'content' | 'security' | 'members' 
                   <h3 class="text-2xl font-bold text-gray-900">Recent Activity</h3>
                 </div>
 
-                <div class="space-y-4">
-                  <!-- Activity Item 1 -->
-                  <div class="flex items-center gap-4 p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl border border-blue-200">
-                    <div class="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center shadow-sm">
-                      <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <div v-if="recentActivities.length > 0" class="space-y-4">
+                  <div
+                    v-for="(activity, index) in displayedActivities"
+                    :key="index"
+                    class="flex items-center gap-4 p-4 rounded-xl border transition-all duration-200"
+                    :class="{
+                      'bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200': activity.colorClass === 'blue',
+                      'bg-gradient-to-r from-green-50 to-green-100 border-green-200': activity.colorClass === 'green',
+                      'bg-gradient-to-r from-purple-50 to-purple-100 border-purple-200': activity.colorClass === 'purple'
+                    }"
+                  >
+                    <div
+                      class="w-12 h-12 rounded-xl flex items-center justify-center shadow-sm"
+                      :class="{
+                        'bg-blue-500': activity.colorClass === 'blue',
+                        'bg-green-500': activity.colorClass === 'green',
+                        'bg-purple-500': activity.colorClass === 'purple'
+                      }"
+                    >
+                      <!-- User Icon -->
+                      <svg v-if="activity.icon === 'user'" class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M3.5 7a5 5 0 1 1 10 0a5 5 0 0 1-10 0M5 14a5 5 0 0 0-5 5v2h17v-2a5 5 0 0 0-5-5zm19 7h-5v-2c0-1.959-.804-3.73-2.1-5H19a5 5 0 0 1 5 5zm-8.5-9a5 5 0 0 1-1.786-.329A6.97 6.97 0 0 0 15.5 7a6.97 6.97 0 0 0-1.787-4.671A5 5 0 1 1 15.5 12"/>
                       </svg>
-                    </div>
-                    <div class="flex-1">
-                      <p class="text-base font-semibold text-gray-900">New member joined</p>
-                      <p class="text-sm text-gray-600">A new member has joined the group</p>
-                      <p class="text-xs text-blue-600 font-medium mt-1">2 hours ago</p>
-                    </div>
-                  </div>
-
-                  <!-- Activity Item 2 -->
-                  <div class="flex items-center gap-4 p-4 bg-gradient-to-r from-green-50 to-green-100 rounded-xl border border-green-200">
-                    <div class="w-12 h-12 bg-green-500 rounded-xl flex items-center justify-center shadow-sm">
-                      <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <!-- File Icon -->
+                      <svg v-else-if="activity.icon === 'file'" class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>
-                    </div>
-                    <div class="flex-1">
-                      <p class="text-base font-semibold text-gray-900">New resource uploaded</p>
-                      <p class="text-sm text-gray-600">A new study resource was shared</p>
-                      <p class="text-xs text-green-600 font-medium mt-1">5 hours ago</p>
-                    </div>
-                  </div>
-
-                  <!-- Activity Item 3 -->
-                  <div class="flex items-center gap-4 p-4 bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl border border-purple-200">
-                    <div class="w-12 h-12 bg-purple-500 rounded-xl flex items-center justify-center shadow-sm">
-                      <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <!-- Chat Icon -->
+                      <svg v-else-if="activity.icon === 'chat'" class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                       </svg>
                     </div>
                     <div class="flex-1">
-                      <p class="text-base font-semibold text-gray-900">New discussion started</p>
-                      <p class="text-sm text-gray-600">A new topic was created for discussion</p>
-                      <p class="text-xs text-purple-600 font-medium mt-1">1 day ago</p>
+                      <p class="text-base font-semibold text-gray-900">{{ activity.title }}</p>
+                      <p class="text-sm text-gray-600">{{ activity.description }}</p>
+                      <p
+                        class="text-xs font-medium mt-1"
+                        :class="{
+                          'text-blue-600': activity.colorClass === 'blue',
+                          'text-green-600': activity.colorClass === 'green',
+                          'text-purple-600': activity.colorClass === 'purple'
+                        }"
+                      >
+                        {{ getTimeAgo(activity.time) }}
+                      </p>
                     </div>
                   </div>
-                </div>
 
-                <div class="mt-6 pt-6 border-t border-gray-200">
-                  <button class="w-full flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors duration-200 font-semibold">
-                    <span>View all activity</span>
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                  <!-- Show More/Less Button -->
+                  <button
+                    v-if="recentActivities.length > 4"
+                    @click="showAllActivities = !showAllActivities"
+                    class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl transition-all duration-200 group"
+                  >
+                    <span class="text-sm font-medium text-gray-700 group-hover:text-gray-900">
+                      {{ showAllActivities ? 'Show less' : `Show ${hiddenActivitiesCount} more ${hiddenActivitiesCount === 1 ? 'activity' : 'activities'}` }}
+                    </span>
+                    <svg
+                      class="w-4 h-4 text-gray-500 group-hover:text-gray-700 transition-transform duration-200"
+                      :class="{ 'rotate-180': showAllActivities }"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                     </svg>
                   </button>
+                </div>
+
+                <!-- Empty State -->
+                <div v-else class="text-center py-12">
+                  <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                  </div>
+                  <p class="text-gray-600 font-medium mb-1">No recent activity</p>
+                  <p class="text-gray-500 text-sm">Activity will appear here when members interact with the group</p>
                 </div>
               </div>
             </div>

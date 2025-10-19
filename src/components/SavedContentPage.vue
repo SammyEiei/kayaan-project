@@ -119,6 +119,14 @@ const confirmDelete = async () => {
     // Refresh content list to ensure UI is up to date
     await aiStore.loadSavedContent()
 
+    // Also refresh generation requests to update status
+    try {
+      await aiStore.loadGenerationRequests()
+      console.log('🔄 Refreshed generation requests after content deletion')
+    } catch (error) {
+      console.warn('⚠️ Failed to refresh generation requests:', error)
+    }
+
     // Auto-hide notification after 3 seconds
     setTimeout(() => {
       hideSuccessNotification()
