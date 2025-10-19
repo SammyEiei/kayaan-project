@@ -303,7 +303,18 @@ const onSubmit = handleSubmit(async (values: { email: string }) => {
     // Check if it's a real error or just security response
     if (error.response?.status && error.response.status >= 500) {
       // Server error - show error message
-      errorMessage.value = error.response?.data?.message || 'Server error. Please try again later.'
+      const backendMessage = error.response?.data?.message || 'Server error. Please try again later.'
+
+      // Specific error handling
+      if (backendMessage.includes('Conversion') || backendMessage.includes('Flags')) {
+        errorMessage.value = '🔧 Backend Configuration Error: Email template has formatting issues. Please contact the system administrator to fix the email template in EmailService.java'
+      } else if (backendMessage.includes('Authentication') || backendMessage.includes('535')) {
+        errorMessage.value = '🔐 Gmail Authentication Failed: Backend cannot login to Gmail. Please configure Gmail App Password in Backend environment variables.'
+      } else if (backendMessage.includes('Failed to send email') || backendMessage.toLowerCase().includes('mail')) {
+        errorMessage.value = '📧 Email Service Error: Unable to send email. Please check Backend email configuration (SMTP settings).'
+      } else {
+        errorMessage.value = `🚨 Server Error: ${backendMessage}`
+      }
     } else if (error.response?.status === 400) {
       // Validation error
       errorMessage.value = error.response?.data?.message || 'Invalid email address.'
