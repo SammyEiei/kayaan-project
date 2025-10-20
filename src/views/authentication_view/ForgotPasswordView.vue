@@ -257,7 +257,7 @@ const onSubmit = handleSubmit(async (values: { email: string }) => {
   errorMessage.value = ''
   emailSent.value = false
 
-  console.log('🔐 [Forgot Password] Sending request to:', '/api/auth/forgot-password')
+  console.log('🔐 [Forgot Password] Sending request to:', '/auth/forgot-password')
   console.log('📧 [Forgot Password] Email:', values.email)
 
   try {

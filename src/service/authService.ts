@@ -26,6 +26,6 @@ export const register = (payload: RegisterPayload) => api.post('/api/v1/auth/reg
 export const login = (payload: AuthPayload) => api.post('/api/v1/auth/authenticate', payload)
 
 // Password Reset APIs
-export const forgotPassword = (payload: ForgotPasswordPayload) => api.post('/api/auth/forgot-password', payload)
+export const forgotPassword = (payload: ForgotPasswordPayload) => api.post('/auth/forgot-password', payload)
 
-export const resetPassword = (payload: ResetPasswordPayload) => api.post('/api/auth/reset-password', payload)
+export const resetPassword = (payload: ResetPasswordPayload) => api.post('/auth/reset-password', payload)

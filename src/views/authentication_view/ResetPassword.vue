@@ -350,7 +350,7 @@ const onSubmit = handleSubmit(async (values: { resetCode: string; password: stri
   isLoading.value = true
   errorMessage.value = ''
 
-  console.log('🔑 [Reset Password] Sending request to:', '/api/auth/reset-password')
+  console.log('🔑 [Reset Password] Sending request to:', '/auth/forgot-password')
   console.log('🔑 [Reset Password] Reset Code:', values.resetCode)
   console.log('🔑 [Reset Password] Password length:', values.password.length)
 
