@@ -329,6 +329,9 @@
         <!-- Streak Notifications -->
         <StreakNotificationContainer />
 
+        <!-- Streak Celebration Popup (Duolingo Style) -->
+        <StreakCelebrationContainer />
+
         <!-- Footer -->
         <footer
           v-if="!isAuthPage && !isLoggedIn"
@@ -450,6 +453,7 @@ import PomodoroWidget from '@/components/PomodoroWidget.vue'
 
 import NotificationToast from '@/components/NotificationToast.vue'
 import StreakNotificationContainer from '@/components/StreakNotificationContainer.vue'
+import StreakCelebrationContainer from '@/components/StreakCelebrationContainer.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useThemeStore } from '@/stores/theme'
 import { useAIGenerationStore } from '@/stores/aiGeneration'

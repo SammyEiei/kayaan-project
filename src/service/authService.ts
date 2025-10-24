@@ -28,4 +28,4 @@ export const login = (payload: AuthPayload) => api.post('/api/v1/auth/authentica
 // Password Reset APIs
 export const forgotPassword = (payload: ForgotPasswordPayload) => api.post('/auth/forgot-password', payload)
 
-export const resetPassword = (payload: ResetPasswordPayload) => api.post('/auth/reset-password', payload)
+export const resetPassword = (payload: ResetPasswordPayload) => api.post('/v1/auth/reset-password', payload)
