@@ -7,6 +7,7 @@ import studyStreakService, {
 } from '@/services/StudyStreakService';
 import { useAuthStore } from './auth';
 import { useStreakNotifications } from '@/composables/useStreakNotifications';
+import { useStreakCelebrations } from '@/composables/useStreakCelebrations';
 
 export interface StudyStreakState {
   streakData: StreakStatus | null;
@@ -24,6 +25,9 @@ export const useStudyStreakStore = defineStore('studyStreak', () => {
 
   // Notification system
   const { showStreakUpdate, showFreezingWarning, showStreakMilestone } = useStreakNotifications();
+
+  // Celebration popup system (Duolingo style)
+  const { showStreakCelebration } = useStreakCelebrations();
 
   // Getters
   const currentStreak = computed(() => streakData.value?.streakCount || 0);
@@ -121,6 +125,9 @@ export const useStudyStreakStore = defineStore('studyStreak', () => {
 
       console.log('🔥 StudyStreakStore: Completing daily task', { targetUserId, request });
 
+      // เก็บค่า streak เดิมไว้เพื่อตรวจสอบว่าเพิ่มขึ้นจริงไหม
+      const prevStreakCount = streakData.value?.streakCount ?? 0;
+
       const response = await studyStreakService.completeDailyTask(
         targetUserId,
         request.taskType,
@@ -133,8 +140,25 @@ export const useStudyStreakStore = defineStore('studyStreak', () => {
       await loadStreakData(targetUserId);
       console.log('🔥 StudyStreakStore: Streak data reloaded', streakData.value);
 
-      // แสดง notifications
-      showStreakUpdate(response);
+      // แสดง celebration เฉพาะกรณี streak เพิ่มขึ้นเท่านั้น (ครั้งแรกของวัน)
+      if (response.streakCount > prevStreakCount) {
+        try {
+          console.log('[StudyStreakStore] Showing celebration: streak increased', {
+            prevStreakCount,
+            newStreakCount: response.streakCount
+          });
+        } catch {}
+        showStreakCelebration(response);
+      } else {
+        try {
+          console.log('[StudyStreakStore] Skip celebration: streak not increased', {
+            prevStreakCount,
+            newStreakCount: response.streakCount
+          });
+        } catch {}
+      }
+
+      // แสดง milestone notification ถ้าเป็น milestone สำคัญ
       showStreakMilestone(response.streakCount);
 
       console.log('✅ StudyStreakStore: Daily task completed successfully', response);
