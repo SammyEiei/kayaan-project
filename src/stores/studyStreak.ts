@@ -123,7 +123,11 @@ export const useStudyStreakStore = defineStore('studyStreak', () => {
         throw new Error('User ID not available');
       }
 
-      console.log('🔥 StudyStreakStore: Completing daily task', { targetUserId, request });
+      console.log('🔥 StudyStreakStore: Completing daily task', {
+        targetUserId,
+        request,
+        currentStreakData: streakData.value
+      });
 
       // เก็บค่า streak เดิมไว้เพื่อตรวจสอบว่าเพิ่มขึ้นจริงไหม
       const prevStreakCount = streakData.value?.streakCount ?? 0;
@@ -144,6 +148,15 @@ export const useStudyStreakStore = defineStore('studyStreak', () => {
       if (response.streakCount > prevStreakCount) {
         try {
           console.log('[StudyStreakStore] Showing celebration: streak increased', {
+            prevStreakCount,
+            newStreakCount: response.streakCount
+          });
+        } catch {}
+        showStreakCelebration(response);
+      } else if (response.streakCount === 1 && prevStreakCount === 0) {
+        // แสดง celebration สำหรับ user ใหม่ที่เริ่ม streak ครั้งแรก
+        try {
+          console.log('[StudyStreakStore] Showing celebration: first streak', {
             prevStreakCount,
             newStreakCount: response.streakCount
           });

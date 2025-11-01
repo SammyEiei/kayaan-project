@@ -22,8 +22,10 @@ const hasShownCelebrationToday = (streakCount: number): boolean => {
   const lastShownDate = localStorage.getItem('kayaan_last_celebration_date')
   const lastShownStreak = parseInt(localStorage.getItem('kayaan_last_celebration_streak') || '0')
 
-  // ถ้าเป็นวันเดียวกันและ streak count เท่าเดิม = แสดงไปแล้ว
-  return lastShownDate === today && lastShownStreak === streakCount
+  // แสดง popup ถ้า:
+  // 1. ยังไม่เคยแสดงในวันนี้ หรือ
+  // 2. แสดงไปแล้วแต่ streak count เพิ่มขึ้น
+  return lastShownDate === today && lastShownStreak >= streakCount
 }
 
 /**
@@ -45,7 +47,7 @@ export function useStreakCelebrations() {
   const addCelebration = (celebration: Omit<StreakCelebration, 'id'>) => {
     // Debug: track when a celebration is queued
     try {
-      console.log('[StreakCelebrations] addCelebration()', celebration)
+      console.log('[StreakCelebrations] addCelebration() called', celebration)
     } catch {}
     const id = `celebration-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
     const newCelebration: StreakCelebration = {
@@ -59,6 +61,7 @@ export function useStreakCelebrations() {
     // เพิ่ม celebration ใหม่
     celebrations.value.push(newCelebration)
 
+    console.log('[StreakCelebrations] Celebration added:', newCelebration)
     return id
   }
 
@@ -84,29 +87,25 @@ export function useStreakCelebrations() {
    * จะแสดงแค่ครั้งเดียวต่อวันเมื่อ streak count เพิ่มขึ้น
    */
   const showStreakCelebration = (result: TaskCompletionResponse) => {
-    const { streakCount } = result
-
-    // Debug current state
     try {
-      const lastShownDate = localStorage.getItem('kayaan_last_celebration_date')
-      const lastShownStreak = localStorage.getItem('kayaan_last_celebration_streak')
-      console.log('[StreakCelebrations] showStreakCelebration()', {
-        streakCount,
-        lastShownDate,
-        lastShownStreak
-      })
-    } catch {}
+      const { streakCount } = result
 
-    // ตรวจสอบว่าแสดงไปแล้วในวันนี้หรือยัง
-    if (hasShownCelebrationToday(streakCount)) {
+      // Debug current state
       try {
-        console.log('[StreakCelebrations] Skipped: already shown today', { streakCount })
+        const lastShownDate = localStorage.getItem('kayaan_last_celebration_date')
+        const lastShownStreak = localStorage.getItem('kayaan_last_celebration_streak')
+        console.log('[StreakCelebrations] showStreakCelebration()', {
+          streakCount,
+          lastShownDate,
+          lastShownStreak
+        })
       } catch {}
-      return
-    }
 
-    // บันทึกว่าได้แสดง celebration แล้ว
-    markCelebrationShown(streakCount)
+      // แสดง popup ทุกครั้งที่ถูกเรียก (ไม่ตรวจสอบ localStorage)
+      console.log('[StreakCelebrations] Showing celebration for streak:', streakCount)
+
+      // บันทึกว่าได้แสดง celebration แล้ว
+      markCelebrationShown(streakCount)
 
     // กำหนด celebration ตาม streak count (ภาษาอังกฤษ)
     if (streakCount === 1) {
@@ -190,6 +189,9 @@ export function useStreakCelebrations() {
         autoClose: true,
         autoCloseDelay: 4000
       })
+    }
+    } catch (error) {
+      console.error('[StreakCelebrations] Error in showStreakCelebration:', error)
     }
   }
 

@@ -117,11 +117,19 @@ class StudyStreakService {
         // Development fallback: simulate successful task completion
         console.log('🛠️ StudyStreakService: Backend unavailable, using development fallback');
 
-        // Get current streak from localStorage for development mode
-        const currentStreak = parseInt(localStorage.getItem('dev_streak_count') || '0');
+        // Get current streak from localStorage for development mode (แยกตาม user ID)
+        const userKey = `dev_streak_count_${userId}`;
+        const currentStreak = parseInt(localStorage.getItem(userKey) || '0');
         const newStreak = currentStreak + 1;
-        localStorage.setItem('dev_streak_count', newStreak.toString());
-        localStorage.setItem('dev_completed_today', 'true');
+        localStorage.setItem(userKey, newStreak.toString());
+        localStorage.setItem(`dev_completed_today_${userId}`, 'true');
+
+        console.log('🛠️ StudyStreakService: Development fallback for user', {
+          userId,
+          userKey,
+          currentStreak,
+          newStreak
+        });
 
         const mockResponse: TaskCompletionResponse = {
           success: true,
@@ -187,18 +195,30 @@ class StudyStreakService {
         // Development fallback: return mock streak data
         console.log('🛠️ StudyStreakService: Backend unavailable, using development fallback');
 
-        // Get current streak from localStorage for development mode
+        // Get current streak from localStorage for development mode (แยกตาม user ID)
         const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-        const lastResetDate = localStorage.getItem('dev_last_reset_date') || '';
+        const userKey = `dev_streak_count_${userId}`;
+        const lastResetKey = `dev_last_reset_date_${userId}`;
+        const lastResetDate = localStorage.getItem(lastResetKey) || '';
 
         // Reset daily completion if it's a new day
         if (lastResetDate !== today) {
-          localStorage.setItem('dev_completed_today', 'false');
-          localStorage.setItem('dev_last_reset_date', today);
+          localStorage.setItem(`dev_completed_today_${userId}`, 'false');
+          localStorage.setItem(lastResetKey, today);
         }
 
-        const currentStreak = parseInt(localStorage.getItem('dev_streak_count') || '0');
-        const hasCompletedToday = localStorage.getItem('dev_completed_today') === 'true';
+        const currentStreak = parseInt(localStorage.getItem(userKey) || '0');
+        const hasCompletedToday = localStorage.getItem(`dev_completed_today_${userId}`) === 'true';
+
+        console.log('🛠️ StudyStreakService: Development fallback for user', {
+          userId,
+          userKey,
+          lastResetKey,
+          currentStreak,
+          hasCompletedToday,
+          today,
+          lastResetDate
+        });
 
         const mockStreakData: StreakStatus = {
           streakCount: currentStreak,
