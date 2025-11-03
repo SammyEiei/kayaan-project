@@ -170,6 +170,21 @@
             </div>
 
             <div class="grid grid-cols-2 gap-3">
+              <!-- My Content -->
+              <router-link
+                to="/my-content"
+                class="col-span-2 group relative overflow-hidden bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border-2 border-blue-200 hover:border-blue-400 transition-all duration-200 hover:shadow-md"
+              >
+                <div class="flex flex-col items-center text-center gap-3">
+                  <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform duration-200">
+                    <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM2 11a2 2 0 012-2h12a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2v-4z" />
+                    </svg>
+                  </div>
+                  <span class="text-base font-semibold text-gray-800 group-hover:text-blue-700 transition-colors">My Content</span>
+                </div>
+              </router-link>
+
               <!-- Pomodoro Timer -->
               <router-link
                 to="/pomodoro"
@@ -182,36 +197,6 @@
                     </svg>
                   </div>
                   <span class="text-sm font-semibold text-gray-800 group-hover:text-red-700 transition-colors">Pomodoro</span>
-                </div>
-              </router-link>
-
-              <!-- My Content -->
-              <router-link
-                to="/my-content"
-                class="group relative overflow-hidden bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border-2 border-blue-200 hover:border-blue-400 transition-all duration-200 hover:shadow-md"
-              >
-                <div class="flex flex-col items-center text-center gap-2">
-                  <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform duration-200">
-                    <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM2 11a2 2 0 012-2h12a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2v-4z" />
-                    </svg>
-                  </div>
-                  <span class="text-sm font-semibold text-gray-800 group-hover:text-blue-700 transition-colors">My Content</span>
-                </div>
-              </router-link>
-
-              <!-- Calendar -->
-              <router-link
-                to="/calendar"
-                class="group relative overflow-hidden bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 border-2 border-green-200 hover:border-green-400 transition-all duration-200 hover:shadow-md"
-              >
-                <div class="flex flex-col items-center text-center gap-2">
-                  <div class="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform duration-200">
-                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                  </div>
-                  <span class="text-sm font-semibold text-gray-800 group-hover:text-green-700 transition-colors">Calendar</span>
                 </div>
               </router-link>
 
@@ -261,7 +246,7 @@
               </router-link>
           </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="grid  grid-cols-1 sm:grid-cols-2 gap-4">
               <!-- Interactive Study Notes -->
               <router-link
                 :to="{ path: '/ai-content-generator', query: { type: 'note' } }"
