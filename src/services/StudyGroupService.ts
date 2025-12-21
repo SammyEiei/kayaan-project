@@ -1,52 +1,16 @@
 import api from './api';
-
-// Types for Study Group API
-export interface StudyGroup {
-  id: number;
-  name: string;
-  description?: string;
-  ownerId: number;
-  ownerName: string;
-  memberCount: number;
-  createdAt: string;
-  updatedAt: string;
-  isOwner: boolean;
-  userRole: 'admin' | 'member';
-  members?: GroupMember[];
-}
-
-export interface GroupMember {
-  userId: number;
-  username: string;
-  firstname: string;
-  lastname: string;
-  role: 'admin' | 'member';
-  joinedAt: string;
-}
-
-export interface CreateGroupRequest {
-  name: string;
-  description?: string;
-}
-
-export interface UpdateGroupRequest {
-  name?: string;
-  description?: string;
-}
-
-export interface GroupInvite {
-  token: string;
-  expiresAt: string;
-  maxUses: number;
-  currentUses: number;
-}
-
-export interface GenerateInviteRequest {
-  expiryDays?: number;
-}
+import type {
+  StudyGroup,
+  GroupMember,
+  GroupInvite,
+  CreateGroupRequest,
+  UpdateGroupRequest,
+  InviteMemberRequest,
+  UploadResourceRequest
+} from '@/types/group';
 
 export interface JoinGroupRequest {
-  token: string; // invite code 6 ตัวอักษร
+  token: string;
 }
 
 export interface GroupContent {
@@ -61,13 +25,6 @@ export interface GroupContent {
   uploaderId: number;
   uploaderName: string;
   createdAt: string;
-}
-
-export interface UploadContentRequest {
-  title: string;
-  description?: string;
-  tags?: string;
-  file?: File;
 }
 
 export interface GroupMessage {
@@ -165,12 +122,26 @@ class StudyGroupService {
    */
   async generateInvite(groupId: number, expiryDays: number = 30): Promise<GroupInvite> {
     try {
-      const request: GenerateInviteRequest = { expiryDays };
+      const request = { expiryDays };
       const response = await api.post(`/api/groups/${groupId}/invites`, request);
       console.log('✅ New invite code generated:', response.data);
       return response.data;
     } catch (error: unknown) {
       console.error('❌ Generate invite code failed:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * อัปเดตข้อมูลกลุ่ม
+   */
+  async updateGroup(groupId: number, groupData: UpdateGroupRequest): Promise<StudyGroup> {
+    try {
+      const response = await api.patch(`/api/groups/${groupId}`, groupData);
+      console.log('✅ Group updated:', response.data);
+      return response.data;
+    } catch (error: unknown) {
+      console.error('❌ Update group failed:', error);
       throw error;
     }
   }
@@ -187,6 +158,20 @@ class StudyGroupService {
       return response.data;
     } catch (error: unknown) {
       console.error('❌ Get group members failed:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * เชิญสมาชิกเข้ากลุ่ม
+   */
+  async inviteMember(groupId: number, inviteData: InviteMemberRequest): Promise<GroupMember> {
+    try {
+      const response = await api.post(`/api/groups/${groupId}/members/invite`, inviteData);
+      console.log('✅ Member invited:', response.data);
+      return response.data;
+    } catch (error: unknown) {
+      console.error('❌ Invite member failed:', error);
       throw error;
     }
   }
@@ -240,17 +225,17 @@ class StudyGroupService {
   }
 
   /**
-   * อัปโหลดเนื้อหา
+   * อัปเดตเนื้อหา
    */
-  async uploadContent(groupId: number, contentData: UploadContentRequest): Promise<GroupContent> {
+  async uploadContent(groupId: number, contentData: UploadResourceRequest): Promise<GroupContent> {
     try {
       const formData = new FormData();
       formData.append('title', contentData.title);
       if (contentData.description) {
         formData.append('description', contentData.description);
       }
-      if (contentData.tags) {
-        formData.append('tags', contentData.tags);
+      if (contentData.tags && contentData.tags.length > 0) {
+        formData.append('tags', contentData.tags.join(','));
       }
       if (contentData.file) {
         formData.append('file', contentData.file);

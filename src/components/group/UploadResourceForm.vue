@@ -22,7 +22,12 @@ const contentUrl = ref('')
 const selectedFile = ref<File | null>(null)
 const isUploading = ref(false)
 
-const resourceTypeOptions = [
+const resourceTypeOptions: {
+  value: 'note' | 'file' | 'link'
+  label: string
+  icon: string
+  description: string
+}[] = [
   {
     value: 'note',
     label: 'Note',

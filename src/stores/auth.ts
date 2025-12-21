@@ -217,6 +217,12 @@ export const useAuthStore = defineStore('auth', {
       this.setAvatarUrl(newAvatarUrl, rotation)
     },
 
+    async refreshToken(): Promise<boolean> {
+      console.warn('refreshToken not implemented')
+      // TODO: Implement refresh token logic
+      return false
+    },
+
     /* ----- logout / reload ----- */
     logout() {
       this.token = null

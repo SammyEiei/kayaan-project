@@ -4,14 +4,14 @@ export interface StudyGroup {
   name: string
   description: string
   ownerId: string
-  inviteLinkToken: string
+  inviteLinkToken?: string
   inviteCode?: string
   createdAt: string
   memberCount: number
   isOwner: boolean
   userRole: 'member' | 'admin'
   // เพิ่มฟิลด์ใหม่
-  isPrivate: boolean
+  isPrivate?: boolean
   maxMembers?: number
   tags?: string[]
   members?: number // เพิ่มฟิลด์ members ที่ขาดหายไป
@@ -225,6 +225,9 @@ export interface UploadResourceRequest {
   file?: File
   tags?: string[]
   isPublic?: boolean
+  type?: 'note' | 'file' | 'link'
+  contentText?: string
+  contentUrl?: string
 }
 
 // เพิ่ม type ใหม่สำหรับ Add Comment Request
@@ -307,6 +310,7 @@ export interface GroupNotification {
   isRead: boolean
   createdAt: string
   actionUrl?: string
+  data?: any
 }
 
 // เพิ่ม type ใหม่สำหรับ Update Group Settings

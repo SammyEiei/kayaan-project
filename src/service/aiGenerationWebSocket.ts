@@ -1,4 +1,4 @@
-import { useAIContentStore } from '@/stores/aiContent'
+import { useAIGenerationStore } from '@/stores/aiGeneration'
 
 /**
  * WebSocket service for real-time AI generation updates
@@ -126,13 +126,13 @@ export class AIGenerationWebSocket {
    */
   private setupMessageHandlers(): void {
     this.messageHandlers.set('GENERATION_PROGRESS', (data) => {
-      const aiContentStore = useAIContentStore()
-      aiContentStore.updateRequestProgress(data.requestId, data.progress)
+      const aiGenerationStore = useAIGenerationStore()
+      aiGenerationStore.updateRequestProgress(data.requestId, data.progress)
     })
 
     this.messageHandlers.set('GENERATION_COMPLETED', (data) => {
-      const aiContentStore = useAIContentStore()
-      aiContentStore.updateRequestStatus(data.requestId, {
+      const aiGenerationStore = useAIGenerationStore()
+      aiGenerationStore.updateRequestStatus(data.requestId, {
         status: 'COMPLETED',
         progress: 100,
         completedAt: new Date().toISOString()
@@ -140,16 +140,16 @@ export class AIGenerationWebSocket {
     })
 
     this.messageHandlers.set('GENERATION_FAILED', (data) => {
-      const aiContentStore = useAIContentStore()
-      aiContentStore.updateRequestStatus(data.requestId, {
+      const aiGenerationStore = useAIGenerationStore()
+      aiGenerationStore.updateRequestStatus(data.requestId, {
         status: 'FAILED',
         errorMessage: data.errorMessage
       })
     })
 
     this.messageHandlers.set('GENERATION_STARTED', (data) => {
-      const aiContentStore = useAIContentStore()
-      aiContentStore.updateRequestStatus(data.requestId, {
+      const aiGenerationStore = useAIGenerationStore()
+      aiGenerationStore.updateRequestStatus(data.requestId, {
         status: 'PROCESSING',
         startedAt: new Date().toISOString()
       })

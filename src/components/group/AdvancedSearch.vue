@@ -2,7 +2,9 @@
   <div class="bg-white/80 backdrop-blur-sm rounded-2xl border border-white/50 p-6 shadow-xl">
     <div class="flex items-center justify-between mb-6">
       <div class="flex items-center gap-3">
-        <div class="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center">
+        <div
+          class="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center"
+        >
           <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"
@@ -27,7 +29,12 @@
           stroke="currentColor"
           viewBox="0 0 24 24"
         >
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M19 9l-7 7-7-7"
+          />
         </svg>
       </button>
     </div>
@@ -84,7 +91,12 @@
                 class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
               />
               <div class="flex items-center gap-2">
-                <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg
+                  class="w-5 h-5 text-gray-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
                   <path
                     stroke-linecap="round"
                     stroke-linejoin="round"
@@ -178,7 +190,12 @@
                 class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
               />
               <div class="flex items-center gap-2">
-                <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg
+                  class="w-5 h-5 text-gray-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
                   <path
                     stroke-linecap="round"
                     stroke-linejoin="round"
@@ -203,9 +220,7 @@
         >
           Clear All
         </button>
-        <span class="text-sm text-gray-500">
-          {{ filteredCount }} results found
-        </span>
+        <span class="text-sm text-gray-500"> {{ filteredCount }} results found </span>
       </div>
 
       <div class="flex gap-3">
@@ -236,7 +251,7 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   resources: () => [],
-  onFiltersChange: undefined
+  onFiltersChange: undefined,
 })
 
 // Search state
@@ -253,31 +268,63 @@ const sortBy = ref('newest')
 
 // Resource type options
 const resourceTypes = [
-  { value: 'note', label: 'Notes', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
-  { value: 'file', label: 'Files', icon: 'M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z' },
-  { value: 'link', label: 'Links', icon: 'M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1' },
-  { value: 'quiz', label: 'Quizzes', icon: 'M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
-  { value: 'flashcard', label: 'Flashcards', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
-  { value: 'imported_content', label: 'AI Content', icon: 'M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z' }
+  {
+    value: 'note',
+    label: 'Notes',
+    icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
+  },
+  {
+    value: 'file',
+    label: 'Files',
+    icon: 'M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z',
+  },
+  {
+    value: 'link',
+    label: 'Links',
+    icon: 'M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1',
+  },
+  {
+    value: 'quiz',
+    label: 'Quizzes',
+    icon: 'M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
+  },
+  {
+    value: 'flashcard',
+    label: 'Flashcards',
+    icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
+  },
+  {
+    value: 'imported_content',
+    label: 'AI Content',
+    icon: 'M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z',
+  },
 ]
 
 // Sort options
 const sortOptions = [
   { value: 'newest', label: 'Newest', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },
   { value: 'oldest', label: 'Oldest', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },
-  { value: 'title', label: 'Title A-Z', icon: 'M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z' },
-  { value: 'popular', label: 'Most Popular', icon: 'M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z' }
+  {
+    value: 'title',
+    label: 'Title A-Z',
+    icon: 'M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z',
+  },
+  {
+    value: 'popular',
+    label: 'Most Popular',
+    icon: 'M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z',
+  },
 ]
 
 // Computed properties
 const availableUploaders = computed(() => {
-  const uploaders = new Set(props.resources.map(r => r.uploaderName))
+  const uploaders = new Set(props.resources.map((r) => r.uploaderName))
   return Array.from(uploaders).sort()
 })
 
 const availableTags = computed(() => {
-  const tags = new Set()
-  props.resources.forEach(resource => {
+  const tags = new Set<string>()
+  props.resources.forEach((resource) => {
     if (resource.tags) {
       resource.tags.forEach((tag: string) => tags.add(tag))
     }
@@ -317,7 +364,7 @@ const applyFilters = () => {
     dateTo: dateTo.value,
     selectedUploaders: selectedUploaders.value,
     selectedTags: selectedTags.value,
-    sortBy: sortBy.value
+    sortBy: sortBy.value,
   }
 
   if (props.onFiltersChange) {
@@ -326,9 +373,13 @@ const applyFilters = () => {
 }
 
 // Watch for changes and apply filters
-watch([searchQuery, selectedTypes, dateFrom, dateTo, selectedUploaders, selectedTags, sortBy], () => {
-  applyFilters()
-}, { deep: true })
+watch(
+  [searchQuery, selectedTypes, dateFrom, dateTo, selectedUploaders, selectedTags, sortBy],
+  () => {
+    applyFilters()
+  },
+  { deep: true },
+)
 </script>
 
 <style scoped>

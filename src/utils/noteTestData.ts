@@ -168,7 +168,7 @@ export const testNoteValidation = () => {
 }
 
 // Mock data สำหรับ InteractiveNote component
-export const createMockNoteContent = (type: 'new' | 'current' | 'text' = 'current') => {
+export const createMockNoteContent = (type: 'new' | 'current' | 'text' = 'current'): any => {
   switch (type) {
     case 'new':
       return {

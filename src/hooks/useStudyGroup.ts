@@ -163,12 +163,12 @@ export function useStudyGroup() {
       await studyGroupService.updateMemberRole(Number(groupId), Number(memberId), role as 'admin' | 'member')
 
       // Update local state
-      const memberIndex = groupMembers.value.findIndex(m => m.userId === memberId)
+      const memberIndex = groupMembers.value.findIndex(m => String(m.userId) === memberId)
       if (memberIndex !== -1) {
-        groupMembers.value[memberIndex] = { ...groupMembers.value[memberIndex], ...response.data }
+        groupMembers.value[memberIndex] = { ...groupMembers.value[memberIndex], role: role as 'admin' | 'member' }
       }
 
-      return response.data
+      return groupMembers.value[memberIndex]
     } catch (err: any) {
       const errorMessage = err.message || 'เกิดข้อผิดพลาดในการอัปเดตบทบาทสมาชิก'
       setError(errorMessage)
@@ -201,7 +201,7 @@ export function useStudyGroup() {
     try {
       setLoading(true)
       clearError()
-      const response = await studyGroupService.generateInvite(Number(groupId), inviteData.expiryDays || 30)
+      const response = await studyGroupService.generateInvite(Number(groupId), inviteData.expiresInDays || 30)
       groupInvites.value.unshift(response)
       return response
     } catch (err: any) {
@@ -388,7 +388,7 @@ export function useStudyGroup() {
     try {
       setLoading(true)
       clearError()
-      const response = await studyGroupService.joinGroup(joinData.token)
+      const response = await studyGroupService.joinGroup(joinData.inviteCode)
       groups.value.push(response)
       return response
     } catch (err: any) {

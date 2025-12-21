@@ -253,7 +253,7 @@ class AIContentService {
       id: Date.now().toString(),
       type: request.type as 'summary' | 'quiz' | 'flashcard' | 'notes',
       title: `Generated ${request.type} content`,
-      content: `This is AI-generated content based on the prompt: "${request.prompt}"\n\nThis content was generated using model ${request.model} with temperature ${request.temperature} and max tokens ${request.maxTokens} in ${request.language === 'en' ? 'English' : request.language}.\n\nYou can edit this content as needed.`,
+      content: `This is AI-generated content based on the prompt: "${request.prompt}"\n\nThis content was generated using default model with default settings.\n\nYou can edit this content as needed.`,
       sourcePrompt: request.prompt,
       createdAt: new Date(),
       isShared: false,

@@ -28,14 +28,24 @@
                       class="relative w-16 h-16 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-110"
                     >
                       <!-- Kayaan Minimal Face Logo -->
-                      <div class="w-10 h-10 bg-white rounded-full flex items-center justify-center kayaan-face relative kayaan-logo">
+                      <div
+                        class="w-10 h-10 bg-white rounded-full flex items-center justify-center kayaan-face relative kayaan-logo"
+                      >
                         <!-- Sparkles -->
-                        <div class="absolute top-1 right-1 w-1 h-1 bg-yellow-300 rounded-full opacity-70 kayaan-sparkle"></div>
-                        <div class="absolute bottom-1 left-1 w-0.5 h-0.5 bg-pink-300 rounded-full opacity-60 kayaan-sparkle-small"></div>
+                        <div
+                          class="absolute top-1 right-1 w-1 h-1 bg-yellow-300 rounded-full opacity-70 kayaan-sparkle"
+                        ></div>
+                        <div
+                          class="absolute bottom-1 left-1 w-0.5 h-0.5 bg-pink-300 rounded-full opacity-60 kayaan-sparkle-small"
+                        ></div>
 
                         <!-- Cheeks -->
-                        <div class="absolute left-1 bottom-3 w-1 h-1 bg-pink-300 rounded-full opacity-60 kayaan-blush"></div>
-                        <div class="absolute right-1 bottom-3 w-1 h-1 bg-pink-300 rounded-full opacity-60 kayaan-blush"></div>
+                        <div
+                          class="absolute left-1 bottom-3 w-1 h-1 bg-pink-300 rounded-full opacity-60 kayaan-blush"
+                        ></div>
+                        <div
+                          class="absolute right-1 bottom-3 w-1 h-1 bg-pink-300 rounded-full opacity-60 kayaan-blush"
+                        ></div>
 
                         <!-- Minimal Face -->
                         <div class="relative kayaan-eye-container">
@@ -45,7 +55,9 @@
                             <div class="w-2 h-2 bg-slate-600 rounded-full kayaan-eye"></div>
                           </div>
                           <!-- Smile -->
-                          <div class="w-4 h-2 border-b-2 border-slate-600 rounded-full kayaan-smile"></div>
+                          <div
+                            class="w-4 h-2 border-b-2 border-slate-600 rounded-full kayaan-smile"
+                          ></div>
                         </div>
                       </div>
                     </div>
@@ -69,7 +81,11 @@
                   <span class="text-sm text-gray-500 font-medium">Learning Hub</span>
                 </div>
                 <p class="text-gray-600">
-                  {{ success ? 'Password reset successful!' : 'Enter the 6-digit code from your email and set a new password' }}
+                  {{
+                    success
+                      ? 'Password reset successful!'
+                      : 'Enter the 6-digit code from your email and set a new password'
+                  }}
                 </p>
               </div>
             </div>
@@ -112,14 +128,8 @@
               </div>
             </div>
 
-
             <!-- Form -->
-            <form
-              v-if="!success"
-              @submit.prevent="onSubmit"
-              class="space-y-6"
-              novalidate
-            >
+            <form v-if="!success" @submit.prevent="onSubmit" class="space-y-6" novalidate>
               <!-- Reset Code Input -->
               <div>
                 <label for="resetCode" class="block text-sm font-medium text-gray-700 mb-2"
@@ -337,7 +347,11 @@ const schema = yup.object({
 })
 
 // Use vee-validate form
-const { handleSubmit, errors } = useForm({
+const { handleSubmit, errors } = useForm<{
+  resetCode: string
+  password: string
+  confirmPassword: string
+}>({
   validationSchema: schema,
 })
 
@@ -383,13 +397,16 @@ const onSubmit = handleSubmit(async (values: { resetCode: string; password: stri
       status: error.response?.status,
       message: error.response?.data?.message,
       success: error.response?.data?.success,
-      fullError: error
+      fullError: error,
     })
 
     const apiError = error.response?.data?.message || error.message
 
     // Handle different error types
-    if (apiError?.toLowerCase().includes('invalid') || apiError?.toLowerCase().includes('expired')) {
+    if (
+      apiError?.toLowerCase().includes('invalid') ||
+      apiError?.toLowerCase().includes('expired')
+    ) {
       errorMessage.value = 'Invalid or expired reset code. Please request a new one.'
     } else if (apiError?.toLowerCase().includes('used')) {
       errorMessage.value = 'This reset code has already been used. Please request a new one.'
@@ -438,15 +455,30 @@ const onSubmit = handleSubmit(async (values: { resetCode: string; password: stri
 }
 
 @keyframes blink {
-  0%, 90%, 100% { opacity: 1; }
-  95% { opacity: 0.3; }
+  0%,
+  90%,
+  100% {
+    opacity: 1;
+  }
+  95% {
+    opacity: 0.3;
+  }
 }
 
 @keyframes eye-movement {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(0.5px); }
-  50% { transform: translateX(0); }
-  75% { transform: translateX(-0.5px); }
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(0.5px);
+  }
+  50% {
+    transform: translateX(0);
+  }
+  75% {
+    transform: translateX(-0.5px);
+  }
 }
 
 .kayaan-smile {
@@ -464,7 +496,8 @@ const onSubmit = handleSubmit(async (values: { resetCode: string; password: stri
 }
 
 @keyframes sparkle-pulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(0.8);
     opacity: 0.4;
   }
@@ -480,7 +513,8 @@ const onSubmit = handleSubmit(async (values: { resetCode: string; password: stri
 }
 
 @keyframes blush-glow {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0.4;
   }
   50% {

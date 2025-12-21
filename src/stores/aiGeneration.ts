@@ -433,6 +433,15 @@ export const useAIGenerationStore = defineStore('aiGeneration', () => {
     }
   }
 
+  const getGenerationStatus = async (requestId: number): Promise<GenerationStatus> => {
+    try {
+      return await aiContentService.getGenerationStatus(requestId)
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Failed to get generation status'
+      throw err
+    }
+  }
+
   const getGenerationStats = async () => {
     try {
       return await aiContentService.getGenerationStats()
@@ -515,6 +524,7 @@ export const useAIGenerationStore = defineStore('aiGeneration', () => {
     downloadContent,
     deleteContent,
     previewContent,
+    getGenerationStatus,
     getGenerationStats,
     setError,
     clearError,

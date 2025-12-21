@@ -30,7 +30,7 @@ const hasUnreadNotifications = computed(() => unreadCount.value > 0)
 const recentNotifications = computed(() =>
   notifications.value
     .slice(0, 5)
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
 )
 
 // Methods
@@ -52,7 +52,7 @@ const fetchNotifications = async () => {
         message: 'John Doe posted a new message in the group',
         data: { postId: 'post1', authorName: 'John Doe' },
         isRead: false,
-        createdAt: new Date(Date.now() - 5 * 60 * 1000).toISOString()
+        createdAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
       },
       {
         id: '2',
@@ -63,19 +63,23 @@ const fetchNotifications = async () => {
         message: 'Jane Smith commented on a post',
         data: { postId: 'post1', commentId: 'comment1', authorName: 'Jane Smith' },
         isRead: false,
-        createdAt: new Date(Date.now() - 15 * 60 * 1000).toISOString()
+        createdAt: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
       },
       {
         id: '3',
         groupId: props.groupId,
         userId: 'user3',
-        type: 'resource_uploaded',
+        type: 'new_resource',
         title: 'New Resource',
         message: 'Mike Johnson uploaded a new file',
-        data: { resourceId: 'resource1', resourceName: 'Study Notes.pdf', authorName: 'Mike Johnson' },
+        data: {
+          resourceId: 'resource1',
+          resourceName: 'Study Notes.pdf',
+          authorName: 'Mike Johnson',
+        },
         isRead: true,
-        createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
-      }
+        createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+      },
     ]
 
     updateUnreadCount()
@@ -92,7 +96,7 @@ const markAsRead = async (notificationId: string) => {
     // await groupService.markNotificationAsRead(notificationId)
 
     // Update local state
-    const notification = notifications.value.find(n => n.id === notificationId)
+    const notification = notifications.value.find((n) => n.id === notificationId)
     if (notification) {
       notification.isRead = true
       updateUnreadCount()
@@ -108,7 +112,7 @@ const markAllAsRead = async () => {
     // await groupService.markAllNotificationsAsRead(props.groupId)
 
     // Update local state
-    notifications.value.forEach(n => n.isRead = true)
+    notifications.value.forEach((n) => (n.isRead = true))
     updateUnreadCount()
   } catch (error) {
     console.error('Failed to mark all notifications as read:', error)
@@ -121,7 +125,7 @@ const deleteNotification = async (notificationId: string) => {
     // await groupService.deleteNotification(notificationId)
 
     // Remove from local state
-    notifications.value = notifications.value.filter(n => n.id !== notificationId)
+    notifications.value = notifications.value.filter((n) => n.id !== notificationId)
     updateUnreadCount()
   } catch (error) {
     console.error('Failed to delete notification:', error)
@@ -129,7 +133,7 @@ const deleteNotification = async (notificationId: string) => {
 }
 
 const updateUnreadCount = () => {
-  unreadCount.value = notifications.value.filter(n => !n.isRead).length
+  unreadCount.value = notifications.value.filter((n) => !n.isRead).length
 }
 
 const getNotificationIcon = (type: string) => {
@@ -229,12 +233,12 @@ const setupWebSocket = () => {
           id: Date.now().toString(),
           groupId: props.groupId,
           userId: 'system',
-          type: 'post',
+          type: 'new_post',
           title: 'New Activity',
           message: 'Someone posted a new message in the group',
           data: { postId: 'new-post', authorName: 'Group Member' },
           isRead: false,
-          createdAt: new Date().toISOString()
+          createdAt: new Date().toISOString(),
         }
 
         notifications.value.unshift(newNotification)
@@ -245,11 +249,10 @@ const setupWebSocket = () => {
           type: 'info',
           title: newNotification.title,
           message: newNotification.message,
-          groupId: props.groupId
+          groupId: props.groupId,
         })
       }
     }, 30000)
-
   } catch (error) {
     console.error('Failed to setup WebSocket:', error)
   }
@@ -281,7 +284,12 @@ onUnmounted(() => {
       class="relative p-2 text-gray-600 hover:text-gray-800 transition-colors duration-200"
     >
       <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5v-5zM4.19 4H20c1.84 0 3.43 1.12 4.12 2.7A6 6 0 0122 11v5a4 4 0 01-4 4H4a4 4 0 01-4-4v-5a6 6 0 016-6z" />
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M15 17h5l-5 5v-5zM4.19 4H20c1.84 0 3.43 1.12 4.12 2.7A6 6 0 0122 11v5a4 4 0 01-4 4H4a4 4 0 01-4-4v-5a6 6 0 016-6z"
+        />
       </svg>
 
       <!-- Unread Badge -->
@@ -310,12 +318,14 @@ onUnmounted(() => {
             >
               Mark all read
             </button>
-            <button
-              @click="showNotifications = false"
-              class="text-gray-400 hover:text-gray-600"
-            >
+            <button @click="showNotifications = false" class="text-gray-400 hover:text-gray-600">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           </div>
@@ -324,9 +334,7 @@ onUnmounted(() => {
 
       <!-- Notifications List -->
       <div class="max-h-96 overflow-y-auto">
-        <div v-if="loading" class="p-4 text-center text-gray-500">
-          Loading notifications...
-        </div>
+        <div v-if="loading" class="p-4 text-center text-gray-500">Loading notifications...</div>
 
         <div v-else-if="notifications.length === 0" class="p-4 text-center text-gray-500">
           No notifications yet
@@ -348,10 +356,7 @@ onUnmounted(() => {
               <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2 mb-1">
                   <h4 class="text-sm font-medium text-gray-900">{{ notification.title }}</h4>
-                  <span
-                    v-if="!notification.isRead"
-                    class="w-2 h-2 bg-blue-500 rounded-full"
-                  ></span>
+                  <span v-if="!notification.isRead" class="w-2 h-2 bg-blue-500 rounded-full"></span>
                 </div>
 
                 <p class="text-sm text-gray-600 mb-2">{{ notification.message }}</p>

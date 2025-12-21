@@ -28,14 +28,24 @@
                       class="relative w-16 h-16 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-110"
                     >
                       <!-- Kayaan Minimal Face Logo -->
-                      <div class="w-10 h-10 bg-white rounded-full flex items-center justify-center kayaan-face relative kayaan-logo">
+                      <div
+                        class="w-10 h-10 bg-white rounded-full flex items-center justify-center kayaan-face relative kayaan-logo"
+                      >
                         <!-- Sparkles -->
-                        <div class="absolute top-1 right-1 w-1 h-1 bg-yellow-300 rounded-full opacity-70 kayaan-sparkle"></div>
-                        <div class="absolute bottom-1 left-1 w-0.5 h-0.5 bg-pink-300 rounded-full opacity-60 kayaan-sparkle-small"></div>
+                        <div
+                          class="absolute top-1 right-1 w-1 h-1 bg-yellow-300 rounded-full opacity-70 kayaan-sparkle"
+                        ></div>
+                        <div
+                          class="absolute bottom-1 left-1 w-0.5 h-0.5 bg-pink-300 rounded-full opacity-60 kayaan-sparkle-small"
+                        ></div>
 
                         <!-- Cheeks -->
-                        <div class="absolute left-1 bottom-3 w-1 h-1 bg-pink-300 rounded-full opacity-60 kayaan-blush"></div>
-                        <div class="absolute right-1 bottom-3 w-1 h-1 bg-pink-300 rounded-full opacity-60 kayaan-blush"></div>
+                        <div
+                          class="absolute left-1 bottom-3 w-1 h-1 bg-pink-300 rounded-full opacity-60 kayaan-blush"
+                        ></div>
+                        <div
+                          class="absolute right-1 bottom-3 w-1 h-1 bg-pink-300 rounded-full opacity-60 kayaan-blush"
+                        ></div>
 
                         <!-- Minimal Face -->
                         <div class="relative kayaan-eye-container">
@@ -45,7 +55,9 @@
                             <div class="w-2 h-2 bg-slate-600 rounded-full kayaan-eye"></div>
                           </div>
                           <!-- Smile -->
-                          <div class="w-4 h-2 border-b-2 border-slate-600 rounded-full kayaan-smile"></div>
+                          <div
+                            class="w-4 h-2 border-b-2 border-slate-600 rounded-full kayaan-smile"
+                          ></div>
                         </div>
                       </div>
                     </div>
@@ -69,7 +81,11 @@
                   <span class="text-sm text-gray-500 font-medium">Learning Hub</span>
                 </div>
                 <p class="text-gray-600">
-                  {{ emailSent ? 'We have sent you a reset code!' : 'Enter your email to reset password' }}
+                  {{
+                    emailSent
+                      ? 'We have sent you a reset code!'
+                      : 'Enter your email to reset password'
+                  }}
                 </p>
               </div>
             </div>
@@ -91,11 +107,10 @@
                     Reset code sent successfully!
                   </p>
                   <p class="text-sm text-green-600">
-                    If an account exists with that email, we've sent a 6-character reset code. Please check your inbox and spam folder.
+                    If an account exists with that email, we've sent a 6-character reset code.
+                    Please check your inbox and spam folder.
                   </p>
-                  <p class="text-xs text-green-600 mt-2">
-                    ⏰ The code will expire in 15 minutes
-                  </p>
+                  <p class="text-xs text-green-600 mt-2">⏰ The code will expire in 15 minutes</p>
                 </div>
               </div>
             </div>
@@ -245,7 +260,7 @@ const schema = yup.object({
 })
 
 // Use vee-validate form
-const { handleSubmit, errors } = useForm({
+const { handleSubmit, errors } = useForm<{ email: string }>({
   validationSchema: schema,
 })
 
@@ -273,7 +288,7 @@ const onSubmit = handleSubmit(async (values: { email: string }) => {
         success: response.data.success,
         message: response.data.message,
         email: response.data.email,
-        fullData: response.data
+        fullData: response.data,
       })
     }
 
@@ -297,21 +312,28 @@ const onSubmit = handleSubmit(async (values: { email: string }) => {
       status: error.response?.status,
       message: error.response?.data?.message,
       success: error.response?.data?.success,
-      fullError: error
+      fullError: error,
     })
 
     // Check if it's a real error or just security response
     if (error.response?.status && error.response.status >= 500) {
       // Server error - show error message
-      const backendMessage = error.response?.data?.message || 'Server error. Please try again later.'
+      const backendMessage =
+        error.response?.data?.message || 'Server error. Please try again later.'
 
       // Specific error handling
       if (backendMessage.includes('Conversion') || backendMessage.includes('Flags')) {
-        errorMessage.value = '🔧 Backend Configuration Error: Email template has formatting issues. Please contact the system administrator to fix the email template in EmailService.java'
+        errorMessage.value =
+          '🔧 Backend Configuration Error: Email template has formatting issues. Please contact the system administrator to fix the email template in EmailService.java'
       } else if (backendMessage.includes('Authentication') || backendMessage.includes('535')) {
-        errorMessage.value = '🔐 Gmail Authentication Failed: Backend cannot login to Gmail. Please configure Gmail App Password in Backend environment variables.'
-      } else if (backendMessage.includes('Failed to send email') || backendMessage.toLowerCase().includes('mail')) {
-        errorMessage.value = '📧 Email Service Error: Unable to send email. Please check Backend email configuration (SMTP settings).'
+        errorMessage.value =
+          '🔐 Gmail Authentication Failed: Backend cannot login to Gmail. Please configure Gmail App Password in Backend environment variables.'
+      } else if (
+        backendMessage.includes('Failed to send email') ||
+        backendMessage.toLowerCase().includes('mail')
+      ) {
+        errorMessage.value =
+          '📧 Email Service Error: Unable to send email. Please check Backend email configuration (SMTP settings).'
       } else {
         errorMessage.value = `🚨 Server Error: ${backendMessage}`
       }
@@ -361,15 +383,30 @@ const onSubmit = handleSubmit(async (values: { email: string }) => {
 }
 
 @keyframes blink {
-  0%, 90%, 100% { opacity: 1; }
-  95% { opacity: 0.3; }
+  0%,
+  90%,
+  100% {
+    opacity: 1;
+  }
+  95% {
+    opacity: 0.3;
+  }
 }
 
 @keyframes eye-movement {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(0.5px); }
-  50% { transform: translateX(0); }
-  75% { transform: translateX(-0.5px); }
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(0.5px);
+  }
+  50% {
+    transform: translateX(0);
+  }
+  75% {
+    transform: translateX(-0.5px);
+  }
 }
 
 .kayaan-smile {
@@ -387,7 +424,8 @@ const onSubmit = handleSubmit(async (values: { email: string }) => {
 }
 
 @keyframes sparkle-pulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(0.8);
     opacity: 0.4;
   }
@@ -403,7 +441,8 @@ const onSubmit = handleSubmit(async (values: { email: string }) => {
 }
 
 @keyframes blush-glow {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0.4;
   }
   50% {
