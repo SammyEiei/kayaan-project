@@ -10,6 +10,7 @@
     "lib": ["esnext", "dom"],
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
+    "skipLibCheck": true,
     "paths": {
       "@/*": ["src/*"]
     }

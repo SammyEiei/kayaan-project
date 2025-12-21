@@ -142,7 +142,7 @@ router.beforeEach((to, from, next) => {
     if (!auth.token) {
       return next({ name: 'login' })
     }
-    if (to.meta.requiresRole && !auth.user?.roles.includes(to.meta.requiresRole)) {
+    if (to.meta.requiresRole && auth.user?.roles && !auth.user.roles.includes(to.meta.requiresRole as string)) {
       return next({ name: 'home' })
     }
   }

@@ -687,7 +687,9 @@ function toggleTheme() {
   } else {
     // Fallback to random theme
     const randomTheme = themeStore.getRandomTheme()
-    themeStore.applyTheme(randomTheme)
+    if (randomTheme) {
+      themeStore.applyTheme(randomTheme)
+    }
   }
 }
 

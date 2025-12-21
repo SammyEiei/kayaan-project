@@ -133,7 +133,7 @@ const getNotificationClasses = (type: Notification['type']) => {
 
 // Progress bar animation
 const progressWidth = ref(100)
-let progressInterval: number | null = null
+let progressInterval: ReturnType<typeof setInterval> | null = null
 
 onMounted(() => {
   progressInterval = setInterval(() => {
